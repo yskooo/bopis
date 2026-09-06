@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOPIS — AI Optimizer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #E8F0F8;
+    color: #1A202C; 
+    display: flex; 
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ─ SIEDB​​AR ────────── */
+.sidebar {
+    width: 260px;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    border-right: 1px solid #E2E8F0;
+    z-index: 10;
+}
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+    padding: 0 8px;
+}
+.avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #EDF2F7;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; color: #2B6CB0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.user-name { font-weight: 600; font-size: 15px; color: #2D3748; }
+
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4A5568;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.nav-item:hover { background: #F7FAFC; }
+.nav-item.active {
+    background: #EDF2F7;
+    color: #1A202C;
+}
+.nav-icon { width: 18px; height: 18px; fill: currentColor; }
+
+.sidebar-bottom { margin-top: auto; }
+.status-card {
+    background: #F7FAFC;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+.status-card h4 { font-size: 12px; color: #4A5568; margin-bottom: 4px; font-weight: 600; }
+.status-card p { font-size: 11px; color: #718096; margin-bottom: 12px; }
+.btn-upgrade {
+    background: #4299E1;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+}
+.btn-upgrade:hover { background: #3182CE; }
+
+/* ─ MAIN CONTENT ────────── */
+.main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-y: auto;
+    padding: 40px 60px;
+}
+.panel { display: none; flex-direction: column; gap: 24px; padding-bottom: 100px; }
+.panel.active { display: flex; }
+
+.page-header { margin-bottom: 16px; }
+.page-title { margin-bottom: 8px; font-size: 32px; font-weight: 700; color: #2B6CB0; }
+.page-subtitle { font-size: 24px; font-weight: 500; color: #718096; }
+
+/* ─ DASHBOARD CARDS ────────── */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.app-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    border: 1px solid #E2E8F0;
+}
+.app-card.yellow-tint { background: #FFFFF0; border-color: #F6E05E; }
+.card-header { font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 12px; display: flex; justify-content: space-between;}
+.card-value { font-size: 28px; font-weight: 700; color: #1A202C; margin-bottom: 4px; }
+.card-subtext { font-size: 12px; color: #718096; display: flex; gap: 6px; align-items: center;}
+.tag { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+.tag.green { background: #C6F6D5; color: #22543D; }
+.tag.red { background: #FED7D7; color: #822727; }
+.tag.blue { background: #BEE3F8; color: #2C5282; }
+
+/* ─ CHAT ────────── */
+.chat-container { display: flex; flex-direction: column; gap: 24px; margin-top: 10px; padding-bottom: 60px; }
+.msg { display: flex; flex-direction: column; gap: 8px; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.user-prompt { font-size: 16px; font-weight: 500; color: #1A202C; background: #FFFBEA; padding: 6px 12px; border-radius: 8px; display: inline-block; align-self: flex-start;}
+.thought-process { font-size: 12px; color: #718096; display: flex; align-items: center; gap: 6px; font-weight: 500; font-style:italic;}
+
+.ai-response {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    border: 1px solid #E2E8F0;
+    max-width: 800px;
+    font-size: 14px;
+}
+.task-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #EDF2F7; border-radius: 12px; font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 12px;}
+.cfg-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #EDF2F7; font-size: 13px; }
+.cfg-row:last-child { border-bottom: none; }
+.cfg-k { color: #718096; }
+.cfg-v { font-weight: 600; color: #2D3748; }
+
+.action-bar { display: flex; gap: 8px; margin-top: 16px; flex-wrap:wrap; }
+.btn-action {
+    background: #EDF2F7; border: none; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; color: #4A5568; cursor: pointer; transition: 0.2s;
+}
+.btn-action:hover { background: #E2E8F0; color: #2B6CB0; }
+
+/* ─ INPUT BAR ────────── */
+.input-dock {
+    position: fixed;
+    bottom: 30px;
+    left: 280px; 
+    right: 30px;
+    display: none; /* hidden by default, shown via JS */
+    justify-content: center;
+    pointer-events: none;
+    z-index: 20;
+}
+.input-dock.active { display: flex; }
+.input-wrapper {
+    background: #FFFFFF;
+    border-radius: 30px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 700px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    border: 1px solid #E2E8F0;
+    pointer-events: auto;
+}
+.input-wrapper input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: #2D3748;
+    background: transparent;
+    padding: 8px 4px;
+    font-family: inherit;
+}
+.input-wrapper input::placeholder { color: #A0AEC0; }
+.btn-add { background: transparent; border: none; color: #A0AEC0; cursor: pointer; font-size: 24px; padding: 0 4px;}
+.btn-add:hover { color: #2B6CB0; }
+.btn-send {
+    background: #E2E8F0; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #4A5568; cursor: pointer; transition: 0.2s;
+}
+.btn-send:hover { background: #4299E1; color: #FFF; }
+
+/* ─ CHARTS / TABLES ────────── */
+.chart-container { margin-top: 16px; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: #FFF; }
+.rules-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.rules-table th { text-align: left; padding: 12px 8px; color: #718096; font-weight: 500; border-bottom: 1px solid #E2E8F0; }
+.rules-table td { padding: 12px 8px; border-bottom: 1px solid #EDF2F7; color: #2D3748; }
+
+.hw-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #EBF8FF; color: #2B6CB0; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #90CDF4; margin-bottom: 4px; }
+.hw-dot { width: 6px; height: 6px; background: #3182CE; border-radius: 50%; }
+
+.detail-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid #EDF2F7; }
+.detail-row:last-child { border-bottom: none; }
+.detail-n { font-weight: 600; font-size: 14px; color: #2B6CB0; }
+.detail-d { font-size: 13px; color: #4A5568; line-height: 1.5; }
+.formula-box { background: #F7FAFC; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #2D3748; margin-top: 6px; border: 1px dashed #CBD5E0;}
+
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <div class="user-profile">
+        <div class="avatar">B</div>
+        <div style="display:flex; flex-direction:column">
+            <span class="user-name">BOPIS System</span>
+            <span style="font-size:11px; color:#718096">Local LLM Optimizer</span>
+        </div>
+    </div>
+    
+    <ul class="nav-links">
+        <li class="nav-item active" onclick="sw('chat', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+            Optimization Chat
+        </li>
+        <li class="nav-item" onclick="sw('tech', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            Dashboard Overview
+        </li>
+        <li class="nav-item" onclick="sw('cfg', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 C11.57,21.83,11.77,22,12,22h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.7z"/></svg>
+            System Settings
+        </li>
+    </ul>
+
+    <div class="sidebar-bottom">
+        <div class="status-card">
+            <h4>Optimization Active</h4>
+            <p>34 configs calibrated</p>
+            <button class="btn-upgrade">Recalibrate HW</button>
+        </div>
+    </div>
+</nav>
+
+<main class="main-area">
+    <!-- ─ CHAT PANEL ────────── -->
+    <div id="panel-chat" class="panel active">
+        
+        <div class="page-header">
+            <h1 class="page-title">Welcome, BOPIS-er! 👋</h1>
+            <h2 class="page-subtitle">How can I optimize your prompts today?</h2>
+        </div>
+
+        <div class="cards-grid">
+            <div class="app-card yellow-tint">
+                <div class="card-header">Hardware Status</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <span class="hw-pill"><div class="hw-dot"></div>GPU detected</span>
+                    <span class="hw-pill"><div class="hw-dot"></div>CPU profiled</span>
+                    <span class="hw-pill"><div class="hw-dot"></div>RAM checked</span>
+                </div>
+                <p style="margin-top:12px; font-size:12px; color:#4A5568"><strong>System ready.</strong> Pareto pool loaded.</p>
+            </div>
+            <div class="app-card" style="cursor:pointer;" onclick="sendPrompt('Summarize the key findings from this climate policy report.')">
+                <div class="card-header">Suggested Task</div>
+                <h3 style="font-size:16px; color:#2D3748; margin-bottom:8px">Summarize a document</h3>
+                <p style="font-size:12px; color:#718096">Optimized with INT8 for efficiency</p>
+            </div>
+            <div class="app-card" style="cursor:pointer;" onclick="sendPrompt('What is the capital of France?')">
+                <div class="card-header">Suggested Task</div>
+                <h3 style="font-size:16px; color:#2D3748; margin-bottom:8px">Run a factual query</h3>
+                <p style="font-size:12px; color:#718096">Optimized with FP16 for precision</p>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chat-area">
+            <!-- Dynamic chat messages go here -->
+        </div>
+
+    </div>
+
+    <!-- ─ DASHBOARD PANEL ────────── -->
+    <div id="panel-tech" class="panel">
+        <div class="page-header">
+            <h1 class="page-title">Optimization Dashboard</h1>
+            <h2 class="page-subtitle">Monitor energy savings and performance.</h2>
+        </div>
+
+        <div class="cards-grid">
+            <div class="app-card">
+                <div class="card-header">Session Prompts</div>
+                <div class="card-value">42</div>
+                <div class="card-subtext"><span class="tag green">Active</span> Processed today</div>
+            </div>
+            <div class="app-card">
+                <div class="card-header">Energy Total & Savings</div>
+                <div class="card-value">1,847 <span style="font-size:14px;color:#718096">J</span></div>
+                <div class="card-subtext"><span class="tag green">↓ 54% vs default</span> ₱0.003 saved</div>
+            </div>
+            <div class="app-card">
+                <div class="card-header">Avg Generation Speed</div>
+                <div class="card-value">44 <span style="font-size:14px;color:#718096">tok/s</span></div>
+                <div class="card-subtext"><span class="tag green">↑ 18% vs default</span></div>
+            </div>
+            <div class="app-card">
+                <div class="card-header">Overall Quality</div>
+                <div class="card-value">0.81 <span style="font-size:14px;color:#718096">F1</span></div>
+                <div class="card-subtext"><span class="tag blue">Stable</span> within threshold</div>
+            </div>
+        </div>
+
+        <div class="cards-grid" style="margin-top:16px;">
+            <div class="app-card" style="grid-column: 1 / -1;">
+                <div class="card-header">Pareto Front — Energy vs. Quality vs. Speed (Bubble Size)</div>
+                <div class="chart-container">
+                    <canvas id="pareto" width="800" height="200" style="max-width:100%"></canvas>
+                </div>
+            </div>
+            
+            <!-- Wrapper to force true 50:50 layout on these two cards -->
+            <div style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <div class="app-card">
+                    <div class="card-header">Live Quantization Rules</div>
+                    <table class="rules-table">
+                        <thead>
+                            <tr><th>Task type</th><th>Base Min (F1)</th><th>Precision</th><th>Energy Savings</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Closed QA / Extraction</td><td>>= 0.82</td><td><span class="tag blue">FP16</span></td><td>~1.5x reduction</td></tr>
+                            <tr><td>Summarization</td><td>>= 0.78</td><td><span class="tag green">INT8</span></td><td>~2.0x reduction</td></tr>
+                            <tr><td>Classification</td><td>>= 0.78</td><td><span class="tag green">INT8</span></td><td>~2.2x reduction</td></tr>
+                            <tr><td>Creative generation</td><td>>= 0.72</td><td><span class="tag green">INT8</span></td><td>~2.6x reduction</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="app-card">
+                    <div class="card-header">Amortization — Calibration Cost Recovery</div>
+                    <div class="detail-row">
+                        <div class="detail-n">N*=23</div>
+                        <div class="detail-d">Break-even prompt count. After 23 prompts, calibration energy is recovered. Session: 42 prompts — net positive.</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-n">C_bo (Calibration cost)</div>
+                        <div class="detail-d"><strong>1,014 J</strong> — one-time, stored to disk, not repeated unless hardware changes.</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-n">dE (Savings per prompt)</div>
+                        <div class="detail-d"><strong>44.1 J/token</strong> vs default 96.2 J/token.</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-n">₱/run (Cost per 1,000 prompts)</div>
+                        <div class="detail-d">At ₱14.35/kWh — Default: <strong>₱0.38</strong> | Random: <strong>₱0.27</strong> | BOPIS: <strong>₱0.18</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-card" style="grid-column: 1 / -1;">
+                <div class="card-header">BOPIS Optimization Model — Key Formulas</div>
+                <div class="cards-grid">
+                    <div><span class="detail-d">Inference Configuration Vector</span><div class="formula-box">x = (t, b, p, g, c)</div></div>
+                    <div><span class="detail-d">Objective Function (Minimization)</span><div class="formula-box">f(x) = {E(x), -S(x), -Q(x)}</div></div>
+                    <div><span class="detail-d">Optimization Goal</span><div class="formula-box" style="white-space: pre-wrap; line-height: 1.4;">x* = argmin E(x)
+s.t. S(x) ≥ S_min(H)
+     Q(x) ≥ Q_min(task)</div></div>
+                    <div><span class="detail-d">Pareto Optimality Condition</span><div class="formula-box">f_i(x) ≤ f_i(x*) ∀i &amp; f_j(x) &lt; f_j(x*) ∃j</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─ SETTINGS PANEL ────────── -->
+    <div id="panel-cfg" class="panel">
+        <div class="page-header">
+            <h1 class="page-title">System Settings</h1>
+        </div>
+
+        <div class="cards-grid">
+            <div class="app-card">
+                <div class="card-header">Hardware Profile (Read-only)</div>
+                <div class="cfg-row"><span class="cfg-k">GPU model</span><span class="cfg-v">[detected on calibration]</span></div>
+                <div class="cfg-row"><span class="cfg-k">VRAM available</span><span class="cfg-v">[detected]</span></div>
+                <div class="cfg-row"><span class="cfg-k">CPU cores</span><span class="cfg-v">[detected]</span></div>
+                <div class="cfg-row"><span class="cfg-k">System RAM</span><span class="cfg-v">[detected]</span></div>
+                <div class="cfg-row"><span class="cfg-k">Feasible precision matrix</span><span class="cfg-v"><span class="tag blue">FP32</span> <span class="tag blue">FP16</span> <span class="tag green">INT8</span></span></div>
+                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Recalibration rebuilds the optimal Pareto pool by testing various combinations. Only recalibrate when system hardware changes.</p>
+                <div style="margin-top:16px;">
+                    <button class="btn-action">Run Hardware Calibration</button>
+                </div>
+            </div>
+            
+            <div class="app-card">
+                <div class="card-header">Calibration Thresholds</div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Closed QA / extraction)</span><span class="cfg-v">0.82 F1</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Summarization / Open QA)</span><span class="cfg-v">0.78 F1</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Classification)</span><span class="cfg-v">0.78 F1</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Creative / Brainstorming)</span><span class="cfg-v">0.72 F1</span></div>
+                <div class="cfg-row"><span class="cfg-k">S_min (Minimum speed floor)</span><span class="cfg-v">derived from p10</span></div>
+                <div class="cfg-row"><span class="cfg-k">BO iterations completed</span><span class="cfg-v">34</span></div>
+                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Thresholds are determined automatically. To update them, re-run calibration.</p>
+            </div>
+
+            <div class="app-card">
+                <div class="card-header">Model & Execution Backend</div>
+                <div class="cfg-row"><span class="cfg-k">Model Weight Format</span><span class="cfg-v">GGUF via llama.cpp</span></div>
+                <div class="cfg-row"><span class="cfg-k">Inference Server</span><span class="cfg-v">Ollama</span></div>
+                <div class="cfg-row"><span class="cfg-k">GPU Energy tool</span><span class="cfg-v">pynvml</span></div>
+                <div class="cfg-row"><span class="cfg-k">CPU Energy tool</span><span class="cfg-v">pyRAPL</span></div>
+                <div class="cfg-row"><span class="cfg-k">Quality Metrics</span><span class="cfg-v">BERTScore F1, ROUGE-L</span></div>
+            </div>
+
+            <div class="app-card" style="grid-column: 1 / -1; background:#F7FAFC; border:1px dashed #CBD5E0; text-align:center; padding: 32px 20px;">
+                <div class="card-header" style="justify-content:center;">About</div>
+                <h3 style="font-size:16px; color:#2D3748; margin-top:8px;">BOPIS</h3>
+                <p style="font-size:13px; color:#4A5568; margin-top:4px;">Bayesian Optimization and Pareto-Based Intelligent Configuration Selection</p>
+                <div style="margin-top:12px; font-size:12px; color:#718096;">
+                    Polytechnic University of the Philippines<br>
+                    BS Computer Science &middot; 2026
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Box (Global - only visible on Chat Tab) -->
+    <div class="input-dock active" id="global-input">
+        <div class="input-wrapper">
+            <button class="btn-add">+</button>
+            <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" />
+            <button class="btn-send" onclick="doChat()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+        </div>
+    </div>
+</main>
+
+<script>
+function sw(name, btn) {
+    // Handle tab switching
+    document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    
+    // Handle panel switching
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    
+    // Toggle input bar (only show in chat)
+    const inputDock = document.getElementById('global-input');
+    if(name === 'chat') {
+        inputDock.classList.add('active');
+    } else {
+        inputDock.classList.remove('active');
+    }
+
+    if (name === 'tech') setTimeout(drawP, 100);
+}
+
+function sendPrompt(text) {
+    sw('chat', document.querySelector('.nav-item:nth-child(1)'));
+    const inp = document.getElementById('ci');
+    inp.value = text;
+    doChat();
+}
+
+function doChat() {
+    const inp = document.getElementById('ci');
+    const txt = inp.value.trim();
+    if (!txt) return;
+    
+    sw('chat', document.querySelector('.nav-item:nth-child(1)')); 
+    
+    const area = document.getElementById('chat-area');
+    
+    // Check if it's already an explanation response
+    if (txt.includes('Why FP16') || txt.includes('Why did BOPIS pick')) {
+        const u = document.createElement('div');
+        u.className = 'msg';
+        u.innerHTML = `<span class="user-prompt">${txt}</span>`;
+        area.appendChild(u);
+        
+        setTimeout(() => {
+            const b = document.createElement('div');
+            b.className = 'msg';
+            b.innerHTML = `
+            <div class="ai-response">
+                <p style="font-size:14px; color:#2D3748; line-height:1.6;">
+                    <strong>Explanation:</strong><br>
+                    ${txt.includes('FP16') ? 
+                    'For factual questions (Closed QA), exact knowledge retrieval is required. Using standard INT8 quantization can clip outlier activations critical for factual recall, leading to hallucinations. The system automatically chose FP16 to guarantee Q >= 0.82.' : 
+                    'For summarization, the system determined the task tolerates minor quantization loss. Using INT8 drops energy consumption by ~2.1x while keeping quality comfortably above the 0.78 F1 threshold.'}
+                </p>
+            </div>`;
+            area.appendChild(b);
+            scrollToBottom();
+        }, 600);
+        inp.value = '';
+        return;
+    }
+    
+    // Normal prompt submission
+    const u = document.createElement('div');
+    u.className = 'msg';
+    u.innerHTML = `<span class="user-prompt">${txt.replace(/</g, '&lt;')}</span>`;
+    area.appendChild(u);
+    inp.value = '';
+    scrollToBottom();
+
+
+    setTimeout(() => {
+        const b = document.createElement('div');
+        b.className = 'msg';
+        
+        let precision = "INT8";
+        let type = "Summarization";
+        let eTag = "2.1x less energy · Q >= 0.78";
+        let tokLen = "512";
+        let gpuLayers = "28 / all";
+        let bSize = "2";
+        let whyMessage = "Why did BOPIS pick INT8 for my summarization task?";
+        
+        if (txt.toLowerCase().includes("capital") || txt.toLowerCase().includes("factual") || txt.toLowerCase().includes("france")) {
+            precision = "FP16";
+            type = "Closed QA";
+            eTag = "1.5x less energy · Q >= 0.82";
+            tokLen = "256";
+            gpuLayers = "all";
+            bSize = "1";
+            whyMessage = "Why FP16 instead of INT8 for a factual question?";
+        }
+
+        b.innerHTML = `
+            <div class="thought-process">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg> classifying prompt... selecting from Pareto pool...
+            </div>
+            <div class="ai-response" style="margin-top: 6px;">
+                <div class="task-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                    Task detected: ${type}
+                </div>
+                
+                <div style="background:#F7FAFC; border-radius:12px; padding:16px; margin-bottom:16px; border:1px solid #E2E8F0;">
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#718096; margin-bottom:8px;">Selected Config</div>
+                    <div class="cfg-row"><span class="cfg-k">Precision</span><span class="cfg-v">${precision}</span></div>
+                    <div class="cfg-row"><span class="cfg-k">Token length</span><span class="cfg-v">${tokLen}</span></div>
+                    <div class="cfg-row"><span class="cfg-k">GPU layers</span><span class="cfg-v">${gpuLayers}</span></div>
+                    <div class="cfg-row"><span class="cfg-k">Batch size</span><span class="cfg-v">${bSize}</span></div>
+                    <div class="cfg-row"><span class="cfg-k">CPU threads</span><span class="cfg-v">8</span></div>
+                    <div class="cfg-row" style="margin-top:8px; padding-top:12px; border-top:1px dashed #CBD5E0;">
+                        <span class="cfg-k">Optimization</span><span class="cfg-v" style="color:#22543D">${eTag}</span>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn-action" onclick="sendPrompt('${whyMessage}')">Why this config? →</button>
+                    <button class="btn-action" style="background:#3182CE; color:white;" onclick="runInference(this, '${type}')">Proceed →</button>
+                </div>
+            </div>
+        `;
+        area.appendChild(b);
+        scrollToBottom();
+    }, 600);
+}
+
+function scrollToBottom() {
+    const mainArea = document.querySelector('.main-area');
+    mainArea.scrollTo({ top: mainArea.scrollHeight, behavior: 'smooth' });
+}
+
+function runInference(btn, taskType) {
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+    
+    const area = document.getElementById('chat-area');
+    
+    setTimeout(() => {
+        btn.innerText = "Completed ✓";
+        btn.style.background = "#48BB78";
+        
+        const b = document.createElement('div');
+        b.className = 'msg';
+        
+        let mockResponse = "Here is the simulated output for your prompt based on the optimized configuration. By dynamically selecting the Pareto-optimal hardware settings, BOPIS achieved the target quality while minimizing power consumption.";
+        if (taskType === "Closed QA") {
+            mockResponse = "Paris is the capital of France. (Generated with FP16 for maximal factual accuracy, consuming slightly more power but ensuring correctness).";
+        } else if (taskType === "Summarization") {
+            mockResponse = "The climate policy report highlights three main areas: 1) Carbon taxation strategies, 2) Renewable energy subsidies, and 3) International compliance goals. (Generated with INT8, saving ~2.1x energy with a stable F1 score).";
+        }
+
+        b.innerHTML = `
+            <div class="ai-response" style="border-left: 4px solid #3182CE;">
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3182CE; margin-bottom:8px;">Model Output</div>
+                <p style="font-size:14px; color:#2D3748; line-height:1.6;">
+                    ${mockResponse}
+                </p>
+                <div style="margin-top: 12px; font-size: 12px; color: #718096; display: flex; gap: 12px;">
+                    <span>⚡ Energy used: <strong>44.1 J</strong></span>
+                    <span>⏱️ Speed: <strong>42 tok/s</strong></span>
+                </div>
+            </div>
+        `;
+        area.appendChild(b);
+        scrollToBottom();
+    }, 1500);
+}
+
+function drawP() {
+    const c = document.getElementById('pareto');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    const W = c.width, H = c.height;
+    const pl = 40, pr = 20, pt = 20, pb = 30;
+    const dw = W - pl - pr, dh = H - pt - pb;
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.strokeStyle = '#E2E8F0'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pl, pt); ctx.lineTo(pl, pt + dh); ctx.lineTo(pl + dw, pt + dh); ctx.stroke();
+
+    ctx.fillStyle = '#718096'; ctx.font = '12px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Energy Use (J/token)  →', pl + dw / 2, H - 4);
+    ctx.save(); ctx.translate(14, pt + dh / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Quality Metric (F1)  →', 0, 0); ctx.restore();
+
+    const pts = [
+        { e: 96, q: .84, s: 37, lbl: 'Default', par: false, col: '#FC8181' },
+        { e: 51, q: .83, s: 40, lbl: 'Baseline: INT8', par: false, col: '#CBD5E0' },
+        { e: 82, q: .83, s: 38, lbl: '', par: false, col: '#CBD5E0' },
+        { e: 75, q: .81, s: 39, lbl: '', par: false, col: '#CBD5E0' },
+        { e: 69, q: .80, s: 41, lbl: 'Random', par: false, col: '#F6E05E' },
+        { e: 61, q: .82, s: 43, lbl: '', par: true, col: '#63B3ED' },
+        { e: 52, q: .81, s: 45, lbl: '', par: true, col: '#63B3ED' },
+        { e: 44, q: .81, s: 48, lbl: 'BOPIS*', par: true, col: '#48BB78' },
+        { e: 48, q: .83, s: 46, lbl: '', par: true, col: '#63B3ED' },
+        { e: 38, q: .74, s: 52, lbl: '', par: false, col: '#CBD5E0' },
+        { e: 33, q: .70, s: 56, lbl: '', par: false, col: '#CBD5E0' },
+    ];
+    const eMin = 28, eMax = 102, qMin = .67, qMax = .88;
+    const px = e => pl + (e - eMin) / (eMax - eMin) * dw;
+    const py = q => pt + dh - (q - qMin) / (qMax - qMin) * dh;
+    const pradius = s => Math.max(4, s / 4.5);
+
+    const pf = pts.filter(p => p.par).sort((a, b) => a.e - b.e);
+    ctx.strokeStyle = '#4299E1'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); pf.forEach((p, i) => i === 0 ? ctx.moveTo(px(p.e), py(p.q)) : ctx.lineTo(px(p.e), py(p.q))); ctx.stroke();
+    ctx.setLineDash([]);
+
+    pts.forEach(p => {
+        ctx.fillStyle = p.col;
+        const r = pradius(p.s);
+        ctx.beginPath();
+        ctx.arc(px(p.e), py(p.q), r, 0, Math.PI * 2);
+        ctx.fill();
+        if (p.lbl) {
+            ctx.fillStyle = '#4A5568'; ctx.font = '600 12px Inter, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(p.lbl, px(p.e), py(p.q) - r - 6);
+        }
+    });
+}
+window.addEventListener('resize', drawP);
+</script>
+</body>
+</html>
