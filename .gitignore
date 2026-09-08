@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# BOPIS run outputs. Each run is a timestamped directory of CSVs plus optional
+# 100 ms sampler traces, so committing them would bloat the repo quickly.
+# Commit a specific run deliberately with `git add -f runs/<timestamp>` when it
+# is the one being reported.
+runs/
+
+# Cached datasets. Dolly 15k is ~13 MB and reproducible from the recorded
+# SHA-256; re-fetch with `python -m bopis dataset`.
+data/
+
+# Generated dashboard payload. Copied next to dashboard/index.html for viewing;
+# the authoritative copy lives in the run directory.
+dashboard/dashboard_data.js
+
+# Model weights, should any land here
+*.gguf
+*.safetensors
+*.bin
+
+# QA scratch
+.qa-*.mjs
+qa-*.png
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
