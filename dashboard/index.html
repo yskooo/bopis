@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOPIS — Results Dashboard</title>
+
+<!--
+  BOPIS results dashboard.
+
+  Every value shown here is read from window.BOPIS_DATA, which `python -m bopis
+  run` writes to dashboard_data.js inside the run directory. There are no
+  hardcoded metrics: the Pareto front is the computed non-dominated set, the
+  convergence curve is the measured best-so-far sequence, and the statistics
+  come from the Friedman/Nemenyi tests. tests/test_provenance.py enforces that
+  no literal metric value appears in this file.
+
+  Opens directly from file:// - no server, no build step.
+-->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    background: #E8F0F8;
+    color: #1A202C;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar {
+    width: 248px; background: #FFF; padding: 24px 16px;
+    border-right: 1px solid #E2E8F0; display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+}
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; padding: 0 8px; }
+.brand-mark {
+    width: 36px; height: 36px; border-radius: 10px; background: #2B6CB0;
+    color: #FFF; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px;
+}
+.brand-name { font-weight: 600; font-size: 15px; color: #2D3748; }
+.brand-sub { font-size: 11px; color: #718096; }
+
+.nav { list-style: none; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.nav-item {
+    padding: 9px 12px; border-radius: 9px; font-size: 13.5px; font-weight: 500;
+    color: #4A5568; cursor: pointer; transition: background .15s;
+}
+.nav-item:hover { background: #F7FAFC; }
+.nav-item.active { background: #EDF2F7; color: #1A202C; font-weight: 600; }
+
+.run-card { background: #F7FAFC; border-radius: 10px; padding: 12px; margin-top: auto; }
+.run-card h4 { font-size: 11px; color: #4A5568; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.run-card p { font-size: 11px; color: #718096; margin-top: 4px; word-break: break-all; font-family: ui-monospace, monospace; }
+.btn {
+    background: #4299E1; color: #FFF; border: none; border-radius: 8px;
+    padding: 8px 12px; font-size: 12px; font-weight: 600; width: 100%;
+    cursor: pointer; margin-top: 10px; font-family: inherit;
+}
+.btn:hover { background: #3182CE; }
+.btn.secondary { background: #EDF2F7; color: #4A5568; }
+.btn.secondary:hover { background: #E2E8F0; }
+
+/* ── LAYOUT ──────────────────────────────────────────── */
+.main { flex: 1; padding: 36px 44px 80px; max-width: 1500px; }
+.panel { display: none; flex-direction: column; gap: 18px; }
+.panel.active { display: flex; }
+
+.page-title { font-size: 27px; font-weight: 700; color: #2B6CB0; }
+.page-sub { font-size: 15px; color: #718096; margin-top: 4px; margin-bottom: 8px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 14px; }
+.card {
+    background: #FFF; border-radius: 14px; padding: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.03); border: 1px solid #E2E8F0;
+}
+.card.wide { grid-column: 1 / -1; }
+.card-head {
+    font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 10px;
+    text-transform: uppercase; letter-spacing: .04em;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.metric { font-size: 26px; font-weight: 700; color: #1A202C; line-height: 1.15; }
+.metric small { font-size: 13px; color: #718096; font-weight: 500; }
+.metric-sub { font-size: 12px; color: #718096; margin-top: 5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+.tag { padding: 3px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.tag.green { background: #C6F6D5; color: #22543D; }
+.tag.red    { background: #FED7D7; color: #822727; }
+.tag.blue   { background: #BEE3F8; color: #2C5282; }
+.tag.amber  { background: #FEEBC8; color: #7B341E; }
+.tag.grey   { background: #EDF2F7; color: #4A5568; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+    text-align: left; padding: 9px 8px; color: #718096; font-weight: 600;
+    border-bottom: 1.5px solid #E2E8F0; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .03em; white-space: nowrap;
+}
+td { padding: 8px; border-bottom: 1px solid #EDF2F7; color: #2D3748; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.highlight td { background: #F0FFF4; font-weight: 600; }
+tbody tr:last-child td { border-bottom: none; }
+
+canvas { max-width: 100%; display: block; }
+.chart { border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; background: #FFF; margin-top: 6px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: #4A5568; margin-top: 10px; }
+.legend span { display: flex; align-items: center; gap: 5px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+.kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #EDF2F7; font-size: 12.5px; }
+.kv:last-child { border-bottom: none; }
+.kv .k { color: #718096; }
+.kv .v { font-weight: 600; color: #2D3748; text-align: right; font-variant-numeric: tabular-nums; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+
+.note {
+    font-size: 12px; color: #4A5568; line-height: 1.55; background: #F7FAFC;
+    border-left: 3px solid #CBD5E0; padding: 10px 12px; border-radius: 0 8px 8px 0;
+}
+.note.warn { background: #FFFAF0; border-left-color: #DD6B20; color: #7B341E; }
+.note.info { background: #EBF8FF; border-left-color: #3182CE; color: #2A4365; }
+
+.empty { text-align: center; padding: 80px 24px; }
+.empty h2 { font-size: 21px; color: #2D3748; margin-bottom: 10px; }
+.empty p { color: #718096; font-size: 14px; line-height: 1.65; max-width: 560px; margin: 0 auto 10px; }
+.empty code { background: #EDF2F7; padding: 2px 6px; border-radius: 4px; font-size: 12.5px; font-family: ui-monospace, monospace; }
+.drop { margin-top: 22px; border: 2px dashed #CBD5E0; border-radius: 12px; padding: 26px; background: #FFF; }
+.drop.over { border-color: #4299E1; background: #EBF8FF; }
+.verdict-banner { border-radius: 12px; padding: 14px 18px; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.verdict-banner.ok    { background: #C6F6D5; color: #22543D; }
+.verdict-banner.part  { background: #FEEBC8; color: #7B341E; }
+.verdict-banner.bad   { background: #FED7D7; color: #822727; }
+.verdict-banner.sim   { background: #E9D8FD; color: #44337A; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <div class="brand">
+        <div class="brand-mark">B</div>
+        <div>
+            <div class="brand-name">BOPIS</div>
+            <div class="brand-sub">Results Dashboard</div>
+        </div>
+    </div>
+    <ul class="nav" id="nav"></ul>
+    <div class="run-card">
+        <h4>Loaded run</h4>
+        <p id="run-label">no data</p>
+        <button class="btn secondary" onclick="document.getElementById('file-input').click()">
+            Load dashboard_data.js
+        </button>
+        <input type="file" id="file-input" accept=".js,.json" style="display:none">
+    </div>
+</nav>
+
+<main class="main" id="main">
+    <!-- Empty state, replaced once data loads -->
+    <div class="empty" id="empty">
+        <h2>No run data loaded</h2>
+        <p>
+            This dashboard renders a real BOPIS run. Nothing here is hardcoded —
+            it needs the <code>dashboard_data.js</code> that a run produces.
+        </p>
+        <p>Generate one with:</p>
+        <p><code>python -m bopis run --backend sim --synthetic</code></p>
+        <div class="drop" id="drop">
+            Drag <code>dashboard_data.js</code> here, or use
+            <strong>Load dashboard_data.js</strong> in the sidebar.
+        </div>
+    </div>
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   Formatting helpers. Every one returns an em dash for missing data
+   rather than inventing a value.
+   ══════════════════════════════════════════════════════════════════════ */
+const DASH = '—';
+const isNum = v => typeof v === 'number' && isFinite(v);
+const fx  = (v, d = 2) => isNum(v) ? v.toFixed(d) : DASH;
+const pct = (v, d = 2) => isNum(v) ? v.toFixed(d) + '%' : DASH;
+const int = v => isNum(v) ? Math.round(v).toLocaleString() : DASH;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const PALETTE = {
+    front:     '#4299E1',
+    dominated: '#CBD5E0',
+    xstar:     '#38A169',
+    dflt:      '#E53E3E',
+    random:    '#D69E2E',
+    axis:      '#E2E8F0',
+    text:      '#718096',
+    ink:       '#2D3748'
+};
+
+let DATA = null;
+
+/* ══════════════════════════════════════════════════════════════════════
+   Canvas plumbing
+   ══════════════════════════════════════════════════════════════════════ */
+function setupCanvas(canvas, cssHeight) {
+    const ratio = window.devicePixelRatio || 1;
+    const width = canvas.parentElement.clientWidth - 24;
+    canvas.style.width = width + 'px';
+    canvas.style.height = cssHeight + 'px';
+    canvas.width = Math.max(1, Math.floor(width * ratio));
+    canvas.height = Math.floor(cssHeight * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, cssHeight);
+    return { ctx, w: width, h: cssHeight };
+}
+
+function axes(ctx, box, xLabel, yLabel, xTicks, yTicks) {
+    const { x0, y0, x1, y1 } = box;
+    ctx.strokeStyle = PALETTE.axis;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.lineTo(x1, y1);
+    ctx.stroke();
+
+    ctx.fillStyle = PALETTE.text;
+    ctx.font = '11px Inter, sans-serif';
+
+    ctx.textAlign = 'center';
+    (xTicks || []).forEach(t => {
+        ctx.strokeStyle = '#F1F5F9';
+        ctx.beginPath(); ctx.moveTo(t.px, y0); ctx.lineTo(t.px, y1); ctx.stroke();
+        ctx.fillText(t.label, t.px, y1 + 15);
+    });
+    ctx.fillText(xLabel, (x0 + x1) / 2, y1 + 32);
+
+    ctx.textAlign = 'right';
+    (yTicks || []).forEach(t => {
+        ctx.strokeStyle = '#F1F5F9';
+        ctx.beginPath(); ctx.moveTo(x0, t.px); ctx.lineTo(x1, t.px); ctx.stroke();
+        ctx.fillText(t.label, x0 - 7, t.px + 4);
+    });
+
+    ctx.save();
+    ctx.translate(14, (y0 + y1) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+}
+
+function ticks(lo, hi, count, fmt) {
+    const out = [];
+    for (let i = 0; i <= count; i++) {
+        out.push({ value: lo + (hi - lo) * i / count, frac: i / count, label: fmt(lo + (hi - lo) * i / count) });
+    }
+    return out;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Pareto front — energy (x) against quality (y), bubble area from speed
+   ══════════════════════════════════════════════════════════════════════ */
+function drawPareto() {
+    const canvas = document.getElementById('c-pareto');
+    if (!canvas || !DATA) return;
+    const pts = DATA.pareto.points || [];
+    if (!pts.length) return;
+
+    const { ctx, w, h } = setupCanvas(canvas, 380);
+    const box = { x0: 62, y0: 16, x1: w - 18, y1: h - 42 };
+
+    const ref = DATA.reference_point || {};
+    const all = pts.concat(ref.energy_j != null
+        ? [{ energy_j: ref.energy_j, quality_f1: ref.quality_f1, tokens_per_s: ref.tokens_per_s, isRef: true }]
+        : []);
+
+    const eLo = Math.min(...all.map(p => p.energy_j));
+    const eHi = Math.max(...all.map(p => p.energy_j));
+    const qLo = Math.min(...all.map(p => p.quality_f1));
+    const qHi = Math.max(...all.map(p => p.quality_f1));
+    const sHi = Math.max(...all.map(p => p.tokens_per_s));
+    const padE = (eHi - eLo) * 0.08 || 1;
+    const padQ = (qHi - qLo) * 0.12 || 0.01;
+
+    const eMin = eLo - padE, eMax = eHi + padE;
+    const qMin = qLo - padQ, qMax = qHi + padQ;
+    const px = e => box.x0 + (e - eMin) / (eMax - eMin) * (box.x1 - box.x0);
+    const py = q => box.y1 - (q - qMin) / (qMax - qMin) * (box.y1 - box.y0);
+    const pr = s => 4 + 9 * Math.sqrt(Math.max(0, s) / (sHi || 1));
+
+    axes(ctx, box, 'Energy per prompt (J)  → lower is better',
+         'Quality (BERTScore F1)  → higher is better',
+         ticks(eMin, eMax, 5, v => v.toFixed(0)).map(t => ({ px: px(t.value), label: t.label })),
+         ticks(qMin, qMax, 4, v => v.toFixed(3)).map(t => ({ px: py(t.value), label: t.label })));
+
+    // The computed non-dominated staircase, drawn in energy order.
+    const front = pts.filter(p => p.on_front).sort((a, b) => a.energy_j - b.energy_j);
+    if (front.length > 1) {
+        ctx.strokeStyle = PALETTE.front;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        front.forEach((p, i) => i ? ctx.lineTo(px(p.energy_j), py(p.quality_f1))
+                                  : ctx.moveTo(px(p.energy_j), py(p.quality_f1)));
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Random-search evaluations, for contrast.
+    (DATA.pareto.random_points || []).forEach(p => {
+        ctx.fillStyle = PALETTE.random;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(px(p.energy_j), py(p.quality_f1), 3.5, 0, 7);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    });
+
+    pts.forEach(p => {
+        ctx.fillStyle = p.is_xstar ? PALETTE.xstar
+                      : p.on_front ? PALETTE.front : PALETTE.dominated;
+        ctx.beginPath();
+        ctx.arc(px(p.energy_j), py(p.quality_f1), pr(p.tokens_per_s), 0, 7);
+        ctx.fill();
+        if (p.is_xstar) {
+            ctx.strokeStyle = '#22543D'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#22543D';
+            ctx.font = '600 11.5px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('x*', px(p.energy_j), py(p.quality_f1) - pr(p.tokens_per_s) - 7);
+        }
+    });
+
+    // Reference point = the unoptimized default, i.e. the HV reference.
+    if (ref.energy_j != null) {
+        ctx.fillStyle = PALETTE.dflt;
+        ctx.beginPath();
+        ctx.arc(px(ref.energy_j), py(ref.quality_f1), pr(ref.tokens_per_s), 0, 7);
+        ctx.fill();
+        ctx.fillStyle = '#822727';
+        ctx.font = '600 11.5px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('default', px(ref.energy_j), py(ref.quality_f1) - pr(ref.tokens_per_s) - 7);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Convergence — best-so-far E*_k for both methods
+   ══════════════════════════════════════════════════════════════════════ */
+function drawConvergence() {
+    const canvas = document.getElementById('c-conv');
+    if (!canvas || !DATA || !DATA.convergence) return;
+    const bo = DATA.convergence.bopis || {};
+    const rs = DATA.convergence.random_search || {};
+    const boCurve = bo.best_so_far || [], rsCurve = rs.best_so_far || [];
+    if (!boCurve.length) return;
+
+    const { ctx, w, h } = setupCanvas(canvas, 300);
+    const box = { x0: 66, y0: 16, x1: w - 18, y1: h - 44 };
+    const n = Math.max(boCurve.length, rsCurve.length);
+    const lo = Math.min(...boCurve, ...(rsCurve.length ? rsCurve : [Infinity]));
+    const hi = Math.max(...boCurve, ...(rsCurve.length ? rsCurve : [-Infinity]));
+    const pad = (hi - lo) * 0.1 || 1;
+    const yMin = lo - pad, yMax = hi + pad;
+
+    const px = i => box.x0 + (n <= 1 ? 0 : i / (n - 1)) * (box.x1 - box.x0);
+    const py = v => box.y1 - (v - yMin) / (yMax - yMin) * (box.y1 - box.y0);
+
+    axes(ctx, box, 'Evaluation (iteration k)', 'Best energy found, E*_k (J)',
+         ticks(0, n - 1, Math.min(6, n - 1) || 1, v => String(Math.round(v) + 1))
+            .map(t => ({ px: px(t.value), label: t.label })),
+         ticks(yMin, yMax, 4, v => v.toFixed(0)).map(t => ({ px: py(t.value), label: t.label })));
+
+    const step = (curve, color, width) => {
+        if (!curve.length) return;
+        ctx.strokeStyle = color; ctx.lineWidth = width;
+        ctx.beginPath();
+        curve.forEach((v, i) => {
+            if (!i) { ctx.moveTo(px(i), py(v)); return; }
+            ctx.lineTo(px(i), py(curve[i - 1]));
+            ctx.lineTo(px(i), py(v));
+        });
+        ctx.stroke();
+    };
+    step(rsCurve, PALETTE.random, 2);
+    step(boCurve, PALETTE.front, 2.5);
+
+    // Mark the seed/BO boundary: to its left the search is uninformed.
+    const seeds = DATA.meta && DATA.meta.n_seeds;
+    if (isNum(seeds) && seeds > 0 && seeds < n) {
+        const bx = px(seeds - 0.5);
+        ctx.strokeStyle = '#A0AEC0'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(bx, box.y0); ctx.lineTo(bx, box.y1); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#A0AEC0'; ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('seeds → GP-guided', bx + 4, box.y0 + 11);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   GP reliability — predicted vs measured, with 95% predictive intervals
+   ══════════════════════════════════════════════════════════════════════ */
+function drawSurrogate() {
+    const canvas = document.getElementById('c-gp');
+    if (!canvas || !DATA || !DATA.surrogate) return;
+    const pts = (DATA.surrogate.points || []).filter(p => isNum(p.mu) && isNum(p.measured));
+    if (!pts.length) return;
+
+    const { ctx, w, h } = setupCanvas(canvas, 320);
+    const box = { x0: 68, y0: 16, x1: w - 18, y1: h - 44 };
+
+    const spread = pts.flatMap(p => [
+        p.mu, p.measured,
+        p.mu + 1.96 * (p.predictive_sigma || 0),
+        p.mu - 1.96 * (p.predictive_sigma || 0)
+    ]).filter(isNum);
+    const lo = Math.min(...spread), hi = Math.max(...spread);
+    const pad = (hi - lo) * 0.08 || 1;
+    const min = lo - pad, max = hi + pad;
+
+    const px = v => box.x0 + (v - min) / (max - min) * (box.x1 - box.x0);
+    const py = v => box.y1 - (v - min) / (max - min) * (box.y1 - box.y0);
+
+    axes(ctx, box, 'GP predicted energy μ(x)  (J)', 'Measured energy E(x)  (J)',
+         ticks(min, max, 5, v => v.toFixed(0)).map(t => ({ px: px(t.value), label: t.label })),
+         ticks(min, max, 5, v => v.toFixed(0)).map(t => ({ px: py(t.value), label: t.label })));
+
+    // Perfect-prediction diagonal: points on it were predicted exactly.
+    ctx.strokeStyle = '#A0AEC0'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(px(min), py(min)); ctx.lineTo(px(max), py(max)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    pts.forEach(p => {
+        const sigma = p.predictive_sigma || 0;
+        if (sigma > 0) {
+            ctx.strokeStyle = '#BEE3F8'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(px(p.mu - 1.96 * sigma), py(p.measured));
+            ctx.lineTo(px(p.mu + 1.96 * sigma), py(p.measured));
+            ctx.stroke();
+        }
+        const covered = sigma > 0 && Math.abs(p.measured - p.mu) <= 1.96 * sigma;
+        ctx.fillStyle = covered ? PALETTE.front : PALETTE.dflt;
+        ctx.beginPath(); ctx.arc(px(p.mu), py(p.measured), 4.5, 0, 7); ctx.fill();
+    });
+}
+
+function redrawAll() { drawPareto(); drawConvergence(); drawSurrogate(); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Panels
+   ══════════════════════════════════════════════════════════════════════ */
+const PANELS = [
+    { id: 'summary',  label: 'Run Summary',        render: renderSummary },
+    { id: 'pareto',   label: 'Pareto Front',       render: renderPareto  },
+    { id: 'converge', label: 'Convergence & SER',  render: renderConverge },
+    { id: 'surrogate',label: 'GP Reliability',     render: renderSurrogate },
+    { id: 'compare',  label: 'Three-Way Comparison', render: renderCompare },
+    { id: 'variant',  label: 'Per-Variant',        render: renderVariant },
+    { id: 'hardware', label: 'Hardware & Space',   render: renderHardware },
+    { id: 'cost',     label: 'Amortization',       render: renderCost }
+];
+
+function verdictBanner() {
+    const meta = DATA.meta || {};
+    const ind = DATA.indicators;
+    if (meta.energy_scope === 'simulated') {
+        return `<div class="verdict-banner sim">
+            SIMULATED RUN &mdash; energy figures are computed by the analytic
+            model, not measured. Not reportable as an empirical result.
+        </div>`;
+    }
+    if (!ind) {
+        return `<div class="verdict-banner part">
+            Search only &mdash; the three-way validation was skipped, so
+            EIR / SRR / QRR are unavailable.
+        </div>`;
+    }
+    const th = DATA.thresholds || {};
+    const map = {
+        substantial: ['ok',  `BOPIS-OPTIMAL (substantial) &mdash; EIR ≥ ${fx(th.eir_substantial,0)}% with speed and quality retained`],
+        optimal:     ['ok',  'BOPIS-OPTIMAL &mdash; energy improved with speed and quality retained'],
+        partial:     ['part','PARTIAL &mdash; energy improved but a retention threshold failed'],
+        negative:    ['bad', 'NEGATIVE &mdash; the selected configuration used more energy than the default']
+    };
+    const [cls, text] = map[ind.verdict] || ['part', 'Indeterminate'];
+    const failures = (ind.failed_criteria || []).length
+        ? ' &nbsp;|&nbsp; ' + ind.failed_criteria.map(esc).join('; ') : '';
+    return `<div class="verdict-banner ${cls}">${text}${failures}</div>`;
+}
+
+function renderSummary() {
+    const meta = DATA.meta || {}, ind = DATA.indicators || {},
+          rel = DATA.surrogate.reliability || {}, par = DATA.pareto || {},
+          conv = DATA.convergence || {}, sel = DATA.selection || {};
+    const th = DATA.thresholds || {};
+
+    const tagFor = (ok) => ok ? 'green' : 'red';
+    return `
+    <div>
+        <div class="page-title">Run Summary</div>
+        <div class="page-sub">Chapter 3 configuration success indicators, computed on the validation set.</div>
+    </div>
+    ${verdictBanner()}
+    ${DATA.scope_warning ? `<div class="note warn">${esc(DATA.scope_warning)}</div>` : ''}
+
+    <div class="grid">
+        <div class="card">
+            <div class="card-head">Energy Improvement <span class="tag ${tagFor(ind.energy_improved)}">EIR</span></div>
+            <div class="metric">${pct(ind.eir_percent)}</div>
+            <div class="metric-sub">
+                ${ind.substantial
+                    ? `<span class="tag green">≥ ${fx(th.eir_substantial,0)}% substantial</span>`
+                    : `<span class="tag grey">threshold ${fx(th.eir_substantial,0)}%</span>`}
+                vs unoptimized default
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head">Speed Retention <span class="tag ${tagFor(ind.speed_retained)}">SRR</span></div>
+            <div class="metric">${pct(ind.srr_percent)}</div>
+            <div class="metric-sub"><span class="tag grey">requires ≥ ${fx(th.srr,0)}%</span></div>
+        </div>
+        <div class="card">
+            <div class="card-head">Quality Retention <span class="tag ${tagFor(ind.quality_retained)}">QRR</span></div>
+            <div class="metric">${pct(ind.qrr_percent)}</div>
+            <div class="metric-sub"><span class="tag grey">requires ≥ ${fx(th.qrr,0)}%</span></div>
+        </div>
+        <div class="card">
+            <div class="card-head">Sample Efficiency <span class="tag ${isNum(conv.ser) && conv.ser > 1 ? 'green' : 'amber'}">SER</span></div>
+            <div class="metric">${fx(conv.ser)}</div>
+            <div class="metric-sub">
+                k*<sub>BOPIS</sub>=${int((conv.bopis||{}).k_star)},
+                k*<sub>RS</sub>=${int((conv.random_search||{}).k_star)}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="card-head">Recommended configuration x*</div>
+            ${configRows(DATA.xstar_config)}
+            <div class="kv"><span class="k">Selection status</span>
+                <span class="v"><span class="tag ${sel.is_clean ? 'green' : 'amber'}">${esc(sel.status)}</span></span></div>
+            ${sel.notes ? `<div class="note" style="margin-top:10px">${esc(sel.notes)}</div>` : ''}
+        </div>
+        <div class="card">
+            <div class="card-head">Unoptimized default (baseline)</div>
+            ${configRows(DATA.default_config)}
+        </div>
+        <div class="card">
+            <div class="card-head">Provenance</div>
+            <div class="kv"><span class="k">Backend</span><span class="v mono">${esc(meta.backend)}</span></div>
+            <div class="kv"><span class="k">Energy method</span><span class="v mono">${esc(meta.energy_method)}</span></div>
+            <div class="kv"><span class="k">Energy scope</span><span class="v mono">${esc(meta.energy_scope)}</span></div>
+            <div class="kv"><span class="k">Budget N</span><span class="v">${int(meta.n_total_iterations)} (${int(meta.n_seeds)} seeds)</span></div>
+            <div class="kv"><span class="k">Search seed</span><span class="v">${int(meta.seed)}</span></div>
+            <div class="kv"><span class="k">Wall time</span><span class="v">${fx(meta.wall_seconds,1)} s</span></div>
+        </div>
+        <div class="card">
+            <div class="card-head">Surrogate &amp; front</div>
+            <div class="kv"><span class="k">GP NPE</span><span class="v">${pct(rel.npe_percent)}
+                <span class="tag ${rel.reliable ? 'green':'red'}">${rel.reliable ? 'reliable' : '> ' + fx(th.npe,0) + '%'}</span></span></div>
+            <div class="kv"><span class="k">GP MAE</span><span class="v">${fx(rel.mae,3)} J</span></div>
+            <div class="kv"><span class="k">Pareto front size</span><span class="v">${int(par.n_front)}</span></div>
+            <div class="kv"><span class="k">Hypervolume</span><span class="v">${fx(par.hypervolume_normalized,4)}</span></div>
+        </div>
+    </div>`;
+}
+
+function configRows(cfg) {
+    if (!cfg) return '<div class="note">Not available.</div>';
+    return `
+        <div class="kv"><span class="k">t &mdash; max generated tokens</span><span class="v">${int(cfg.t_max_gen_tokens)}</span></div>
+        <div class="kv"><span class="k">b &mdash; batch size</span><span class="v">${int(cfg.b_batch_size)}</span></div>
+        <div class="kv"><span class="k">p &mdash; precision variant</span><span class="v"><span class="tag blue">${esc(cfg.p_precision)}</span></span></div>
+        <div class="kv"><span class="k">g &mdash; GPU layers offloaded</span><span class="v">${esc(cfg.g_gpu_layers)}</span></div>
+        <div class="kv"><span class="k">c &mdash; CPU threads</span><span class="v">${int(cfg.c_cpu_threads)}</span></div>`;
+}
+
+function renderPareto() {
+    const par = DATA.pareto || {}, ref = DATA.reference_point || {};
+    return `
+    <div>
+        <div class="page-title">Pareto Front</div>
+        <div class="page-sub">Non-dominated configurations across energy, speed and quality &mdash; computed by dominance testing, not asserted.</div>
+    </div>
+    <div class="card wide">
+        <div class="card-head">
+            <span>Energy × Quality, bubble area ∝ throughput</span>
+            <span><span class="tag blue">front n=${int(par.n_front)}</span>
+                  <span class="tag grey">HV=${fx(par.hypervolume_normalized,4)}</span></span>
+        </div>
+        <div class="chart"><canvas id="c-pareto"></canvas></div>
+        <div class="legend">
+            <span><i class="dot" style="background:${PALETTE.xstar}"></i>x* recommended</span>
+            <span><i class="dot" style="background:${PALETTE.front}"></i>Pareto-optimal</span>
+            <span><i class="dot" style="background:${PALETTE.dominated}"></i>dominated</span>
+            <span><i class="dot" style="background:${PALETTE.random}"></i>random search</span>
+            <span><i class="dot" style="background:${PALETTE.dflt}"></i>unoptimized default (HV reference)</span>
+        </div>
+        <div class="note info" style="margin-top:12px">
+            Reference point r = (E, &minus;S, &minus;Q) of the unoptimized default:
+            ${fx(ref.energy_j,1)}&nbsp;J, ${fx(ref.tokens_per_s,1)}&nbsp;tok/s,
+            ${fx(ref.quality_f1,4)}&nbsp;F1. Objectives are min&ndash;max normalized
+            before integration so hypervolume lies in [0,&nbsp;1] and is comparable
+            across machines, and the reference is clamped component-wise to the
+            nadir of the front. The clamp matters: the default runs the
+            highest-precision variant, so no configuration can beat it on quality,
+            and an unclamped reference would give a zero-span quality axis and
+            collapse hypervolume to zero however much energy was saved.
+        </div>
+    </div>
+    <div class="card wide">
+        <div class="card-head">Front members, ranked by energy</div>
+        <div style="overflow-x:auto">${paretoTable()}</div>
+    </div>`;
+}
+
+function paretoTable() {
+    const pts = (DATA.pareto.points || []).filter(p => p.on_front)
+        .sort((a, b) => a.energy_j - b.energy_j);
+    if (!pts.length) return '<div class="note">No front members recorded.</div>';
+    const rows = pts.map((p, i) => `
+        <tr class="${p.is_xstar ? 'highlight' : ''}">
+            <td class="num">${i + 1}</td>
+            <td class="mono">${esc(p.label)}</td>
+            <td><span class="tag blue">${esc(p.precision)}</span></td>
+            <td class="num">${int(p.iteration)}</td>
+            <td class="num">${fx(p.energy_j,2)}</td>
+            <td class="num">${fx(p.tokens_per_s,2)}</td>
+            <td class="num">${fx(p.quality_f1,4)}</td>
+            <td>${p.is_xstar ? '<span class="tag green">x*</span>' : ''}</td>
+        </tr>`).join('');
+    return `<table><thead><tr>
+        <th class="num">#</th><th>Configuration</th><th>Variant</th>
+        <th class="num">Iter</th><th class="num">Energy (J)</th>
+        <th class="num">tok/s</th><th class="num">F1</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderConverge() {
+    const conv = DATA.convergence || {};
+    const bo = conv.bopis || {}, rs = conv.random_search || {};
+    const cal = DATA.calibration || {};
+    return `
+    <div>
+        <div class="page-title">Convergence &amp; Sample Efficiency</div>
+        <div class="page-sub">Best energy found per iteration, E*_k, for BOPIS against the matched-budget random-search baseline.</div>
+    </div>
+    <div class="card wide">
+        <div class="card-head">
+            <span>E*_k by evaluation</span>
+            <span class="tag ${isNum(conv.ser) && conv.ser > 1 ? 'green' : 'amber'}">SER = ${fx(conv.ser)}</span>
+        </div>
+        <div class="chart"><canvas id="c-conv"></canvas></div>
+        <div class="legend">
+            <span><i class="dot" style="background:${PALETTE.front}"></i>BOPIS</span>
+            <span><i class="dot" style="background:${PALETTE.random}"></i>Random search</span>
+        </div>
+        ${conv.ser_note ? `<div class="note" style="margin-top:12px">${esc(conv.ser_note)}</div>` : ''}
+    </div>
+    <div class="grid">
+        <div class="card">
+            <div class="card-head">BOPIS</div>
+            <div class="kv"><span class="k">Best energy found</span><span class="v">${fx(Math.min(...(bo.best_so_far||[NaN])),2)} J</span></div>
+            <div class="kv"><span class="k">k* (selected at)</span><span class="v">${int(bo.k_star)}</span></div>
+            <div class="kv"><span class="k">Iterations to within 5%</span><span class="v">${int(bo.iterations_to_within_5pct)}</span></div>
+            <div class="kv"><span class="k">C_bo (search energy)</span><span class="v">${fx(cal.bopis_energy_j,1)} J</span></div>
+        </div>
+        <div class="card">
+            <div class="card-head">Random search</div>
+            <div class="kv"><span class="k">Best energy found</span><span class="v">${fx(Math.min(...(rs.best_so_far||[NaN])),2)} J</span></div>
+            <div class="kv"><span class="k">k* (selected at)</span><span class="v">${int(rs.k_star)}</span></div>
+            <div class="kv"><span class="k">Iterations to within 5%</span><span class="v">${int(rs.iterations_to_within_5pct)}</span></div>
+            <div class="kv"><span class="k">Search energy</span><span class="v">${fx(cal.random_search_energy_j,1)} J</span></div>
+        </div>
+    </div>
+    <div class="card wide">
+        <div class="card-head">Per-iteration improvement ΔE_k (BOPIS)</div>
+        <div style="overflow-x:auto">${deltaTable(bo)}</div>
+    </div>`;
+}
+
+function deltaTable(bo) {
+    const e = bo.energies || [], best = bo.best_so_far || [], delta = bo.delta_energy || [];
+    if (!e.length) return '<div class="note">No iterations recorded.</div>';
+    const rows = e.map((v, i) => `
+        <tr><td class="num">${i + 1}</td>
+            <td class="num">${fx(v,2)}</td>
+            <td class="num">${fx(best[i],2)}</td>
+            <td class="num">${delta[i] > 0 ? '<strong>' + fx(delta[i],2) + '</strong>' : fx(delta[i],2)}</td>
+        </tr>`).join('');
+    return `<table><thead><tr>
+        <th class="num">k</th><th class="num">E measured (J)</th>
+        <th class="num">E*_k (J)</th><th class="num">ΔE_k (J)</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderSurrogate() {
+    const s = DATA.surrogate || {}, rel = s.reliability || {}, loo = s.loo, gp = s.gp || {};
+    const th = DATA.thresholds || {};
+    const hp = (gp.hyperparameters || {});
+    const head = loo || rel;   // judge fit on leave-one-out where available
+    return `
+    <div>
+        <div class="page-title">Gaussian Process Reliability</div>
+        <div class="page-sub">How well the surrogate captured the energy response surface.</div>
+    </div>
+    <div class="note info">
+        Headline figures are <strong>leave-one-out cross-validation</strong>: each
+        observation predicted from the other n&minus;1. The one-step-ahead figures
+        below are shown for completeness but are <em>pessimistic by
+        construction</em> &mdash; Expected Improvement deliberately evaluates
+        wherever the surrogate is least certain, so scoring it on its own probes
+        measures exploration rather than fit.
+    </div>
+    <div class="grid">
+        <div class="card">
+            <div class="card-head">MAE <span class="tag grey">${esc(head.basis || 'n/a')}</span></div>
+            <div class="metric">${fx(head.mae,3)} <small>J</small></div>
+            <div class="metric-sub">mean absolute prediction error</div>
+        </div>
+        <div class="card">
+            <div class="card-head">NPE</div>
+            <div class="metric">${pct(head.npe_percent)}</div>
+            <div class="metric-sub"><span class="tag ${head.reliable?'green':'amber'}">threshold ${fx(th.npe,0)}%</span></div>
+        </div>
+        <div class="card">
+            <div class="card-head">R²</div>
+            <div class="metric">${fx(head.r_squared,4)}</div>
+            <div class="metric-sub">variance of measured energy explained</div>
+        </div>
+        <div class="card">
+            <div class="card-head">UCR</div>
+            <div class="metric">${fx(head.ucr,3)}</div>
+            <div class="metric-sub"><span class="tag grey">target ≈ ${fx(th.ucr_target,2)}</span> inside μ ± 1.96σ</div>
+        </div>
+    </div>
+    <div class="card wide">
+        <div class="card-head">Predicted against measured, with 95% predictive intervals</div>
+        <div class="chart"><canvas id="c-gp"></canvas></div>
+        <div class="legend">
+            <span><i class="dot" style="background:${PALETTE.front}"></i>inside the 95% interval</span>
+            <span><i class="dot" style="background:${PALETTE.dflt}"></i>outside</span>
+            <span>dashed diagonal = exact prediction</span>
+        </div>
+        <div class="note info" style="margin-top:12px">
+            Intervals use the <em>predictive</em> standard deviation
+            √(σ²(x) + σₙ²), which includes observation noise.
+            Omitting the noise term makes a well-calibrated surrogate look broken.
+        </div>
+    </div>
+    <div class="grid">
+        <div class="card">
+            <div class="card-head">Fitted hyperparameters</div>
+            <div class="kv"><span class="k">Signal variance σƒ²</span><span class="v">${fx(hp.signal_variance,4)}</span></div>
+            <div class="kv"><span class="k">Length scale(s) ℓ</span><span class="v mono">${(hp.length_scales||[]).map(v=>fx(v,3)).join(', ')||DASH}</span></div>
+            <div class="kv"><span class="k">Noise σₙ</span><span class="v">${fx(hp.noise_std,5)}</span></div>
+            <div class="kv"><span class="k">Log marginal likelihood</span><span class="v">${fx(gp.log_marginal_likelihood,3)}</span></div>
+            <div class="kv"><span class="k">Observations</span><span class="v">${int(gp.n_observations)}</span></div>
+        </div>
+        <div class="card">
+            <div class="card-head">One-step-ahead forecast <span class="tag amber">pessimistic</span></div>
+            <div class="kv"><span class="k">MAE</span><span class="v">${fx(rel.mae,3)} J</span></div>
+            <div class="kv"><span class="k">NPE</span><span class="v">${pct(rel.npe_percent)}</span></div>
+            <div class="kv"><span class="k">R²</span><span class="v">${fx(rel.r_squared,4)}</span></div>
+            <div class="kv"><span class="k">UCR</span><span class="v">${fx(rel.ucr,3)}</span></div>
+            <div class="kv"><span class="k">Predictions scored</span><span class="v">${int(rel.n)}</span></div>
+            ${rel.caveat ? `<div class="note" style="margin-top:10px">${esc(rel.caveat)}</div>` : ''}
+        </div>
+    </div>`;
+}
+
+function renderCompare() {
+    const desc = DATA.descriptives || {}, tests = DATA.statistical_tests || {};
+    const labels = (DATA.labels || {}).dependent_variables || {};
+    const conds = ['unoptimized', 'random_search', 'bopis'];
+    const condLabels = (DATA.labels || {}).conditions || {};
+
+    if (!Object.keys(desc).length) {
+        return `<div><div class="page-title">Three-Way Comparison</div></div>
+            <div class="note warn">The validation stage was skipped for this run, so there are no per-condition distributions to compare.</div>`;
+    }
+
+    const body = Object.keys(desc).map(dv => {
+        const test = tests[dv] || {};
+        const fried = test.friedman;
+        const nem = test.nemenyi;
+        const cells = conds.map(c => {
+            const d = desc[dv][c] || {};
+            return `<td class="num">${fx(d.mean,3)}<br><span style="color:#A0AEC0;font-size:11px">±${fx(d.sd,3)}</span></td>`;
+        }).join('');
+        const sig = fried
+            ? `<span class="tag ${fried.significant ? 'green' : 'grey'}">
+                 χ²=${fx(fried.chi_square,2)}, p=${fried.p_value < 1e-4 ? fried.p_value.toExponential(2) : fx(fried.p_value,4)}
+               </span>`
+            : '<span class="tag grey">not tested</span>';
+        const pairs = nem
+            ? (nem.significant_pairs || []).map(p => `<span class="tag blue">${esc(p)}</span>`).join(' ')
+              || '<span class="tag grey">no pair differs</span>'
+            : DASH;
+        return `<tr>
+            <td><strong>${esc(labels[dv] || dv)}</strong></td>
+            ${cells}
+            <td>${sig}</td>
+            <td>${pairs}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+    <div>
+        <div class="page-title">Three-Way Comparison</div>
+        <div class="page-sub">Friedman test per dependent variable across related conditions, with Nemenyi post-hoc where significant.</div>
+    </div>
+    <div class="card wide">
+        <div class="card-head">Means ± SD, with the Friedman result</div>
+        <div style="overflow-x:auto">
+        <table><thead><tr>
+            <th>Dependent variable</th>
+            ${conds.map(c => `<th class="num">${esc(condLabels[c] || c)}</th>`).join('')}
+            <th>Friedman</th><th>Nemenyi: significant pairs</th>
+        </tr></thead><tbody>${body}</tbody></table>
+        </div>
+        <div class="note info" style="margin-top:12px">
+            With three conditions the Friedman statistic has 2 degrees of freedom,
+            where the chi-square survival function is exact in closed form
+            (p = e<sup>&minus;χ²/2</sup>), so these p-values are not approximations.
+            Nemenyi controls the family-wise error rate across all three pairs.
+        </div>
+    </div>`;
+}
+
+function renderVariant() {
+    const pv = DATA.per_variant || {};
+    const keys = ['F32', 'F16', 'Q8_0', 'Q4_K_M'].filter(k => pv[k]);
+    if (!keys.length) {
+        return `<div><div class="page-title">Per-Variant Performance</div></div>
+            <div class="note warn">No per-variant data in this run.</div>`;
+    }
+    const rows = keys.map(k => {
+        const v = pv[k];
+        return `<tr>
+            <td><span class="tag blue">${esc(k)}</span></td>
+            <td class="mono">${(v.conditions||[]).map(esc).join(', ')}</td>
+            <td class="num">${int(v.energy_j.n)}</td>
+            <td class="num">${fx(v.energy_j.mean,2)} <span style="color:#A0AEC0">±${fx(v.energy_j.sd,2)}</span></td>
+            <td class="num">${fx(v.tokens_per_s.mean,2)}</td>
+            <td class="num">${fx(v.quality_f1.mean,4)}</td>
+        </tr>`;
+    }).join('');
+    return `
+    <div>
+        <div class="page-title">Per-Variant Performance</div>
+        <div class="page-sub">Descriptive comparison across the GGUF precision / quantization variants.</div>
+    </div>
+    <div class="card wide">
+        <div class="card-head">By precision variant</div>
+        <div style="overflow-x:auto">
+        <table><thead><tr>
+            <th>Variant</th><th>Appears in</th><th class="num">n prompts</th>
+            <th class="num">Energy (J)</th><th class="num">tok/s</th><th class="num">F1</th>
+        </tr></thead><tbody>${rows}</tbody></table>
+        </div>
+        <div class="note" style="margin-top:12px">
+            In the three-way design only the variants a condition actually selected
+            appear here, so this is a descriptive summary rather than a controlled
+            per-variant experiment.
+        </div>
+    </div>`;
+}
+
+function renderHardware() {
+    const host = DATA.host || {}, space = DATA.space || {};
+    const pctSpace = isNum(space.n_feasible) && isNum(space.n_unconstrained)
+        ? (100 * space.n_feasible / space.n_unconstrained) : NaN;
+    return `
+    <div>
+        <div class="page-title">Hardware &amp; Feasible Space</div>
+        <div class="page-sub">The detected host, and the Table H1 rules that narrowed the configuration space.</div>
+    </div>
+    <div class="grid">
+        <div class="card">
+            <div class="card-head">Detected host</div>
+            <div class="kv"><span class="k">CPU</span><span class="v mono" style="font-size:11px">${esc(host.cpu_model)}</span></div>
+            <div class="kv"><span class="k">Cores</span><span class="v">${int(host.physical_cores)} physical / ${int(host.logical_cores)} logical</span></div>
+            <div class="kv"><span class="k">RAM</span><span class="v">${fx(host.ram_total_gib,2)} GiB</span></div>
+            <div class="kv"><span class="k">Platform</span><span class="v">${esc(host.platform_name)} (${esc(host.telemetry_source)})</span></div>
+            ${host.is_wsl ? '<div class="note" style="margin-top:8px">Running under WSL: the RAM figure is the WSL ceiling, not host RAM, and it governs the HW-B batch rule.</div>' : ''}
+        </div>
+        <div class="card">
+            <div class="card-head">GPU &amp; energy instrument</div>
+            <div class="kv"><span class="k">GPU</span><span class="v">${esc(host.gpu_name) || DASH}</span></div>
+            <div class="kv"><span class="k">VRAM</span><span class="v">${fx(host.vram_total_gib,2)} GiB</span></div>
+            <div class="kv"><span class="k">Compute capability</span><span class="v">${esc(host.compute_capability) || DASH}</span></div>
+            <div class="kv"><span class="k">Driver / CUDA</span><span class="v">${esc(host.driver_version) || DASH} / ${esc(host.cuda_driver_version) || DASH}</span></div>
+            <div class="kv"><span class="k">Power query</span><span class="v"><span class="tag ${host.power_supported?'green':'red'}">${host.power_supported?'supported':'unsupported'}</span></span></div>
+            <div class="kv"><span class="k">Energy counter</span><span class="v"><span class="tag ${host.energy_counter_supported?'green':'red'}">${host.energy_counter_supported?'supported':'unsupported'}</span></span></div>
+            <div class="kv"><span class="k">Method used</span><span class="v mono">${esc(host.energy_method)}</span></div>
+        </div>
+        <div class="card">
+            <div class="card-head">X_feasible</div>
+            <div class="metric">${int(space.n_feasible)} <small>of ${int(space.n_unconstrained)}</small></div>
+            <div class="metric-sub">${fx(pctSpace,1)}% of the unconstrained product survives</div>
+            <div class="kv" style="margin-top:10px"><span class="k">Rules fired</span>
+                <span class="v">${(space.rules_fired||[]).map(r=>`<span class="tag grey">${esc(r)}</span>`).join(' ')}</span></div>
+        </div>
+        <div class="card">
+            <div class="card-head">Permitted parameter domains</div>
+            <div class="kv"><span class="k">p &mdash; precision</span><span class="v mono">${(space.permitted_precisions||[]).map(esc).join(', ')}</span></div>
+            <div class="kv"><span class="k">g &mdash; GPU layers</span><span class="v mono">${(space.permitted_gpu_layers||[]).map(esc).join(', ')}</span></div>
+            <div class="kv"><span class="k">b &mdash; batch size</span><span class="v mono">${(space.permitted_batch_sizes||[]).map(esc).join(', ')}</span></div>
+            <div class="kv"><span class="k">c &mdash; CPU threads</span><span class="v mono">${(space.permitted_cpu_threads||[]).map(esc).join(', ')}</span></div>
+        </div>
+    </div>`;
+}
+
+function renderCost() {
+    const a = DATA.amortization, cal = DATA.calibration || {};
+    if (!a) {
+        return `<div><div class="page-title">Amortization</div></div>
+            <div class="note warn">Requires the validation stage; not available for this run.</div>`;
+    }
+    const never = a.breakeven_prompts == null;
+    return `
+    <div>
+        <div class="page-title">Amortization</div>
+        <div class="page-sub">Whether the search recovered the energy it spent. BOPIS runs once before deployment, so C_bo is a fixed cost.</div>
+    </div>
+    <div class="grid">
+        <div class="card">
+            <div class="card-head">C_bo &mdash; calibration cost</div>
+            <div class="metric">${fx(a.calibration_energy_j,1)} <small>J</small></div>
+            <div class="metric-sub">${int(cal.n_evaluations_bopis)} evaluations, ${int(cal.n_unique_configs_measured)} unique configs</div>
+        </div>
+        <div class="card">
+            <div class="card-head">ΔE &mdash; saved per prompt</div>
+            <div class="metric">${fx(a.energy_saved_per_prompt_j,2)} <small>J</small></div>
+            <div class="metric-sub">vs the unoptimized default</div>
+        </div>
+        <div class="card">
+            <div class="card-head">N* &mdash; break-even</div>
+            <div class="metric">${never ? DASH : int(a.breakeven_prompts)}</div>
+            <div class="metric-sub">
+                ${never ? '<span class="tag red">never recovered</span>'
+                        : '<span class="tag green">prompts to recover C_bo</span>'}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head">Saved per 1,000 prompts</div>
+            <div class="metric">₱${fx(a.cost_saved_per_1000_php,4)}</div>
+            <div class="metric-sub">at ₱${fx(a.tariff_php_per_kwh,2)}/kWh</div>
+        </div>
+    </div>
+    <div class="card wide">
+        <div class="card-head">Electricity cost per 1,000 prompts</div>
+        <div class="kv"><span class="k">Unoptimized default</span><span class="v">₱${fx(a.cost_per_1000_default_php,4)}</span></div>
+        <div class="kv"><span class="k">BOPIS x*</span><span class="v">₱${fx(a.cost_per_1000_optimized_php,4)}</span></div>
+        <div class="kv"><span class="k">One-off calibration</span><span class="v">₱${fx(a.calibration_cost_php,6)}</span></div>
+        <div class="note" style="margin-top:12px">
+            Amortization is not part of Chapter 3's methodology. It is derived
+            from data the calibration log already records, and the tariff is
+            illustrative only.
+        </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Shell
+   ══════════════════════════════════════════════════════════════════════ */
+let activePanel = 'summary';
+
+function show(id) {
+    activePanel = id;
+    const panel = PANELS.find(p => p.id === id);
+    if (!panel) return;
+    document.getElementById('main').innerHTML =
+        `<div class="panel active" id="panel-${id}">${panel.render()}</div>`;
+    Array.from(document.querySelectorAll('.nav-item')).forEach(el =>
+        el.classList.toggle('active', el.dataset.panel === id));
+    requestAnimationFrame(redrawAll);
+}
+
+function boot(data) {
+    DATA = data;
+    document.getElementById('run-label').textContent =
+        (data.meta && data.meta.run) || 'unnamed run';
+    document.getElementById('nav').innerHTML = PANELS.map(p =>
+        `<li class="nav-item" data-panel="${p.id}" onclick="show('${p.id}')">${p.label}</li>`
+    ).join('');
+    show('summary');
+}
+
+/* Load a dashboard_data.js (or .json) chosen by the user. The file assigns a
+   global, so the JSON body is extracted and parsed rather than evaluated. */
+function ingest(text) {
+    try {
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start < 0 || end < start) throw new Error('no JSON object found');
+        boot(JSON.parse(text.slice(start, end + 1)));
+    } catch (err) {
+        alert('Could not read that file as BOPIS run data:\n' + err.message);
+    }
+}
+
+document.getElementById('file-input').addEventListener('change', ev => {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => ingest(String(reader.result));
+    reader.readAsText(file);
+});
+
+const drop = document.getElementById('drop');
+if (drop) {
+    ['dragenter', 'dragover'].forEach(type => drop.addEventListener(type, ev => {
+        ev.preventDefault(); drop.classList.add('over');
+    }));
+    ['dragleave', 'drop'].forEach(type => drop.addEventListener(type, ev => {
+        ev.preventDefault(); drop.classList.remove('over');
+    }));
+    drop.addEventListener('drop', ev => {
+        const file = ev.dataTransfer.files && ev.dataTransfer.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => ingest(String(reader.result));
+        reader.readAsText(file);
+    });
+}
+
+window.addEventListener('resize', () => { if (DATA) redrawAll(); });
+
+// Auto-boot when dashboard_data.js was loaded alongside this page.
+if (window.BOPIS_DATA) boot(window.BOPIS_DATA);
+</script>
+<script src="dashboard_data.js" onerror="void 0"></script>
+<script>if (!DATA && window.BOPIS_DATA) boot(window.BOPIS_DATA);</script>
+</body>
+</html>
