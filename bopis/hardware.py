@@ -318,12 +318,12 @@ def _fits_memory(
             f"exceeds {vram_budget / GIB:.2f} GiB available VRAM",
         )
 
-    if host_bytes > profile.ram_available_bytes and host_bytes > profile.ram_total_bytes:
+    if host_bytes > profile.ram_available_bytes:
         return Rejection(
             cfg,
             "HW-P0",
             f"host share {host_bytes / GIB:.2f} GiB exceeds "
-            f"{profile.ram_total_bytes / GIB:.2f} GiB system RAM",
+            f"{profile.ram_available_bytes / GIB:.2f} GiB available system RAM",
         )
 
     if gpu_fraction > 0 and kv > vram_budget * 0.5:

@@ -198,12 +198,20 @@ body {
 
 .hw-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #EBF8FF; color: #2B6CB0; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #90CDF4; margin-bottom: 4px; }
 .hw-dot { width: 6px; height: 6px; background: #3182CE; border-radius: 50%; }
+.hardware-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #F6E05E; }
+.hardware-summary div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.hardware-summary span { color: #718096; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.hardware-summary strong { color: #2D3748; font-size: 11px; overflow-wrap: anywhere; }
 
 .detail-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid #EDF2F7; }
 .detail-row:last-child { border-bottom: none; }
 .detail-n { font-weight: 600; font-size: 14px; color: #2B6CB0; }
 .detail-d { font-size: 13px; color: #4A5568; line-height: 1.5; }
 .formula-box { background: #F7FAFC; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #2D3748; margin-top: 6px; border: 1px dashed #CBD5E0;}
+
+@media (max-width: 900px) {
+    .hardware-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 </style>
 </head>
@@ -259,7 +267,14 @@ body {
                     <span class="hw-pill"><div class="hw-dot"></div>CPU profiled</span>
                     <span class="hw-pill"><div class="hw-dot"></div>RAM checked</span>
                 </div>
-                <p style="margin-top:12px; font-size:12px; color:#4A5568"><strong>System ready.</strong> Pareto pool loaded.</p>
+                <p id="runtime-status" style="margin-top:12px; font-size:12px; color:#4A5568"><strong>Live chatbot ready.</strong> llama.cpp endpoint connected.</p>
+                <div class="hardware-summary" aria-label="Live hardware summary">
+                    <div><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong></div>
+                    <div><span>RAM</span><strong data-summary="ram">Profile unavailable</strong></div>
+                    <div><span>GPU / VRAM</span><strong data-summary="gpu">Profile unavailable</strong></div>
+                    <div><span>Feasible space</span><strong data-summary="space">Profile unavailable</strong></div>
+                    <div><span>Energy</span><strong data-summary="energy">Profile unavailable</strong></div>
+                </div>
             </div>
             <div class="app-card" style="cursor:pointer;" onclick="sendPrompt('Summarize the key findings from this climate policy report.')">
                 <div class="card-header">Suggested Task</div>
@@ -377,15 +392,39 @@ s.t. S(x) ≥ S_min(H)
         <div class="cards-grid">
             <div class="app-card">
                 <div class="card-header">Hardware Profile (Read-only)</div>
-                <div class="cfg-row"><span class="cfg-k">GPU model</span><span class="cfg-v">[detected on calibration]</span></div>
-                <div class="cfg-row"><span class="cfg-k">VRAM available</span><span class="cfg-v">[detected]</span></div>
-                <div class="cfg-row"><span class="cfg-k">CPU cores</span><span class="cfg-v">[detected]</span></div>
-                <div class="cfg-row"><span class="cfg-k">System RAM</span><span class="cfg-v">[detected]</span></div>
-                <div class="cfg-row"><span class="cfg-k">Feasible precision matrix</span><span class="cfg-v"><span class="tag blue">FP32</span> <span class="tag blue">FP16</span> <span class="tag green">INT8</span></span></div>
-                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Recalibration rebuilds the optimal Pareto pool by testing various combinations. Only recalibrate when system hardware changes.</p>
+                <div class="cfg-row"><span class="cfg-k">CPU model</span><span class="cfg-v" data-profile="cpu-model">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">CPU cores / threads</span><span class="cfg-v" data-profile="cores">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">GPU model</span><span class="cfg-v" data-profile="gpu-model">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Compute capability</span><span class="cfg-v" data-profile="compute">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">VRAM</span><span class="cfg-v" data-profile="vram">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">System RAM</span><span class="cfg-v" data-profile="ram">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Driver / CUDA</span><span class="cfg-v" data-profile="driver">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Telemetry platform</span><span class="cfg-v" data-profile="platform">Profile unavailable</span></div>
+                <p id="profile-timestamp" style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">No generated profile loaded. Run <code>py -3 -m bopis profile --model-aware --write-js bopis_profile.js</code>.</p>
                 <div style="margin-top:16px;">
-                    <button class="btn-action">Run Hardware Calibration</button>
+                    <button class="btn-action" onclick="showHardwareNote()">Hardware profile details</button>
                 </div>
+            </div>
+
+            <div class="app-card yellow-tint">
+                <div class="card-header">Feasible Configuration Space</div>
+                <div class="cfg-row"><span class="cfg-k">Model-aware feasible configs</span><span class="cfg-v" data-space="feasible">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Allowed precisions</span><span class="cfg-v" data-profile="precisions">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Allowed GPU layers</span><span class="cfg-v" data-profile="layers">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Batch sizes</span><span class="cfg-v" data-profile="batches">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">CPU threads</span><span class="cfg-v" data-profile="threads">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Rejected configurations</span><span class="cfg-v" data-space="rejected">Profile unavailable</span></div>
+                <p id="space-note" style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Feasibility data is loaded from the generated host profile.</p>
+            </div>
+
+            <div class="app-card">
+                <div class="card-header">Energy Instrument Status</div>
+                <div class="cfg-row"><span class="cfg-k">Power query</span><span class="cfg-v" data-profile="power">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Energy counter</span><span class="cfg-v" data-profile="counter">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Energy method</span><span class="cfg-v" data-profile="energy">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Live metrics</span><span class="cfg-v">tokens, speed, latency</span></div>
+                <div class="cfg-row"><span class="cfg-k">Research quality</span><span class="cfg-v">Dolly + BERTScore offline</span></div>
+                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">The laptop can compute, but cannot provide a valid GPU-joule claim. Use supported hardware or an external wattmeter for final energy evidence.</p>
             </div>
             
             <div class="app-card">
@@ -402,10 +441,13 @@ s.t. S(x) ≥ S_min(H)
             <div class="app-card">
                 <div class="card-header">Model & Execution Backend</div>
                 <div class="cfg-row"><span class="cfg-k">Model Weight Format</span><span class="cfg-v">GGUF via llama.cpp</span></div>
-                <div class="cfg-row"><span class="cfg-k">Inference Server</span><span class="cfg-v">Ollama</span></div>
-                <div class="cfg-row"><span class="cfg-k">GPU Energy tool</span><span class="cfg-v">pynvml</span></div>
-                <div class="cfg-row"><span class="cfg-k">CPU Energy tool</span><span class="cfg-v">pyRAPL</span></div>
-                <div class="cfg-row"><span class="cfg-k">Quality Metrics</span><span class="cfg-v">BERTScore F1, ROUGE-L</span></div>
+                <div class="cfg-row"><span class="cfg-k">Live demo server</span><span class="cfg-v">llama.cpp server</span></div>
+                <div class="cfg-row"><span class="cfg-k">Live model</span><span class="cfg-v">llama2:7b (Q4_0 demo)</span></div>
+                <div class="cfg-row"><span class="cfg-k">Generation cap</span><span class="cfg-v">512 tokens</span></div>
+                <div class="cfg-row"><span class="cfg-k">GPU layers</span><span class="cfg-v">0 (CPU runtime)</span></div>
+                <div class="cfg-row"><span class="cfg-k">Energy scope</span><span class="cfg-v" data-profile="scope">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Dolly quality metric</span><span class="cfg-v">BERTScore F1 (offline)</span></div>
+                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Dolly 15K evaluates responses against references. It is not used as live chatbot memory.</p>
             </div>
 
             <div class="app-card" style="grid-column: 1 / -1; background:#F7FAFC; border:1px dashed #CBD5E0; text-align:center; padding: 32px 20px;">
@@ -430,7 +472,58 @@ s.t. S(x) ≥ S_min(H)
     </div>
 </main>
 
+<script src="bopis_profile.js"></script>
 <script>
+function applyHardwareProfile() {
+    const profile = window.BOPIS_PROFILE;
+    if (!profile || !profile.host_profile || !profile.configuration_space) return;
+    const host = profile.host_profile;
+    const space = profile.configuration_space;
+    const set = (name, value) => {
+        const element = document.querySelector(`[data-profile="${name}"]`);
+        if (element) element.textContent = value;
+    };
+    const setSummary = (name, value) => {
+        const element = document.querySelector(`[data-summary="${name}"]`);
+        if (element) element.textContent = value;
+    };
+    const formatGiB = value => `${Number(value).toFixed(2)} GiB`;
+    const permittedLayers = (host.permitted_gpu_layers || []).join(', ');
+    set('cpu-model', host.cpu_model || 'unknown');
+    set('cores', `${host.physical_cores} physical / ${host.logical_cores} logical`);
+    set('gpu-model', host.gpu_name || 'none detected');
+    set('compute', host.compute_capability || 'unavailable');
+    set('vram', `${formatGiB(host.vram_total_gib)} total / ${formatGiB((host.vram_free_bytes || 0) / 1073741824)} available`);
+    set('ram', `${formatGiB(host.ram_total_gib)} total / ${formatGiB((host.ram_available_bytes || 0) / 1073741824)} available`);
+    set('driver', `${host.driver_version || 'n/a'} / ${host.cuda_driver_version || 'n/a'}`);
+    set('platform', `${host.platform_name || 'unknown'} (${host.telemetry_source || 'unknown'})`);
+    set('precisions', (host.permitted_precisions || []).join(', ') || 'none');
+    set('layers', permittedLayers || 'none');
+    set('batches', (host.permitted_batch_sizes || []).join(', ') || 'none');
+    set('threads', (host.permitted_cpu_threads || []).join(', ') || 'none');
+    set('power', host.power_supported ? 'supported' : 'NOT SUPPORTED');
+    set('counter', host.energy_counter_supported ? 'supported' : 'NOT SUPPORTED');
+    set('energy', host.energy_method || 'unavailable');
+    set('scope', host.energy_method === 'unavailable' ? 'GPU energy unavailable' : 'GPU telemetry active');
+    setSummary('cpu', `${host.physical_cores}C / ${host.logical_cores}T`);
+    setSummary('ram', `${formatGiB(host.ram_available_bytes / 1073741824)} free`);
+    setSummary('gpu', `${host.gpu_name || 'none'} / ${formatGiB(host.vram_total_gib)}`);
+    const setSpace = (name, value) => {
+        const element = document.querySelector(`[data-space="${name}"]`);
+        if (element) element.textContent = value;
+    };
+    setSpace('feasible', `${space.n_feasible} of ${space.n_unconstrained}`);
+    setSpace('rejected', `${space.n_rejected} · ${Object.entries(space.rejected_by_rule || {}).map(([rule, count]) => `${rule} (${count})`).join(', ') || 'none'}`);
+    setSummary('space', `${space.n_feasible} / ${space.n_unconstrained}`);
+    setSummary('energy', host.energy_method === 'unavailable' ? 'Unavailable' : host.energy_method);
+    const timestamp = document.getElementById('profile-timestamp');
+    if (timestamp) timestamp.textContent = `Live profile generated: ${profile.generated_utc}. Refresh with bopis profile --write-js.`;
+    const note = document.getElementById('space-note');
+    if (note) note.textContent = `Rules fired: ${(host.rules_fired || []).join(', ')}. Values are loaded from the generated profile, not embedded in this HTML.`;
+}
+
+applyHardwareProfile();
+
 function sw(name, btn) {
     // Handle tab switching
     document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
@@ -458,7 +551,21 @@ function sendPrompt(text) {
     doChat();
 }
 
-function doChat() {
+const chatHistory = [];
+const CHATBOT_CONFIG = {
+    endpoint: 'http://127.0.0.1:8080/completion',
+    model: 'llama2:7b (Q4_0 demo)',
+    maxTokens: 512,
+    temperature: 0
+};
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[character]));
+}
+
+async function doChat() {
     const inp = document.getElementById('ci');
     const txt = inp.value.trim();
     if (!txt) return;
@@ -467,33 +574,6 @@ function doChat() {
     
     const area = document.getElementById('chat-area');
     
-    // Check if it's already an explanation response
-    if (txt.includes('Why FP16') || txt.includes('Why did BOPIS pick')) {
-        const u = document.createElement('div');
-        u.className = 'msg';
-        u.innerHTML = `<span class="user-prompt">${txt}</span>`;
-        area.appendChild(u);
-        
-        setTimeout(() => {
-            const b = document.createElement('div');
-            b.className = 'msg';
-            b.innerHTML = `
-            <div class="ai-response">
-                <p style="font-size:14px; color:#2D3748; line-height:1.6;">
-                    <strong>Explanation:</strong><br>
-                    ${txt.includes('FP16') ? 
-                    'For factual questions (Closed QA), exact knowledge retrieval is required. Using standard INT8 quantization can clip outlier activations critical for factual recall, leading to hallucinations. The system automatically chose FP16 to guarantee Q >= 0.82.' : 
-                    'For summarization, the system determined the task tolerates minor quantization loss. Using INT8 drops energy consumption by ~2.1x while keeping quality comfortably above the 0.78 F1 threshold.'}
-                </p>
-            </div>`;
-            area.appendChild(b);
-            scrollToBottom();
-        }, 600);
-        inp.value = '';
-        return;
-    }
-    
-    // Normal prompt submission
     const u = document.createElement('div');
     u.className = 'msg';
     u.innerHTML = `<span class="user-prompt">${txt.replace(/</g, '&lt;')}</span>`;
@@ -501,65 +581,78 @@ function doChat() {
     inp.value = '';
     scrollToBottom();
 
+    chatHistory.push({ role: 'user', content: txt });
+    const pending = document.createElement('div');
+    pending.className = 'msg';
+    pending.innerHTML = '<div class="thought-process">Connecting to local chatbot...</div>';
+    area.appendChild(pending);
+    scrollToBottom();
 
-    setTimeout(() => {
-        const b = document.createElement('div');
-        b.className = 'msg';
-        
-        let precision = "INT8";
-        let type = "Summarization";
-        let eTag = "2.1x less energy · Q >= 0.78";
-        let tokLen = "512";
-        let gpuLayers = "28 / all";
-        let bSize = "2";
-        let whyMessage = "Why did BOPIS pick INT8 for my summarization task?";
-        
-        if (txt.toLowerCase().includes("capital") || txt.toLowerCase().includes("factual") || txt.toLowerCase().includes("france")) {
-            precision = "FP16";
-            type = "Closed QA";
-            eTag = "1.5x less energy · Q >= 0.82";
-            tokLen = "256";
-            gpuLayers = "all";
-            bSize = "1";
-            whyMessage = "Why FP16 instead of INT8 for a factual question?";
-        }
-
-        b.innerHTML = `
-            <div class="thought-process">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg> classifying prompt... selecting from Pareto pool...
-            </div>
-            <div class="ai-response" style="margin-top: 6px;">
-                <div class="task-badge">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                    Task detected: ${type}
+    try {
+        const conversation = chatHistory.map(message => {
+            const speaker = message.role === 'user' ? 'User' : 'Assistant';
+            return `${speaker}: ${message.content}`;
+        }).join('\n');
+        const response = await fetch(CHATBOT_CONFIG.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: `${conversation}\nAssistant:`,
+                n_predict: CHATBOT_CONFIG.maxTokens,
+                stream: false,
+                temperature: CHATBOT_CONFIG.temperature,
+                top_k: 1
+            })
+        });
+        if (!response.ok) throw new Error(`llama.cpp returned HTTP ${response.status}`);
+        const data = await response.json();
+        const reply = data.content;
+        if (!reply) throw new Error('The chatbot returned an empty response');
+        chatHistory.push({ role: 'assistant', content: reply });
+        const promptTokens = Number(data.tokens_evaluated || data.timings?.prompt_n || 0);
+        const generatedTokens = Number(data.tokens_predicted || data.timings?.predicted_n || 0);
+        const decodeSeconds = Number(data.timings?.predicted_ms || 0) / 1000;
+        const reportedTotalSeconds = Number(data.timings?.total_ms || 0) / 1000;
+        const totalSeconds = reportedTotalSeconds || (decodeSeconds + Number(data.timings?.prompt_ms || 0) / 1000);
+        const decodeSpeed = decodeSeconds > 0
+            ? (generatedTokens / decodeSeconds).toFixed(2)
+            : 'n/a';
+        const latency = totalSeconds > 0 ? totalSeconds.toFixed(2) : 'n/a';
+        pending.innerHTML = `
+            <div class="ai-response" style="border-left: 4px solid #3182CE;">
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3182CE; margin-bottom:8px;">Live model output · ${CHATBOT_CONFIG.model}</div>
+                <p style="font-size:14px; color:#2D3748; line-height:1.6; white-space:pre-wrap;">${escapeHtml(reply)}</p>
+                <div style="margin-top:16px; padding-top:12px; border-top:1px solid #EDF2F7; font-size:12px; color:#718096; display:flex; flex-wrap:wrap; gap:10px 18px;">
+                    <span>Prompt tokens: <strong>${promptTokens || 'n/a'}</strong></span>
+                    <span>Generated tokens: <strong>${generatedTokens || 'n/a'}</strong></span>
+                    <span>Decode speed: <strong>${decodeSpeed} tok/s</strong></span>
+                    <span>Latency: <strong>${latency} s</strong></span>
+                    <span>Energy: <strong>unavailable</strong></span>
+                    <span>BERTScore: <strong>offline Dolly evaluation</strong></span>
                 </div>
-                
-                <div style="background:#F7FAFC; border-radius:12px; padding:16px; margin-bottom:16px; border:1px solid #E2E8F0;">
-                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#718096; margin-bottom:8px;">Selected Config</div>
-                    <div class="cfg-row"><span class="cfg-k">Precision</span><span class="cfg-v">${precision}</span></div>
-                    <div class="cfg-row"><span class="cfg-k">Token length</span><span class="cfg-v">${tokLen}</span></div>
-                    <div class="cfg-row"><span class="cfg-k">GPU layers</span><span class="cfg-v">${gpuLayers}</span></div>
-                    <div class="cfg-row"><span class="cfg-k">Batch size</span><span class="cfg-v">${bSize}</span></div>
-                    <div class="cfg-row"><span class="cfg-k">CPU threads</span><span class="cfg-v">8</span></div>
-                    <div class="cfg-row" style="margin-top:8px; padding-top:12px; border-top:1px dashed #CBD5E0;">
-                        <span class="cfg-k">Optimization</span><span class="cfg-v" style="color:#22543D">${eTag}</span>
-                    </div>
-                </div>
-
-                <div class="action-bar">
-                    <button class="btn-action" onclick="sendPrompt('${whyMessage}')">Why this config? →</button>
-                    <button class="btn-action" style="background:#3182CE; color:white;" onclick="runInference(this, '${type}')">Proceed →</button>
-                </div>
-            </div>
-        `;
-        area.appendChild(b);
-        scrollToBottom();
-    }, 600);
+            </div>`;
+    } catch (error) {
+        chatHistory.pop();
+        pending.innerHTML = `
+            <div class="ai-response" style="border-left: 4px solid #E53E3E;">
+                <strong>Chatbot unavailable</strong><br>
+                <span style="font-size:13px; color:#718096;">${escapeHtml(error.message)}. Start the llama.cpp server on port 8080 and try again.</span>
+            </div>`;
+    }
+    scrollToBottom();
 }
 
 function scrollToBottom() {
     const mainArea = document.querySelector('.main-area');
     mainArea.scrollTo({ top: mainArea.scrollHeight, behavior: 'smooth' });
+}
+
+function showHardwareNote() {
+    const status = document.getElementById('runtime-status');
+    if (status) {
+        status.innerHTML = '<strong>Profile loaded.</strong> This snapshot is from the latest hardware check; run <code>py -3 -m bopis profile --model-aware</code> to refresh it.';
+    }
+    sw('chat', document.querySelector('.nav-item:nth-child(1)'));
 }
 
 function runInference(btn, taskType) {

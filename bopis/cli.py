@@ -7,6 +7,7 @@ Commands
     space and energy-measurement capability. Run this first on any new machine:
     it tells you whether GPU energy can be measured at all before you commit to
     a multi-hour study.
+    Use ``--write-js`` to export the same live profile for ``bopis.html``.
 ``dataset``
     Download Databricks Dolly 15k and build the fixed 500-prompt evaluation set
     and its nested 50-prompt proxy subset.
@@ -15,6 +16,10 @@ Commands
     dashboard data.
 ``report``
     Rebuild ``dashboard_data.js`` from an existing run directory.
+``serve``
+    Launch llama-server using the selected BOPIS configuration from a completed
+    run. This is the deployment handoff for the chatbot; it does not run the
+    Dolly evaluation again.
 
 Standard library only.
 """
@@ -22,14 +27,20 @@ Standard library only.
 from __future__ import annotations
 
 import argparse
+import csv
+import datetime as _dt
 import json
 import os
+import re
 import sys
+import time
 from typing import Optional, Sequence
 
 from bopis import __version__, artifacts, dashboard, dataset, hardware, metrics
 from bopis import config_space as cs
 from bopis import optimizer, runner, tasks
+from bopis.backends.llama_server import LlamaServerBackend
+from bopis.config_space import Config
 from bopis.measure import SimulatedMeasurer
 from bopis.monitor.nvml import EnergyMethod
 
@@ -66,6 +77,26 @@ def cmd_profile(args: argparse.Namespace) -> int:
         min_gpu_layers=args.min_gpu_layers,
     )
     summary = hardware.summarize_space(space, rejections)
+
+    if args.write_js:
+        payload = {
+            "generated_utc": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+            "host_profile": profile.as_dict(),
+            "configuration_space": summary,
+            "rejections": [
+                {"config": r.config.key(), "rule": r.rule, "detail": r.detail}
+                for r in rejections
+            ],
+        }
+        target = os.path.abspath(args.write_js)
+        os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
+        with open(target, "w", encoding="utf-8") as handle:
+            handle.write("window.BOPIS_PROFILE = ")
+            json.dump(payload, handle, indent=2, default=str)
+            handle.write(";\n")
+        print(f"Wrote live hardware profile to {target}")
+        if not args.json:
+            return 0
 
     if args.json:
         print(
@@ -349,6 +380,17 @@ def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
 def cmd_run(args: argparse.Namespace) -> int:
     profile = hardware.profile_host()
 
+    if args.backend == "llama-server" and not args.model_aware:
+        print(
+            "REFUSING TO RUN: real llama-server studies require "
+            "--model-aware so the model footprint, VRAM, RAM, and batch "
+            "constraints are applied before search.\n"
+            "  Re-run with --model-aware, or use --backend sim for the "
+            "unconstrained analytic simulator.",
+            file=sys.stderr,
+        )
+        return 2
+
     if args.backend != "sim" and not profile.can_measure_energy and not args.allow_no_power:
         print(
             "REFUSING TO RUN: this GPU reports neither power nor energy "
@@ -618,6 +660,92 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 # --------------------------------------------------------------------------- #
+# serve
+# --------------------------------------------------------------------------- #
+
+
+_CONFIG_KEY = re.compile(
+    r"^t(\d+)_b(\d+)_(F32|F16|Q8_0|Q4_K_M)_g(All|\d+)_c(\d+)$"
+)
+
+
+def _selected_config(run: artifacts.RunDirectory) -> Config:
+    """Read the BOPIS-selected configuration from ``selection.csv``."""
+    path = run.path("selection.csv")
+    if not os.path.exists(path):
+        raise SystemExit(f"{path} is missing; run a completed BOPIS study first")
+
+    with open(path, "r", newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            if row.get("selected", "").strip().lower() not in {"true", "1", "yes"}:
+                continue
+            match = _CONFIG_KEY.fullmatch(row.get("config", "").strip())
+            if not match:
+                raise SystemExit(
+                    f"invalid selected configuration key: {row.get('config')!r}"
+                )
+            t, batch, precision, gpu_layers, threads = match.groups()
+            return Config(
+                t=int(t),
+                b=int(batch),
+                p=precision,
+                g=cs.ALL_LAYERS if gpu_layers == "All" else int(gpu_layers),
+                c=int(threads),
+            )
+    raise SystemExit(f"{path} has no selected BOPIS configuration")
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    """Deploy x* as a llama-server process for a chatbot frontend."""
+    run = artifacts.RunDirectory(args.run)
+    config = _selected_config(run)
+    profile = hardware.profile_host()
+    space, rejections = hardware.feasible_space(
+        profile,
+        model=hardware.MISTRAL_7B_INSTRUCT_V03,
+        ctx_size=args.ctx_size,
+        min_gpu_layers=args.min_gpu_layers,
+    )
+    if config not in space:
+        rejection = next((r for r in rejections if r.config == config), None)
+        detail = (
+            rejection.detail if rejection else "configuration is outside X_feasible"
+        )
+        raise SystemExit(
+            f"refusing deployment of {config}: {detail}.\n"
+            "Run the study on this machine or use a selected configuration "
+            "from hardware with sufficient resources."
+        )
+
+    model_paths = _parse_model_paths(args.model)
+    backend = LlamaServerBackend(
+        binary=args.llama_binary,
+        model_paths=model_paths,
+        host=args.host,
+        port=args.port,
+        ctx_size=args.ctx_size,
+        seed=args.seed,
+        log_path=os.path.join(run.root, "chatbot_server.log"),
+    )
+    print(_rule("BOPIS CHATBOT"))
+    print(_kv("Run", run.root))
+    print(_kv("Selected x*", config))
+    print(_kv("Endpoint", f"http://{args.host}:{args.port}"))
+    print(_kv("Dolly", "evaluation dataset; not used as chatbot memory"))
+    print("  Starting llama-server. Press Ctrl+C to stop.")
+    try:
+        backend.start(config, total_layers=args.total_layers)
+        print("  Server is ready. Chatbot clients may call /v1/chat/completions.")
+        while True:
+            time.sleep(1.0)
+    except KeyboardInterrupt:
+        print("\nStopping llama-server...")
+    finally:
+        backend.stop()
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
 
@@ -652,6 +780,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="exclude configs below this GPU-layer floor (energy-scope guard)",
     )
     p_profile.add_argument("--max-rejections", type=int, default=5)
+    p_profile.add_argument(
+        "--write-js",
+        metavar="PATH",
+        help="export the live profile for the standalone chatbot HTML",
+    )
     p_profile.set_defaults(func=cmd_profile)
 
     # dataset
@@ -728,6 +861,37 @@ def build_parser() -> argparse.ArgumentParser:
     p_report.add_argument("--run", default=None, help="path to a run directory")
     p_report.add_argument("--out", default="runs")
     p_report.set_defaults(func=cmd_report)
+
+    # serve
+    p_serve = sub.add_parser(
+        "serve",
+        help="deploy the selected BOPIS configuration as a chatbot server",
+    )
+    p_serve.add_argument(
+        "--run", required=True, help="completed run directory containing selection.csv"
+    )
+    p_serve.add_argument(
+        "--llama-binary", required=True, help="path to llama-server executable"
+    )
+    p_serve.add_argument(
+        "--model",
+        action="append",
+        required=True,
+        metavar="VARIANT=PATH",
+        help="GGUF path per precision variant; repeat for available variants",
+    )
+    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument("--port", type=int, default=8080)
+    p_serve.add_argument("--ctx-size", type=int, default=cs.FIXED_CTX_SIZE)
+    p_serve.add_argument("--total-layers", type=int, default=32)
+    p_serve.add_argument("--seed", type=int, default=0)
+    p_serve.add_argument(
+        "--min-gpu-layers",
+        type=int,
+        default=None,
+        help="require this GPU-layer floor when deploying x*",
+    )
+    p_serve.set_defaults(func=cmd_serve)
 
     return parser
 

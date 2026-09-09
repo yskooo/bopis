@@ -157,6 +157,15 @@ metric appears in the HTML, because the mockup this replaces hardcoded all of
 them — its "Pareto front" was an eleven-element array with membership *asserted*
 rather than computed.
 
+## Applying the result to a chatbot
+
+The Dolly 15k dataset is used for standardized evaluation, not as chatbot
+memory. After a completed study, `bopis serve` reads the selected `x*` from
+`selection.csv`, validates it against the current machine, and launches
+`llama-server` with the selected model, GPU layers, CPU threads, and parallel
+slots. See [`docs/CHATBOT_INTEGRATION.md`](docs/CHATBOT_INTEGRATION.md) for the
+evaluation-to-deployment workflow and the native llama.cpp endpoint example.
+
 ## Tests
 
 ```bash
