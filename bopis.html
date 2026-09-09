@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BOPIS — AI Optimizer</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { 
-    font-family: 'Inter', sans-serif; 
+    font-family: 'IBM Plex Sans', sans-serif; 
     background-color: #E8F0F8;
     color: #1A202C; 
     display: flex; 
@@ -192,6 +192,17 @@ body {
 
 /* ─ CHARTS / TABLES ────────── */
 .chart-container { margin-top: 16px; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: #FFF; }
+.pareto-legend { display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:12px; color:#718096; font-size:11px; }
+.pareto-legend span { display:inline-flex; align-items:center; gap:6px; }
+.legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.pareto-viewport { position:relative; overflow:hidden; border-radius:8px; background:linear-gradient(145deg, #fbfdff, #f4f8fc); }
+.pareto-viewport canvas { cursor:grab; touch-action:none; }
+.pareto-viewport canvas:active { cursor:grabbing; }
+.pareto-hint { position:absolute; right:12px; top:10px; padding:5px 8px; border-radius:5px; background:rgba(255,255,255,.86); color:#718096; font-size:10px; pointer-events:none; }
+.pareto-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:10px; }
+.pareto-control-button { border:1px solid #C9D5D8; background:#FFFFFF; color:#294957; border-radius:4px; padding:6px 10px; font:500 11px 'IBM Plex Mono', monospace; cursor:pointer; }
+.pareto-control-button:hover { border-color:#0C8C9B; color:#0C707B; background:#F0FAF9; }
+.pareto-selection { min-height:28px; color:#6B7F86; font:11px 'IBM Plex Mono', monospace; }
 .rules-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
 .rules-table th { text-align: left; padding: 12px 8px; color: #718096; font-weight: 500; border-bottom: 1px solid #E2E8F0; }
 .rules-table td { padding: 12px 8px; border-bottom: 1px solid #EDF2F7; color: #2D3748; }
@@ -209,7 +220,88 @@ body {
 .detail-d { font-size: 13px; color: #4A5568; line-height: 1.5; }
 .formula-box { background: #F7FAFC; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #2D3748; margin-top: 6px; border: 1px dashed #CBD5E0;}
 
+/* ── RESEARCH INSTRUMENT THEME ───────────────────────── */
+:root {
+    --ink: #102231;
+    --ink-soft: #1A3447;
+    --paper: #F5F8F6;
+    --paper-bright: #FFFFFF;
+    --line: #D7E2E1;
+    --muted: #6B7F86;
+    --cyan: #0C8C9B;
+    --cyan-soft: #DDF3F2;
+    --amber: #C17A29;
+    --amber-soft: #FFF1D9;
+    --green: #2B8765;
+}
+
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+}
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: .42;
+    background-image: linear-gradient(rgba(12,140,155,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(12,140,155,.045) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+.sidebar {
+    width: 248px;
+    background: var(--ink);
+    border-right: 1px solid #294557;
+    padding: 28px 16px 20px;
+}
+.avatar { background: #DDF3F2; color: var(--cyan); box-shadow: none; }
+.user-name, .nav-item.active, .nav-item:hover { color: #F2FAF9; }
+.nav-item { color: #A9C1C7; border-radius: 5px; letter-spacing: .01em; }
+.nav-item:hover { background: rgba(255,255,255,.08); }
+.nav-item.active { background: #1D4558; box-shadow: inset 3px 0 var(--cyan); }
+.nav-icon { color: currentColor; }
+.sidebar-bottom { border-top: 1px solid #294557; padding-top: 16px; }
+.status-card { background: #173244; border: 1px solid #2B5569; border-radius: 5px; }
+.status-card h4 { color: #E6F4F2; letter-spacing: .08em; text-transform: uppercase; }
+.status-card p { color: #A9C1C7; font-family: 'IBM Plex Mono', monospace; }
+.btn-upgrade { background: var(--cyan); border-radius: 4px; }
+.btn-upgrade:hover { background: #0A707B; }
+.main-area { padding: 44px 58px; background: transparent; }
+.page-header { border-left: 3px solid var(--cyan); padding-left: 16px; }
+.page-title { color: var(--ink); font-size: 30px; letter-spacing: -.02em; }
+.page-subtitle { color: var(--muted); font-size: 18px; }
+.app-card { background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgba(16,34,49,.055); }
+.app-card.yellow-tint { background: var(--amber-soft); border-color: #E8CB9D; }
+.card-header { color: var(--ink-soft); letter-spacing: .07em; text-transform: uppercase; font-size: 11px; }
+.card-value { color: var(--ink); font-family: 'IBM Plex Mono', monospace; letter-spacing: -.04em; }
+.card-subtext, .detail-d, .cfg-k { color: var(--muted); }
+.tag { border-radius: 3px; letter-spacing: .04em; text-transform: uppercase; }
+.tag.blue { background: var(--cyan-soft); color: #09616B; }
+.tag.green { background: #DDF2E7; color: #226A4D; }
+.tag.red { background: #FCE1DD; color: #9A3E35; }
+.hw-pill { background: var(--cyan-soft); color: #09616B; border-color: #9DD9D6; border-radius: 4px; }
+.chart-container, .pareto-viewport { background: #FBFDFC; border-color: var(--line); border-radius: 5px; }
+.pareto-hint { background: rgba(245,248,246,.9); color: var(--muted); border: 1px solid var(--line); font-family: 'IBM Plex Mono', monospace; }
+.pareto-legend { font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
+.formula-box { background: #F1F7F6; border-color: #A8CCCA; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; }
+.cfg-v, .detail-n { color: var(--ink-soft); }
+.input-wrapper { border-radius: 5px; border-color: #A8CCCA; box-shadow: 0 10px 28px rgba(16,34,49,.12); }
+.btn-send { background: var(--cyan); color: white; border-radius: 4px; }
+.btn-send:hover { background: #0A707B; }
+.ai-response { border-radius: 5px; border-color: var(--line); }
+.user-prompt { border-radius: 4px; background: var(--amber-soft); }
+.hardware-summary { border-top-color: #E8CB9D; }
+.hardware-summary span { font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
+.note.info { background: var(--cyan-soft); border-left-color: var(--cyan); color: #155A61; }
+
 @media (max-width: 900px) {
+    .main-area { padding: 30px 22px 90px; }
+    .sidebar { width: 220px; }
+}
+
+@media (max-width: 900px) {
+    .cards-grid[style*="repeat(4"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     .hardware-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -243,9 +335,9 @@ body {
 
     <div class="sidebar-bottom">
         <div class="status-card">
-            <h4>Optimization Active</h4>
-            <p>34 configs calibrated</p>
-            <button class="btn-upgrade">Recalibrate HW</button>
+            <h4>Hardware profile active</h4>
+            <p id="calibration-status">Run data not loaded</p>
+            <button class="btn-upgrade" type="button" onclick="recalibrateHardware()">Recalibrate HW</button>
         </div>
     </div>
 </nav>
@@ -298,87 +390,78 @@ body {
     <div id="panel-tech" class="panel">
         <div class="page-header">
             <h1 class="page-title">Optimization Dashboard</h1>
-            <h2 class="page-subtitle">Monitor energy savings and performance.</h2>
+            <h2 class="page-subtitle">Follow the evidence from search to deployment.</h2>
+        </div>
+
+        <div class="app-card" style="background:#EBF8FF; border-color:#90CDF4;">
+            <div class="card-header">BOPIS user journey</div>
+            <div class="cards-grid" style="grid-template-columns:repeat(4, minmax(0, 1fr));">
+                <div><span class="tag blue">1 · Define</span><p class="detail-d" style="margin-top:8px">Classify the prompt and choose quality and speed floors.</p></div>
+                <div><span class="tag blue">2 · Search</span><p class="detail-d" style="margin-top:8px">Measure seed configurations, then let the GP choose informative trials.</p></div>
+                <div><span class="tag blue">3 · Compare</span><p class="detail-d" style="margin-top:8px">Keep non-dominated energy, speed, and quality trade-offs on the Pareto front.</p></div>
+                <div><span class="tag green">4 · Deploy</span><p class="detail-d" style="margin-top:8px">Use x* for live inference and retain the run as evidence.</p></div>
+            </div>
+        </div>
+
+        <div class="app-card" id="run-evidence">
+            <div class="card-header"><span>Run evidence</span><button class="btn-action" onclick="document.getElementById('run-file-input').click()">Load run data</button></div>
+            <input type="file" id="run-file-input" accept=".js,.json" style="display:none">
+            <div id="dashboard-status" class="note info">Loading generated run data...</div>
         </div>
 
         <div class="cards-grid">
             <div class="app-card">
                 <div class="card-header">Session Prompts</div>
-                <div class="card-value">42</div>
-                <div class="card-subtext"><span class="tag green">Active</span> Processed today</div>
+                <div class="card-value" data-run="iterations">—</div>
+                <div class="card-subtext"><span class="tag blue">Search budget</span> measured configurations</div>
             </div>
             <div class="app-card">
                 <div class="card-header">Energy Total & Savings</div>
-                <div class="card-value">1,847 <span style="font-size:14px;color:#718096">J</span></div>
-                <div class="card-subtext"><span class="tag green">↓ 54% vs default</span> ₱0.003 saved</div>
+                <div class="card-value" data-run="eir">—</div>
+                <div class="card-subtext"><span class="tag green">EIR</span> vs unoptimized default</div>
             </div>
             <div class="app-card">
                 <div class="card-header">Avg Generation Speed</div>
-                <div class="card-value">44 <span style="font-size:14px;color:#718096">tok/s</span></div>
-                <div class="card-subtext"><span class="tag green">↑ 18% vs default</span></div>
+                <div class="card-value" data-run="speed">—</div>
+                <div class="card-subtext"><span class="tag blue">SRR</span> retention vs default</div>
             </div>
             <div class="app-card">
                 <div class="card-header">Overall Quality</div>
-                <div class="card-value">0.81 <span style="font-size:14px;color:#718096">F1</span></div>
-                <div class="card-subtext"><span class="tag blue">Stable</span> within threshold</div>
+                <div class="card-value" data-run="quality">—</div>
+                <div class="card-subtext"><span class="tag blue">QRR</span> retention vs default</div>
             </div>
         </div>
 
         <div class="cards-grid" style="margin-top:16px;">
             <div class="app-card" style="grid-column: 1 / -1;">
                 <div class="card-header">Pareto Front — Energy vs. Quality vs. Speed (Bubble Size)</div>
-                <div class="chart-container">
-                    <canvas id="pareto" width="800" height="200" style="max-width:100%"></canvas>
+                <div class="chart-container pareto-viewport">
+                    <canvas id="pareto" width="800" height="420" style="max-width:100%"></canvas>
+                    <span class="pareto-hint">Drag to rotate · wheel to zoom</span>
                 </div>
-            </div>
-            
-            <!-- Wrapper to force true 50:50 layout on these two cards -->
-            <div style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-                <div class="app-card">
-                    <div class="card-header">Live Quantization Rules</div>
-                    <table class="rules-table">
-                        <thead>
-                            <tr><th>Task type</th><th>Base Min (F1)</th><th>Precision</th><th>Energy Savings</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>Closed QA / Extraction</td><td>>= 0.82</td><td><span class="tag blue">FP16</span></td><td>~1.5x reduction</td></tr>
-                            <tr><td>Summarization</td><td>>= 0.78</td><td><span class="tag green">INT8</span></td><td>~2.0x reduction</td></tr>
-                            <tr><td>Classification</td><td>>= 0.78</td><td><span class="tag green">INT8</span></td><td>~2.2x reduction</td></tr>
-                            <tr><td>Creative generation</td><td>>= 0.72</td><td><span class="tag green">INT8</span></td><td>~2.6x reduction</td></tr>
-                        </tbody>
-                    </table>
+                <div class="pareto-controls">
+                    <div class="pareto-selection" id="pareto-selection">Click a point to inspect its configuration.</div>
+                    <button class="pareto-control-button" type="button" onclick="resetParetoView()">Reset view</button>
                 </div>
-                <div class="app-card">
-                    <div class="card-header">Amortization — Calibration Cost Recovery</div>
-                    <div class="detail-row">
-                        <div class="detail-n">N*=23</div>
-                        <div class="detail-d">Break-even prompt count. After 23 prompts, calibration energy is recovered. Session: 42 prompts — net positive.</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-n">C_bo (Calibration cost)</div>
-                        <div class="detail-d"><strong>1,014 J</strong> — one-time, stored to disk, not repeated unless hardware changes.</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-n">dE (Savings per prompt)</div>
-                        <div class="detail-d"><strong>44.1 J/token</strong> vs default 96.2 J/token.</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-n">₱/run (Cost per 1,000 prompts)</div>
-                        <div class="detail-d">At ₱14.35/kWh — Default: <strong>₱0.38</strong> | Random: <strong>₱0.27</strong> | BOPIS: <strong>₱0.18</strong></div>
-                    </div>
+                <div class="pareto-legend">
+                    <span><i class="legend-dot" style="background:#000000"></i>Measured point</span>
+                    <span><i class="legend-dot" style="background:#2A788E"></i>Pareto front</span>
+                    <span><i class="legend-dot" style="background:#A0DA39"></i>Higher quality</span>
+                    <span><i class="legend-dot" style="background:#E53E3E"></i>Default reference</span>
                 </div>
+                <div class="card-subtext" style="margin-top:10px">Each point is an evaluated configuration. x* is the selected trade-off, not automatically the lowest-energy point.</div>
             </div>
 
             <div class="app-card" style="grid-column: 1 / -1;">
-                <div class="card-header">BOPIS Optimization Model — Key Formulas</div>
+                <div class="card-header">How Bayesian optimization works here</div>
                 <div class="cards-grid">
-                    <div><span class="detail-d">Inference Configuration Vector</span><div class="formula-box">x = (t, b, p, g, c)</div></div>
-                    <div><span class="detail-d">Objective Function (Minimization)</span><div class="formula-box">f(x) = {E(x), -S(x), -Q(x)}</div></div>
-                    <div><span class="detail-d">Optimization Goal</span><div class="formula-box" style="white-space: pre-wrap; line-height: 1.4;">x* = argmin E(x)
-s.t. S(x) ≥ S_min(H)
-     Q(x) ≥ Q_min(task)</div></div>
-                    <div><span class="detail-d">Pareto Optimality Condition</span><div class="formula-box">f_i(x) ≤ f_i(x*) ∀i &amp; f_j(x) &lt; f_j(x*) ∃j</div></div>
+                    <div><span class="detail-d">Bayesian optimization</span><div class="formula-box">Choose the next expensive experiment using current evidence + uncertainty.</div></div>
+                    <div><span class="detail-d">Gaussian Process</span><div class="formula-box">A probability distribution over plausible energy surfaces, not a second LLM.</div></div>
+                    <div><span class="detail-d">Surrogate</span><div class="formula-box">The GP's cheap prediction of E(x) for configurations not measured yet.</div></div>
+                    <div><span class="detail-d">Acquisition function</span><div class="formula-box">Expected Improvement balances promising low energy with uncertain regions.</div></div>
                 </div>
+                <div class="detail-d" style="margin-top:12px">The evidence panel uses the same run payload as <code>dashboard/index.html</code>: measured points, GP predictions, uncertainty, validation indicators, and the selected x*. No UI value is invented.</div>
+                <div class="note info" style="margin-top:12px"><strong>Where is the machine learning?</strong> After the seed configurations are measured, <code>GaussianProcess.fit()</code> learns an energy response surface from the observed configurations. Expected Improvement then selects the next configuration using the GP's predicted energy and uncertainty. The model is retrained after every BO evaluation.</div>
             </div>
         </div>
     </div>
@@ -473,7 +556,66 @@ s.t. S(x) ≥ S_min(H)
 </main>
 
 <script src="bopis_profile.js"></script>
+<script src="dashboard_data.js" onerror="void 0"></script>
 <script>
+let RUN_DATA = window.BOPIS_DATA || null;
+
+function ingestRunData(text) {
+    try {
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start < 0 || end < start) throw new Error('No JSON object found');
+        applyRunData(JSON.parse(text.slice(start, end + 1)));
+    } catch (error) {
+        const status = document.getElementById('dashboard-status');
+        if (status) status.textContent = `Could not read run data: ${error.message}`;
+    }
+}
+
+function applyRunData(data) {
+    RUN_DATA = data;
+    const indicators = data.indicators || data.selection || {};
+    const set = (name, value) => {
+        const element = document.querySelector(`[data-run="${name}"]`);
+        if (element) element.textContent = value;
+    };
+    const pct = value => Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)}%` : '—';
+    set('iterations', data.meta?.n_total_iterations ?? '—');
+    set('eir', pct(indicators.eir_percent));
+    set('speed', pct(indicators.srr_percent));
+    set('quality', pct(indicators.qrr_percent));
+    const status = document.getElementById('dashboard-status');
+    if (status) {
+        const meta = data.meta || {};
+        const selection = data.selection || {};
+        let html = `<strong>${escapeHtml(meta.run || 'Loaded run')}</strong> · ${escapeHtml(meta.backend || 'unknown')} · ${escapeHtml(meta.energy_scope || 'unknown')} energy · x* ${escapeHtml(selection.config_key || 'unavailable')}`;
+        // An estimated run must not read as a measured one anywhere it is
+        // displayed, so the caveat and the formula render inline rather than
+        // living only in the manifest.
+        if (meta.energy_caveat) {
+            const est = meta.energy_estimator || {};
+            html += `<div style="margin-top:10px;padding:10px 12px;border-left:3px solid #c9820a;background:rgba(201,130,10,0.09);font-size:12px;line-height:1.55">`
+                + `<strong>Energy is estimated, not measured.</strong> ${escapeHtml(meta.energy_caveat)}`
+                + (est.formula ? `<div style="margin-top:6px;font-family:ui-monospace,monospace;font-size:11px">${escapeHtml(est.formula)}</div>` : '')
+                + (Array.isArray(est.assumptions) ? `<details style="margin-top:6px"><summary style="cursor:pointer">Assumptions (${est.assumptions.length})</summary><ul style="margin:6px 0 0 16px;padding:0">${est.assumptions.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul></details>` : '')
+                + `</div>`;
+        }
+        status.innerHTML = html;
+    }
+    const calibrationStatus = document.getElementById('calibration-status');
+    if (calibrationStatus) calibrationStatus.textContent = `${data.meta?.n_total_iterations ?? '—'} configurations evaluated`;
+    drawPareto3D();
+}
+
+const runFileInput = document.getElementById('run-file-input');
+if (runFileInput) runFileInput.addEventListener('change', event => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => ingestRunData(String(reader.result));
+    reader.readAsText(file);
+});
+
 function applyHardwareProfile() {
     const profile = window.BOPIS_PROFILE;
     if (!profile || !profile.host_profile || !profile.configuration_space) return;
@@ -523,6 +665,7 @@ function applyHardwareProfile() {
 }
 
 applyHardwareProfile();
+if (RUN_DATA) applyRunData(RUN_DATA);
 
 function sw(name, btn) {
     // Handle tab switching
@@ -541,7 +684,7 @@ function sw(name, btn) {
         inputDock.classList.remove('active');
     }
 
-    if (name === 'tech') setTimeout(drawP, 100);
+    if (name === 'tech') setTimeout(drawPareto3D, 100);
 }
 
 function sendPrompt(text) {
@@ -553,8 +696,8 @@ function sendPrompt(text) {
 
 const chatHistory = [];
 const CHATBOT_CONFIG = {
-    endpoint: 'http://127.0.0.1:8080/completion',
-    model: 'llama2:7b (Q4_0 demo)',
+    endpoint: 'http://127.0.0.1:8080/v1/chat/completions',
+    model: 'local',
     maxTokens: 512,
     temperature: 0
 };
@@ -589,28 +732,27 @@ async function doChat() {
     scrollToBottom();
 
     try {
-        const conversation = chatHistory.map(message => {
-            const speaker = message.role === 'user' ? 'User' : 'Assistant';
-            return `${speaker}: ${message.content}`;
-        }).join('\n');
         const response = await fetch(CHATBOT_CONFIG.endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                prompt: `${conversation}\nAssistant:`,
-                n_predict: CHATBOT_CONFIG.maxTokens,
+                model: CHATBOT_CONFIG.model,
+                messages: [
+                    { role: 'system', content: 'You are BOPIS, a concise and helpful local assistant. Answer only the user request. Do not invent a conversation, roleplay other users, or continue with User/Assistant transcript labels.' },
+                    ...chatHistory
+                ],
+                max_tokens: CHATBOT_CONFIG.maxTokens,
                 stream: false,
-                temperature: CHATBOT_CONFIG.temperature,
-                top_k: 1
+                temperature: CHATBOT_CONFIG.temperature
             })
         });
         if (!response.ok) throw new Error(`llama.cpp returned HTTP ${response.status}`);
         const data = await response.json();
-        const reply = data.content;
+        const reply = data.choices?.[0]?.message?.content || data.content;
         if (!reply) throw new Error('The chatbot returned an empty response');
         chatHistory.push({ role: 'assistant', content: reply });
-        const promptTokens = Number(data.tokens_evaluated || data.timings?.prompt_n || 0);
-        const generatedTokens = Number(data.tokens_predicted || data.timings?.predicted_n || 0);
+        const promptTokens = Number(data.usage?.prompt_tokens || data.tokens_evaluated || data.timings?.prompt_n || 0);
+        const generatedTokens = Number(data.usage?.completion_tokens || data.tokens_predicted || data.timings?.predicted_n || 0);
         const decodeSeconds = Number(data.timings?.predicted_ms || 0) / 1000;
         const reportedTotalSeconds = Number(data.timings?.total_ms || 0) / 1000;
         const totalSeconds = reportedTotalSeconds || (decodeSeconds + Number(data.timings?.prompt_ms || 0) / 1000);
@@ -655,82 +797,84 @@ function showHardwareNote() {
     sw('chat', document.querySelector('.nav-item:nth-child(1)'));
 }
 
-function runInference(btn, taskType) {
-    btn.disabled = true;
-    btn.innerText = "Processing...";
-    btn.style.opacity = "0.7";
-    btn.style.cursor = "not-allowed";
-    
-    const area = document.getElementById('chat-area');
-    
-    setTimeout(() => {
-        btn.innerText = "Completed ✓";
-        btn.style.background = "#48BB78";
-        
-        const b = document.createElement('div');
-        b.className = 'msg';
-        
-        let mockResponse = "Here is the simulated output for your prompt based on the optimized configuration. By dynamically selecting the Pareto-optimal hardware settings, BOPIS achieved the target quality while minimizing power consumption.";
-        if (taskType === "Closed QA") {
-            mockResponse = "Paris is the capital of France. (Generated with FP16 for maximal factual accuracy, consuming slightly more power but ensuring correctness).";
-        } else if (taskType === "Summarization") {
-            mockResponse = "The climate policy report highlights three main areas: 1) Carbon taxation strategies, 2) Renewable energy subsidies, and 3) International compliance goals. (Generated with INT8, saving ~2.1x energy with a stable F1 score).";
-        }
+function recalibrateHardware() {
+    const command = 'python -m bopis profile --model-aware --write-js bopis_profile.js';
+    const status = document.getElementById('runtime-status');
+    if (status) status.innerHTML = `<strong>Hardware recalibration is a terminal operation.</strong><br>Run <code>${command}</code>, then refresh this page.`;
+    const calibrationStatus = document.getElementById('calibration-status');
+    if (calibrationStatus) calibrationStatus.textContent = 'Run profile command to refresh';
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(command).catch(() => {});
+}
 
-        b.innerHTML = `
-            <div class="ai-response" style="border-left: 4px solid #3182CE;">
-                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3182CE; margin-bottom:8px;">Model Output</div>
-                <p style="font-size:14px; color:#2D3748; line-height:1.6;">
-                    ${mockResponse}
-                </p>
-                <div style="margin-top: 12px; font-size: 12px; color: #718096; display: flex; gap: 12px;">
-                    <span>⚡ Energy used: <strong>44.1 J</strong></span>
-                    <span>⏱️ Speed: <strong>42 tok/s</strong></span>
-                </div>
-            </div>
-        `;
-        area.appendChild(b);
-        scrollToBottom();
-    }, 1500);
+function runInference(btn, taskType) {
+    const prompt = taskType ? `Run a ${taskType} task using the selected BOPIS configuration.` : '';
+    if (prompt) sendPrompt(prompt);
 }
 
 function drawP() {
     const c = document.getElementById('pareto');
-    if (!c) return;
+    if (!c || !RUN_DATA || !RUN_DATA.pareto) return;
+    const ratio = window.devicePixelRatio || 1;
+    const W = Math.max(320, c.parentElement.clientWidth - 32);
+    const H = Math.max(300, Math.min(420, W * 0.46));
+    c.style.width = `${W}px`;
+    c.style.height = `${H}px`;
+    c.width = Math.floor(W * ratio);
+    c.height = Math.floor(H * ratio);
     const ctx = c.getContext('2d');
-    const W = c.width, H = c.height;
-    const pl = 40, pr = 20, pt = 20, pb = 30;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    const pl = 64, pr = 24, pt = 24, pb = 54;
     const dw = W - pl - pr, dh = H - pt - pb;
     ctx.clearRect(0, 0, W, H);
 
-    ctx.strokeStyle = '#E2E8F0'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(pl, pt); ctx.lineTo(pl, pt + dh); ctx.lineTo(pl + dw, pt + dh); ctx.stroke();
-
-    ctx.fillStyle = '#718096'; ctx.font = '12px Inter, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('Energy Use (J/token)  →', pl + dw / 2, H - 4);
-    ctx.save(); ctx.translate(14, pt + dh / 2); ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Quality Metric (F1)  →', 0, 0); ctx.restore();
-
-    const pts = [
-        { e: 96, q: .84, s: 37, lbl: 'Default', par: false, col: '#FC8181' },
-        { e: 51, q: .83, s: 40, lbl: 'Baseline: INT8', par: false, col: '#CBD5E0' },
-        { e: 82, q: .83, s: 38, lbl: '', par: false, col: '#CBD5E0' },
-        { e: 75, q: .81, s: 39, lbl: '', par: false, col: '#CBD5E0' },
-        { e: 69, q: .80, s: 41, lbl: 'Random', par: false, col: '#F6E05E' },
-        { e: 61, q: .82, s: 43, lbl: '', par: true, col: '#63B3ED' },
-        { e: 52, q: .81, s: 45, lbl: '', par: true, col: '#63B3ED' },
-        { e: 44, q: .81, s: 48, lbl: 'BOPIS*', par: true, col: '#48BB78' },
-        { e: 48, q: .83, s: 46, lbl: '', par: true, col: '#63B3ED' },
-        { e: 38, q: .74, s: 52, lbl: '', par: false, col: '#CBD5E0' },
-        { e: 33, q: .70, s: 56, lbl: '', par: false, col: '#CBD5E0' },
-    ];
-    const eMin = 28, eMax = 102, qMin = .67, qMax = .88;
+    const points = RUN_DATA.pareto.points || [];
+    const reference = RUN_DATA.reference_point || {};
+    const pts = points.map(point => ({
+        e: Number(point.energy_j), q: Number(point.quality_f1), s: Number(point.tokens_per_s),
+        par: Boolean(point.on_front), selected: Boolean(point.is_xstar), col: point.is_xstar ? '#48BB78' : point.on_front ? '#63B3ED' : '#CBD5E0'
+    })).filter(point => Number.isFinite(point.e) && Number.isFinite(point.q));
+    if (!pts.length) return;
+    const referencePoint = { e: Number(reference.energy_j), q: Number(reference.quality_f1), s: Number(reference.tokens_per_s) };
+    if (Number.isFinite(referencePoint.e) && Number.isFinite(referencePoint.q)) pts.push({ ...referencePoint, par: false, reference: true, col: '#FC8181' });
+    const rawEMin = Math.min(...pts.map(p => p.e)), rawEMax = Math.max(...pts.map(p => p.e));
+    const rawQMin = Math.min(...pts.map(p => p.q)), rawQMax = Math.max(...pts.map(p => p.q));
+    const ePad = (rawEMax - rawEMin) * 0.1 || 1;
+    const qPad = (rawQMax - rawQMin) * 0.12 || 0.01;
+    const eMin = rawEMin - ePad, eMax = rawEMax + ePad;
+    const qMin = rawQMin - qPad, qMax = rawQMax + qPad;
+    const sMax = Math.max(...pts.map(p => Number.isFinite(p.s) ? p.s : 0), 1);
     const px = e => pl + (e - eMin) / (eMax - eMin) * dw;
     const py = q => pt + dh - (q - qMin) / (qMax - qMin) * dh;
-    const pradius = s => Math.max(4, s / 4.5);
+    const pradius = s => Math.max(4, 4 + 8 * Math.sqrt(Math.max(0, s || 0) / sMax));
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = '11px IBM Plex Sans, sans-serif';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i += 1) {
+        const x = pl + dw * i / 4;
+        const y = pt + dh - dh * i / 4;
+        ctx.strokeStyle = '#EDF2F7';
+        ctx.beginPath(); ctx.moveTo(x, pt); ctx.lineTo(x, pt + dh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pl, y); ctx.lineTo(pl + dw, y); ctx.stroke();
+        ctx.fillStyle = '#718096';
+        ctx.textAlign = 'center';
+        ctx.fillText((eMin + (eMax - eMin) * i / 4).toFixed(0), x, pt + dh + 19);
+        ctx.textAlign = 'right';
+        ctx.fillText((qMin + (qMax - qMin) * i / 4).toFixed(3), pl - 10, y + 4);
+    }
+    ctx.strokeStyle = '#CBD5E0';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pl, pt); ctx.lineTo(pl, pt + dh); ctx.lineTo(pl + dw, pt + dh); ctx.stroke();
+    ctx.fillStyle = '#4A5568';
+    ctx.textAlign = 'center';
+    ctx.font = '600 11px IBM Plex Sans, sans-serif';
+    ctx.fillText('Energy per prompt (J) · lower is better', pl + dw / 2, H - 10);
+    ctx.save(); ctx.translate(16, pt + dh / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Quality (BERTScore F1) · higher is better', 0, 0); ctx.restore();
 
     const pf = pts.filter(p => p.par).sort((a, b) => a.e - b.e);
-    ctx.strokeStyle = '#4299E1'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#3182CE'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 5]);
     ctx.beginPath(); pf.forEach((p, i) => i === 0 ? ctx.moveTo(px(p.e), py(p.q)) : ctx.lineTo(px(p.e), py(p.q))); ctx.stroke();
     ctx.setLineDash([]);
 
@@ -740,13 +884,216 @@ function drawP() {
         ctx.beginPath();
         ctx.arc(px(p.e), py(p.q), r, 0, Math.PI * 2);
         ctx.fill();
-        if (p.lbl) {
-            ctx.fillStyle = '#4A5568'; ctx.font = '600 12px Inter, sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(p.lbl, px(p.e), py(p.q) - r - 6);
+        if (p.selected) {
+            ctx.strokeStyle = '#22543D'; ctx.lineWidth = 2.5; ctx.stroke();
+        }
+        if (p.selected || p.reference) {
+            ctx.fillStyle = p.selected ? '#22543D' : '#822727';
+            ctx.font = '600 12px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(p.selected ? 'x*' : 'default', px(p.e), py(p.q) - r - 6);
         }
     });
 }
-window.addEventListener('resize', drawP);
+function drawPareto3D() {
+    const canvas = document.getElementById('pareto');
+    if (!canvas || !RUN_DATA?.pareto) return;
+    const source = (RUN_DATA.pareto.points || []).map(point => ({
+        energy: Number(point.energy_j), speed: Number(point.tokens_per_s), quality: Number(point.quality_f1),
+        front: Boolean(point.on_front), selected: Boolean(point.is_xstar), label: point.label,
+        precision: point.precision, iteration: point.iteration
+    })).filter(point => [point.energy, point.speed, point.quality].every(Number.isFinite));
+    const reference = RUN_DATA.reference_point || {};
+    if (!source.length) return;
+    const referencePoint = { energy: Number(reference.energy_j), speed: Number(reference.tokens_per_s), quality: Number(reference.quality_f1), reference: true };
+    if ([referencePoint.energy, referencePoint.speed, referencePoint.quality].every(Number.isFinite)) source.push(referencePoint);
+    const values = {
+        energy: source.map(point => point.energy), speed: source.map(point => point.speed), quality: source.map(point => point.quality)
+    };
+    const range = name => {
+        const lo = Math.min(...values[name]), hi = Math.max(...values[name]);
+        return { lo, hi, span: hi - lo || 1 };
+    };
+    const bounds = { energy: range('energy'), speed: range('speed'), quality: range('quality') };
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(320, canvas.parentElement.clientWidth - 32);
+    const height = Math.max(320, Math.min(460, width * 0.58));
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    canvas.width = Math.floor(width * ratio);
+    canvas.height = Math.floor(height * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const state = canvas._pareto3d || (canvas._pareto3d = { yaw: -0.62, pitch: 0.48, zoom: 1, dragging: false });
+    const project = (point, yaw, pitch) => {
+        const normalized = [
+            (point.energy - bounds.energy.lo) / bounds.energy.span - 0.5,
+            (point.speed - bounds.speed.lo) / bounds.speed.span - 0.5,
+            (point.quality - bounds.quality.lo) / bounds.quality.span - 0.5
+        ];
+        const [x, y, z] = normalized;
+        const cy = Math.cos(yaw), sy = Math.sin(yaw);
+        const cp = Math.cos(pitch), sp = Math.sin(pitch);
+        const rx = x * cy - z * sy;
+        const rz = x * sy + z * cy;
+        const ry = y * cp - rz * sp;
+        const depth = y * sp + rz * cp;
+        const scale = Math.min(width, height) * 0.82 * state.zoom;
+        return { x: width / 2 + rx * scale, y: height / 2 - ry * scale, depth, scale };
+    };
+    const axis = (from, to, label, min, max, formatter) => {
+        ctx.strokeStyle = '#A0AEC0'; ctx.lineWidth = 1.3;
+        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+        ctx.fillStyle = '#4A5568'; ctx.font = '600 11px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(label, to.x, to.y + (to.y > from.y ? 18 : -10));
+        for (let index = 0; index <= 4; index += 1) {
+            const fraction = index / 4;
+            const x = from.x + (to.x - from.x) * fraction;
+            const y = from.y + (to.y - from.y) * fraction;
+            ctx.fillStyle = '#6B7F86'; ctx.font = '10px IBM Plex Mono, monospace';
+            ctx.fillText(formatter(min + (max - min) * fraction), x, y + (to.y >= from.y ? 15 : -8));
+        }
+    };
+    const origin = project({ energy: bounds.energy.lo, speed: bounds.speed.lo, quality: bounds.quality.lo }, state.yaw, state.pitch);
+    const energyEnd = project({ energy: bounds.energy.hi, speed: bounds.speed.lo, quality: bounds.quality.lo }, state.yaw, state.pitch);
+    const speedEnd = project({ energy: bounds.energy.lo, speed: bounds.speed.hi, quality: bounds.quality.lo }, state.yaw, state.pitch);
+    const qualityEnd = project({ energy: bounds.energy.lo, speed: bounds.speed.lo, quality: bounds.quality.hi }, state.yaw, state.pitch);
+    const drawLine = (a, b, color = '#D9E2EC', widthValue = 1) => {
+        ctx.strokeStyle = color; ctx.lineWidth = widthValue;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    };
+    // A quiet wireframe keeps the three competing objectives legible while rotating.
+    [0.25, 0.5, 0.75].forEach(step => {
+        const e = bounds.energy.lo + bounds.energy.span * step;
+        drawLine(project({ energy: e, speed: bounds.speed.lo, quality: bounds.quality.lo }, state.yaw, state.pitch), project({ energy: e, speed: bounds.speed.hi, quality: bounds.quality.lo }, state.yaw, state.pitch));
+        const s = bounds.speed.lo + bounds.speed.span * step;
+        drawLine(project({ energy: bounds.energy.lo, speed: s, quality: bounds.quality.lo }, state.yaw, state.pitch), project({ energy: bounds.energy.lo, speed: s, quality: bounds.quality.hi }, state.yaw, state.pitch));
+    });
+    axis(origin, energyEnd, 'Energy (J)', bounds.energy.lo, bounds.energy.hi, value => value.toFixed(0));
+    axis(origin, speedEnd, 'Speed (tok/s)', bounds.speed.lo, bounds.speed.hi, value => value.toFixed(1));
+    axis(origin, qualityEnd, 'Quality (F1)', bounds.quality.lo, bounds.quality.hi, value => value.toFixed(3));
+
+    const colorScale = value => {
+        const stops = ['#440154', '#31688E', '#35B779', '#A0DA39', '#FDE725'];
+        const position = Math.max(0, Math.min(0.999, value)) * (stops.length - 1);
+        const index = Math.floor(position), amount = position - index;
+        const parse = hex => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+        const first = parse(stops[index]), second = parse(stops[Math.min(index + 1, stops.length - 1)]);
+        return `rgb(${first.map((channel, i) => Math.round(channel + (second[i] - channel) * amount)).join(',')})`;
+    };
+    const estimateQuality = (energy, speed) => {
+        const candidates = source.filter(point => !point.reference);
+        let weighted = 0, weightTotal = 0;
+        candidates.forEach(point => {
+            const dx = (energy - point.energy) / bounds.energy.span;
+            const dy = (speed - point.speed) / bounds.speed.span;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const weight = 1 / Math.max(distance * distance, 0.0004);
+            weighted += point.quality * weight;
+            weightTotal += weight;
+        });
+        return weightTotal ? weighted / weightTotal : bounds.quality.lo;
+    };
+    // Interpolated visual surface: it explains the measured response shape;
+    // the black dots remain the actual observations used by BOPIS.
+    const surfaceStepsX = 18, surfaceStepsY = 14;
+    for (let ix = 0; ix < surfaceStepsX - 1; ix += 1) {
+        for (let iy = 0; iy < surfaceStepsY - 1; iy += 1) {
+            const e0 = bounds.energy.lo + bounds.energy.span * ix / (surfaceStepsX - 1);
+            const e1 = bounds.energy.lo + bounds.energy.span * (ix + 1) / (surfaceStepsX - 1);
+            const s0 = bounds.speed.lo + bounds.speed.span * iy / (surfaceStepsY - 1);
+            const s1 = bounds.speed.lo + bounds.speed.span * (iy + 1) / (surfaceStepsY - 1);
+            const corners = [
+                { energy: e0, speed: s0 }, { energy: e1, speed: s0 },
+                { energy: e1, speed: s1 }, { energy: e0, speed: s1 }
+            ].map(point => ({ ...point, quality: estimateQuality(point.energy, point.speed) }));
+            const screens = corners.map(point => project(point, state.yaw, state.pitch));
+            const average = corners.reduce((sum, point) => sum + point.quality, 0) / corners.length;
+            const fraction = (average - bounds.quality.lo) / bounds.quality.span;
+            ctx.fillStyle = colorScale(fraction);
+            ctx.globalAlpha = 0.74;
+            ctx.beginPath(); screens.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y)); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 0.45; ctx.stroke();
+        }
+    }
+    ctx.globalAlpha = 1;
+    const projected = source.map(point => ({ point, screen: project(point, state.yaw, state.pitch) })).sort((a, b) => a.screen.depth - b.screen.depth);
+    const front = projected.filter(item => item.point.front).sort((a, b) => a.point.energy - b.point.energy);
+    if (front.length > 1) {
+        ctx.strokeStyle = '#3182CE'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 5]);
+        ctx.beginPath(); front.forEach((item, index) => index ? ctx.lineTo(item.screen.x, item.screen.y) : ctx.moveTo(item.screen.x, item.screen.y)); ctx.stroke(); ctx.setLineDash([]);
+    }
+    const targets = [];
+    projected.forEach(({ point, screen }) => {
+        const speedFraction = (point.speed - bounds.speed.lo) / bounds.speed.span;
+        const radius = point.selected ? 10 : point.reference ? 8 : 4 + Math.max(0, speedFraction) * 4;
+        const qualityFraction = (point.quality - bounds.quality.lo) / bounds.quality.span;
+        ctx.globalAlpha = point.front || point.selected || point.reference ? 1 : 0.45;
+        ctx.fillStyle = point.reference ? '#E53E3E' : colorScale(qualityFraction);
+        ctx.beginPath(); ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = point.selected ? '#102231' : '#111827'; ctx.lineWidth = point.selected ? 2.5 : 1;
+        ctx.stroke();
+        targets.push({ point, x: screen.x, y: screen.y, radius: radius + 7 });
+        if (point.selected || point.reference) {
+            ctx.globalAlpha = 1; ctx.fillStyle = point.selected ? '#102231' : '#822727'; ctx.font = '700 11px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(point.selected ? 'x*' : 'default', screen.x, screen.y - radius - 8);
+        }
+    });
+    canvas._paretoHitTargets = targets;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#718096'; ctx.font = '10px IBM Plex Sans, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('3D trade-off surface · bubble size emphasizes selected/front points', 12, height - 10);
+}
+
+function bindParetoControls() {
+    const canvas = document.getElementById('pareto');
+    if (!canvas || canvas._paretoControlsBound) return;
+    canvas._paretoControlsBound = true;
+    let lastX = 0, lastY = 0, downX = 0, downY = 0;
+    canvas.addEventListener('pointerdown', event => { canvas._pareto3d.dragging = true; lastX = downX = event.clientX; lastY = downY = event.clientY; canvas.setPointerCapture(event.pointerId); });
+    canvas.addEventListener('pointermove', event => {
+        if (!canvas._pareto3d?.dragging) return;
+        canvas._pareto3d.yaw += (event.clientX - lastX) * 0.012;
+        canvas._pareto3d.pitch = Math.max(-1.15, Math.min(1.15, canvas._pareto3d.pitch + (event.clientY - lastY) * 0.012));
+        lastX = event.clientX; lastY = event.clientY; drawPareto3D();
+    });
+    canvas.addEventListener('pointerup', event => {
+        canvas._pareto3d.dragging = false;
+        if (Math.hypot(event.clientX - downX, event.clientY - downY) < 5) selectParetoPoint(canvas, event);
+    });
+    canvas.addEventListener('pointercancel', () => { canvas._pareto3d.dragging = false; });
+    canvas.addEventListener('wheel', event => { event.preventDefault(); canvas._pareto3d.zoom = Math.max(0.7, Math.min(1.8, canvas._pareto3d.zoom * (event.deltaY > 0 ? 0.92 : 1.08))); drawPareto3D(); }, { passive: false });
+}
+
+function selectParetoPoint(canvas, event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left, y = event.clientY - rect.top;
+    const target = (canvas._paretoHitTargets || [])
+        .map(item => ({ item, distance: Math.hypot(item.x - x, item.y - y) }))
+        .filter(candidate => candidate.distance <= candidate.item.radius)
+        .sort((a, b) => a.distance - b.distance)[0];
+    const output = document.getElementById('pareto-selection');
+    if (!output) return;
+    if (!target) {
+        output.textContent = 'No point selected. Click a measured point to inspect its configuration.';
+        return;
+    }
+    const point = target.item.point;
+    output.textContent = `${point.selected ? 'x* · ' : point.reference ? 'Default · ' : ''}${point.label || 'Configuration'} · ${point.precision || 'reference'} · Energy ${point.energy.toFixed(2)} J · Speed ${point.speed.toFixed(2)} tok/s · Quality ${point.quality.toFixed(4)} F1 · Iter ${point.iteration ?? '—'}`;
+}
+
+function resetParetoView() {
+    const canvas = document.getElementById('pareto');
+    if (!canvas) return;
+    canvas._pareto3d = { yaw: -0.62, pitch: 0.48, zoom: 1, dragging: false };
+    const output = document.getElementById('pareto-selection');
+    if (output) output.textContent = 'View reset. Click a point to inspect its configuration.';
+    drawPareto3D();
+}
+
+window.addEventListener('resize', () => { bindParetoControls(); drawPareto3D(); });
+setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
 </script>
 </body>
 </html>

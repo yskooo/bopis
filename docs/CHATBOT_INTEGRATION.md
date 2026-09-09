@@ -109,21 +109,25 @@ The server endpoint is:
 http://127.0.0.1:8080
 ```
 
-For this demo build, use llama.cpp's native completion endpoint. The BOPIS
-measurement path and the included `bopis.html` chat UI use this route because
-it exposes prompt and decode timing fields:
+For the included `bopis.html` chat UI, use llama.cpp's OpenAI-compatible chat
+endpoint. The structured `messages` payload keeps user and assistant turns
+separate, so the model does not treat a flattened transcript as text to
+continue:
 
 ```http
-POST http://127.0.0.1:8080/completion
+POST http://127.0.0.1:8080/v1/chat/completions
 Content-Type: application/json
 ```
 
 ```json
 {
-  "prompt": "Explain Bayesian optimization in simple terms.\nAssistant:",
+  "model": "local",
+  "messages": [
+    {"role": "system", "content": "Answer the user directly and do not continue a transcript."},
+    {"role": "user", "content": "Explain Bayesian optimization in simple terms."}
+  ],
   "temperature": 0.0,
-  "top_k": 1,
-  "n_predict": 1024,
+  "max_tokens": 512,
   "stream": false
 }
 ```

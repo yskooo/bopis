@@ -15,9 +15,10 @@ runs/
 # SHA-256; re-fetch with `python -m bopis dataset`.
 data/
 
-# Generated dashboard payload. Copied next to dashboard/index.html for viewing;
-# the authoritative copy lives in the run directory.
+# Generated dashboard payloads. The run directory is authoritative; the root
+# copy is the automatic data source for bopis.html.
 dashboard/dashboard_data.js
+dashboard_data.js
 
 # Model weights, should any land here
 *.gguf

@@ -1,11 +1,11 @@
 window.BOPIS_PROFILE = {
-  "generated_utc": "2026-09-09T14:03:52.506917+00:00",
+  "generated_utc": "2026-09-09T16:48:33.428289+00:00",
   "host_profile": {
     "cpu_model": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
     "physical_cores": 4,
     "logical_cores": 8,
     "ram_total_bytes": 16948453376,
-    "ram_available_bytes": 2289934336,
+    "ram_available_bytes": 2185641984,
     "is_wsl": false,
     "telemetry_source": "kernel32",
     "gpu_available": true,
@@ -59,12 +59,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t128_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t128_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t128_b1_Q8_0_g14_c2",
@@ -79,12 +79,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t128_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t128_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t128_b1_Q4_K_M_g14_c2",
@@ -99,12 +99,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t128_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t128_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t128_b2_Q8_0_g14_c2",
@@ -119,12 +119,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t128_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t128_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t128_b2_Q4_K_M_g14_c2",
@@ -139,12 +139,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t256_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t256_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t256_b1_Q8_0_g14_c2",
@@ -159,12 +159,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t256_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t256_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t256_b1_Q4_K_M_g14_c2",
@@ -179,12 +179,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t256_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t256_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t256_b2_Q8_0_g14_c2",
@@ -199,12 +199,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t256_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t256_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t256_b2_Q4_K_M_g14_c2",
@@ -219,12 +219,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t512_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t512_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t512_b1_Q8_0_g14_c2",
@@ -239,12 +239,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t512_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t512_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t512_b1_Q4_K_M_g14_c2",
@@ -259,12 +259,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t512_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t512_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t512_b2_Q8_0_g14_c2",
@@ -279,12 +279,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t512_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t512_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t512_b2_Q4_K_M_g14_c2",
@@ -299,12 +299,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t1024_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t1024_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t1024_b1_Q8_0_g14_c2",
@@ -319,12 +319,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t1024_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t1024_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t1024_b1_Q4_K_M_g14_c2",
@@ -339,12 +339,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t1024_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t1024_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t1024_b2_Q8_0_g14_c2",
@@ -359,12 +359,12 @@ window.BOPIS_PROFILE = {
     {
       "config": "t1024_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t1024_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.13 GiB available system RAM"
+      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
     },
     {
       "config": "t1024_b2_Q4_K_M_g14_c2",
