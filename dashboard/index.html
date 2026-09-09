@@ -474,6 +474,14 @@ function verdictBanner() {
             model, not measured. Not reportable as an empirical result.
         </div>`;
     }
+    if (meta.energy_scope === 'estimated_resource_allocation') {
+        return `<div class="verdict-banner sim">
+            ESTIMATED ENERGY &mdash; this host reports no GPU power telemetry,
+            so energy comes from a resource-allocation model, not an
+            instrument. Valid for comparing configurations on this host;
+            absolute joule values are not reportable as measured energy.
+        </div>`;
+    }
     if (!ind) {
         return `<div class="verdict-banner part">
             Search only &mdash; the three-way validation was skipped, so
@@ -493,6 +501,31 @@ function verdictBanner() {
     return `<div class="verdict-banner ${cls}">${text}${failures}</div>`;
 }
 
+function estimatorNote() {
+    // The formula and its assumptions render here rather than living only in
+    // the manifest: a reader looking at an estimated joule figure has to be
+    // able to see what produced it without leaving the page.
+    const est = DATA.energy_estimator;
+    if (!DATA.energy_caveat || !est) return '';
+    const items = (est.assumptions || []).map(a => `<li>${esc(a)}</li>`).join('');
+    const budget = est.budget || {};
+    return `<div class="note warn">
+        <strong>Energy is estimated, not measured.</strong> ${esc(DATA.energy_caveat)}
+        <div class="mono" style="margin-top:8px;font-size:11px">${esc(est.formula)}</div>
+        <div style="margin-top:6px;font-size:12px">
+            CPU ${fx(budget.cpu_idle_w, 1)}&ndash;${fx(budget.cpu_tdp_w, 1)} W
+            &nbsp;|&nbsp;
+            GPU ${fx(budget.gpu_idle_w, 1)}&ndash;${fx(budget.gpu_tdp_w, 1)} W
+            &nbsp;|&nbsp;
+            declared uncertainty &plusmn;${fx(100 * (budget.uncertainty_frac || 0), 0)}%
+        </div>
+        <details style="margin-top:6px">
+            <summary style="cursor:pointer">Modelling assumptions (${(est.assumptions || []).length})</summary>
+            <ul style="margin:6px 0 0 18px;padding:0;font-size:12px">${items}</ul>
+        </details>
+    </div>`;
+}
+
 function renderSummary() {
     const meta = DATA.meta || {}, ind = DATA.indicators || {},
           rel = DATA.surrogate.reliability || {}, par = DATA.pareto || {},
@@ -507,6 +540,7 @@ function renderSummary() {
     </div>
     ${verdictBanner()}
     ${DATA.scope_warning ? `<div class="note warn">${esc(DATA.scope_warning)}</div>` : ''}
+    ${estimatorNote()}
 
     <div class="grid">
         <div class="card">

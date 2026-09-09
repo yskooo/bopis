@@ -85,9 +85,15 @@ $ python -m bopis profile --model-aware
 
 -- ENERGY MEASUREMENT ----------------------------------------------------
   This GPU reports neither power nor energy telemetry.
-  GPU energy CANNOT be measured on this machine. Use
-  --backend sim to exercise the pipeline, or run the study on a
-  GPU whose driver exposes nvmlDeviceGetPowerUsage.
+  GPU energy CANNOT be measured on this machine. Three options,
+  in descending order of what the result can claim:
+
+  1. Run the study on a GPU whose driver exposes
+     nvmlDeviceGetPowerUsage. [...]
+  2. Run with `--energy-mode resource-estimate` for a labelled
+     resource-allocation estimate [...]
+  3. Use `--backend sim` to exercise the pipeline with no
+     hardware claim at all.
 
 -- TABLE H1 -> FEASIBLE SPACE --------------------------------------------
   Rules fired                  HW-P1, HW-G1, HW-B2, HW-C2
@@ -102,8 +108,63 @@ it used:
    counter. Exact: no integration error, no idle-power subtraction.
 2. Integrating `(P_t − P_idle)` over the inference window at 100 ms — Chapter 3's
    documented method, used when the counter is unavailable.
-3. `unavailable` — the run refuses to emit energy claims unless
+3. `resource_allocation_estimate` — **opt-in, and not a measurement.** Observed
+   per-process CPU time and GPU duty cycle scaled by declared power budgets.
+   See [Estimating energy without a power sensor](#estimating-energy-without-a-power-sensor).
+4. `unavailable` — the run refuses to emit energy claims unless
    `--allow-no-power` is passed.
+
+### Estimating energy without a power sensor
+
+Most entry-level mobile GPUs — the MX330 among them — have no power-monitoring
+circuit, so no software can measure their energy. If the requirement is a
+*measured* GPU-only figure, the only answer is a GPU whose driver exposes the
+power query; nothing in this repository substitutes for the missing instrument.
+
+What can be done honestly is to estimate from what *is* observable, and label
+the difference everywhere the number appears:
+
+```bash
+python -m bopis run \
+  --backend llama-server --model-aware \
+  --llama-binary /path/to/llama-server \
+  --model Q4_K_M=/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf \
+  --energy-mode resource-estimate \
+  --cpu-tdp-w 15 --cpu-idle-w 2.5 \
+  --gpu-tdp-w 25 --gpu-idle-w 1.5 \
+  --estimate-uncertainty 0.30 \
+  --idle-seconds 60 \
+  --out runs --label estimated
+```
+
+```
+E_est = [ (P_cpu_tdp - P_cpu_idle) * u_cpu_proc
+        + (P_gpu_tdp - P_gpu_idle) * max(u_gpu - u_gpu_idle, 0) ] * T
+```
+
+Three properties make it defensible rather than decorative:
+
+- **`u_cpu_proc` is the inference process's own CPU share**, read from
+  `GetProcessTimes` / `/proc/[pid]/stat`, so a browser running alongside the
+  study is not charged to it. Each row records which signal was used in
+  `cpu_attribution`, and Table B.6 carries `process_cpu_percent` next to the
+  machine-wide `cpu_percent`.
+- **The coefficients are dynamic ranges, not nameplates.** Multiplying TDP by
+  utilization would charge the idle draw again at every load level.
+- **`u_gpu_idle` is measured, not assumed** — Chapter 3's 60-second idle
+  protocol runs over every signal the host exposes, and the run warns loudly
+  when the machine was not actually idle during it.
+
+Every estimated row carries `energy_low_j` / `energy_high_j`, the formula in
+`energy_basis`, and `energy_scope: estimated_resource_allocation`; the manifest
+stores all six modelling assumptions verbatim, and the CLI and dashboard both
+render the caveat. The estimate supports **relative** comparison between
+configurations on one host — not absolute joule figures, and never a measured
+energy claim.
+
+Full derivation, the assumptions with their error directions, the external-meter
+calibration procedure, and paste-ready Chapter 3 text:
+**[docs/ENERGY_MODES.md](docs/ENERGY_MODES.md)**.
 
 ## Backends
 
@@ -147,6 +208,50 @@ Table B.5 until it runs.
 
 `python -m bopis run` writes `dashboard_data.js` into the run directory. Copy it
 next to `dashboard/index.html` and open that file — no server, no build step.
+
+The integrated UI is [bopis.html](bopis.html). After every completed
+`python -m bopis run`, BOPIS automatically publishes the newest payload to the
+repository root as `dashboard_data.js`; opening `bopis.html` then shows that
+run without manually selecting a file. The authoritative copy remains in
+`runs/<your-run>/dashboard_data.js`. The chart is not live telemetry: its
+points, surface, Pareto front, and metrics come from the completed run artifact.
+
+### Easiest Windows demo
+
+From Command Prompt or PowerShell in the repository folder:
+
+```powershell
+cd C:\Users\User\Downloads\bopis
+python -m bopis profile --model-aware --write-js bopis_profile.js
+python -m bopis run --backend sim --synthetic
+start .\bopis.html
+```
+
+After the run completes, the chart data is already published automatically. The
+simulated energy values are for demonstrating the pipeline only; they are not
+measured GPU energy.
+
+### Easiest local chatbot launch on Windows
+
+This starts llama.cpp directly and is useful for testing the chat UI. Replace
+`MODEL_PATH` with a local GGUF file. Keep this terminal open:
+
+```cmd
+"C:\path\to\llama-server.exe" ^
+  --model "C:\path\to\model.Q4_K_M.gguf" ^
+  --n-gpu-layers 0 ^
+  --threads 4 ^
+  --parallel 1 ^
+  --ctx-size 2048 ^
+  --host 127.0.0.1 ^
+  --port 8080
+```
+
+Then open `bopis.html` and use **Optimization Chat**. The page calls
+`http://127.0.0.1:8080/v1/chat/completions` with structured role messages.
+This prevents the model from interpreting the conversation as text to continue.
+For a measured BOPIS deployment using the selected `x*`, use `python -m bopis
+serve` instead; see [docs/CHATBOT_INTEGRATION.md](docs/CHATBOT_INTEGRATION.md).
 
 Eight panels: run summary with the verdict badge, the computed Pareto front,
 convergence and SER, GP reliability, the three-way comparison with Friedman and
@@ -207,9 +312,14 @@ bopis/
   artifacts.py  schemas.py  run directories; frozen table schemas
   dashboard.py              dashboard payload builder
   monitor/                  NVML via ctypes; /proc and kernel32 telemetry
+    nvml.py                 the driver bindings and the energy-method ladder
+    sampler.py              100 ms sampling; integration; idle calibration
+    estimator.py            resource-allocation estimate for unmetered hosts
+    platform_os.py          system and per-process CPU/RAM, both platforms
   backends/                 llama-server, ollama, simulator
 dashboard/index.html        results dashboard (file:// openable)
 docs/AMENDMENTS.md          manuscript edits the artifact requires
+docs/ENERGY_MODES.md        measured vs estimated energy; the estimator's model
 tests/                      stdlib unittest
 ```
 

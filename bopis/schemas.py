@@ -134,6 +134,12 @@ B3_ENERGY: Tuple[str, ...] = (
     "decode_energy_j",
     "energy_method",
     "energy_scope",
+    "energy_basis",
+    # Populated only in resource-estimate mode: the uncertainty band on
+    # energy_j, and which CPU signal the estimate was attributed from.
+    "energy_low_j",
+    "energy_high_j",
+    "cpu_attribution",
     "energy_crosscheck_j",
     "crosscheck_method",
     "clamped_samples",
@@ -177,6 +183,9 @@ B6_RESOURCES: Tuple[str, ...] = (
     "task_type",
     "condition",
     "cpu_percent",
+    # The workload's own CPU share, as distinct from the machine's. Concurrent
+    # applications inflate cpu_percent but not this one.
+    "process_cpu_percent",
     "gpu_percent",
     "memory_mib",
     "vram_mib",

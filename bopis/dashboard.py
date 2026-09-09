@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from bopis import __version__, metrics, schemas
+from bopis.monitor import estimator
 from bopis.pareto import pareto_front
 from bopis.runner import StudyResult
 
@@ -113,6 +114,20 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
                 if result.validation.get("bopis")
                 else "n/a"
             ),
+            "energy_mode": result.settings.energy_mode,
+            # Present only for estimated runs, and carrying the formula, the
+            # declared budgets, every assumption and the caveat. The dashboard
+            # renders the caveat rather than the reader having to know it.
+            "energy_estimator": (
+                estimator.describe(result.settings.power_budget())
+                if result.settings.estimates_energy
+                else None
+            ),
+            "energy_caveat": (
+                estimator.caveat()
+                if result.settings.estimates_energy
+                else None
+            ),
         },
         "host": result.profile.as_dict(),
         "space": {
@@ -177,6 +192,11 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
         },
         "task_prior": summary.get("task_prior"),
         "scope_warning": summary.get("scope_warning"),
+        # Mirrored at the top level, next to scope_warning, because the
+        # research dashboard reads warnings from there. Both surfaces must show
+        # the caveat; neither may be the only place it appears.
+        "energy_caveat": summary.get("energy_caveat"),
+        "energy_estimator": summary.get("energy_estimator"),
     }
     return payload
 

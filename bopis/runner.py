@@ -35,6 +35,7 @@ from bopis.config_space import Config
 from bopis.dataset import Prompt, SampleSet
 from bopis.hardware import HostProfile
 from bopis.measure import Measurer, PromptMeasurement, aggregate
+from bopis.monitor import estimator
 from bopis.pareto import (
     Objectives,
     Selection,
@@ -58,11 +59,36 @@ class RunSettings:
     xi: float = 0.0
     min_gpu_layers: Optional[int] = None
     allow_no_power: bool = False
+
+    #: ``auto`` uses the NVML ladder and refuses when it has no instrument.
+    #: ``resource-estimate`` adds the labelled fallback in
+    #: :mod:`bopis.monitor.estimator` below that ladder.
+    energy_mode: str = "auto"
+    estimate_cpu_tdp_w: float = estimator.DEFAULT_CPU_TDP_W
+    estimate_gpu_tdp_w: float = estimator.DEFAULT_GPU_TDP_W
+    estimate_cpu_idle_w: float = 0.0
+    estimate_gpu_idle_w: float = 0.0
+    estimate_uncertainty: float = estimator.DEFAULT_UNCERTAINTY_FRAC
+
     tariff_php_per_kwh: float = metrics.DEFAULT_TARIFF_PHP_PER_KWH
     ctx_size: int = cs.FIXED_CTX_SIZE
     total_layers: int = 32
     resume: bool = False
     skip_validation: bool = False
+
+    @property
+    def estimates_energy(self) -> bool:
+        return self.energy_mode == "resource-estimate"
+
+    def power_budget(self) -> estimator.PowerBudget:
+        """The declared power envelope, for the estimator to scale."""
+        return estimator.PowerBudget(
+            cpu_tdp_w=self.estimate_cpu_tdp_w,
+            gpu_tdp_w=self.estimate_gpu_tdp_w,
+            cpu_idle_w=self.estimate_cpu_idle_w,
+            gpu_idle_w=self.estimate_gpu_idle_w,
+            uncertainty_frac=self.estimate_uncertainty,
+        )
 
     def as_dict(self) -> Dict[str, object]:
         payload = dataclasses.asdict(self)
@@ -70,6 +96,13 @@ class RunSettings:
             "t is the maximum generation length (n_predict); --ctx-size is "
             "fixed outside the search space (amendment A-1)"
         )
+        # The estimator's formula, inputs, assumptions and caveat go in the
+        # manifest verbatim. A reader who disagrees with an assumption can then
+        # see which one, without needing the source that produced the run.
+        if self.estimates_energy:
+            payload["energy_estimator"] = estimator.describe(
+                self.power_budget()
+            )
         return payload
 
 
@@ -759,6 +792,16 @@ class Study:
                 + " have energy_scope that does not cover the work performed "
                 "(typically gpu_only accounting at g=0). Their energy figures "
                 "are not comparable (amendment A-19)."
+            )
+
+        # -- Estimated-energy caveat -------------------------------------- #
+        # Attached to the analysis payload, not only to the manifest, so that
+        # every consumer of this run -- dashboard, tables, thesis text -- has
+        # the qualification in hand rather than having to remember it.
+        if self.settings.estimates_energy:
+            payload["energy_caveat"] = estimator.caveat()
+            payload["energy_estimator"] = estimator.describe(
+                self.settings.power_budget()
             )
 
         return payload

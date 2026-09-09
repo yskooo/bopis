@@ -70,6 +70,7 @@ class EnergyMethod:
 
     NVML_ENERGY_COUNTER = "nvml_energy_counter"
     NVML_POWER_INTEGRATION = "nvml_power_integration"
+    RESOURCE_ALLOCATION_ESTIMATE = "resource_allocation_estimate"
     UNAVAILABLE = "unavailable"
 
 

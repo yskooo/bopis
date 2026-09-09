@@ -11,12 +11,13 @@ import platform
 import time
 import unittest
 
-from bopis.monitor import nvml, platform_os
+from bopis.monitor import estimator, nvml, platform_os
 from bopis.monitor.nvml import EnergyMethod
 from bopis.monitor.sampler import (
     Sample,
     TelemetrySampler,
     integrate_power,
+    measure_idle_baseline,
     measure_idle_power,
 )
 
@@ -242,6 +243,169 @@ class TestSamplerMechanics(unittest.TestCase):
         self.assertGreaterEqual(window.clamp_rate, 0.0)
         self.assertLessEqual(window.clamp_rate, 1.0)
         self.assertIn("clamp_rate", window.as_dict())
+
+
+class TestEstimatorIsTheLastRung(unittest.TestCase):
+    """The estimate must never displace a measurement, or the tool lies."""
+
+    BUDGET = estimator.PowerBudget(
+        cpu_tdp_w=15.0, gpu_tdp_w=25.0, uncertainty_frac=0.3
+    )
+
+    def test_energy_counter_still_wins_when_estimation_is_enabled(self) -> None:
+        device = FakeDevice(
+            power_series=[8_000] * 200,
+            energy_series=[1_000_000 + i * 1_000 for i in range(200)],
+            energy_supported=True,
+        )
+        sampler = TelemetrySampler(
+            device=device, interval_s=0.01, estimator_budget=self.BUDGET
+        )
+        sampler.start()
+        time.sleep(0.15)
+        window = sampler.stop()
+
+        self.assertEqual(window.energy_method, EnergyMethod.NVML_ENERGY_COUNTER)
+        self.assertIsNone(window.estimate)
+        self.assertIsNone(window.energy_low_j)
+
+    def test_power_integration_still_wins_when_estimation_is_enabled(
+        self,
+    ) -> None:
+        device = FakeDevice(power_series=[8_000] * 200, energy_supported=False)
+        sampler = TelemetrySampler(
+            device=device, interval_s=0.01, estimator_budget=self.BUDGET
+        )
+        sampler.start()
+        time.sleep(0.15)
+        window = sampler.stop()
+
+        self.assertEqual(
+            window.energy_method, EnergyMethod.NVML_POWER_INTEGRATION
+        )
+        self.assertIsNone(window.estimate)
+
+    def test_estimate_is_reached_only_when_no_power_is_reported(self) -> None:
+        """The MX330 case: utilization works, power does not."""
+        device = FakeDevice(power_supported=False, energy_supported=False)
+        sampler = TelemetrySampler(
+            device=device, interval_s=0.01, estimator_budget=self.BUDGET
+        )
+        sampler.start()
+        time.sleep(0.12)
+        window = sampler.stop()
+
+        self.assertEqual(
+            window.energy_method, EnergyMethod.RESOURCE_ALLOCATION_ESTIMATE
+        )
+        self.assertIsNotNone(window.energy_j)
+        self.assertGreaterEqual(window.energy_j, 0.0)
+        # The uncertainty band and the full model travel with the value.
+        self.assertIsNotNone(window.energy_low_j)
+        self.assertIsNotNone(window.energy_high_j)
+        self.assertLessEqual(window.energy_low_j, window.energy_j)
+        self.assertGreaterEqual(window.energy_high_j, window.energy_j)
+        self.assertEqual(window.energy_basis, estimator.FORMULA)
+        self.assertIn("caveat", window.estimate or {})
+
+    def test_no_estimate_without_an_explicit_budget(self) -> None:
+        """Opt-in: absent the flag, an uninstrumented host reports nothing."""
+        device = FakeDevice(power_supported=False, energy_supported=False)
+        sampler = TelemetrySampler(device=device, interval_s=0.01)
+        sampler.start()
+        time.sleep(0.1)
+        window = sampler.stop()
+
+        self.assertEqual(window.energy_method, EnergyMethod.UNAVAILABLE)
+        self.assertIsNone(window.energy_j)
+        self.assertIsNone(window.estimate)
+
+    def test_gross_energy_is_absent_for_an_estimate(self) -> None:
+        """There is no raw board-power signal to integrate, so no gross."""
+        device = FakeDevice(power_supported=False)
+        sampler = TelemetrySampler(
+            device=device, interval_s=0.01, estimator_budget=self.BUDGET
+        )
+        sampler.start()
+        time.sleep(0.1)
+        window = sampler.stop()
+        self.assertIsNone(window.energy_gross_j)
+
+
+class TestCpuAttribution(unittest.TestCase):
+    """Which CPU signal fed the estimate has to be recorded, not assumed."""
+
+    def test_own_pid_is_attributed_to_the_process(self) -> None:
+        import os as _os
+
+        sampler = TelemetrySampler(device=None, interval_s=0.01, pid=_os.getpid())
+        sampler.start()
+        sum(i * i for i in range(200_000))
+        window = sampler.stop()
+
+        if platform_os.process_cpu_times(_os.getpid()) is None:
+            self.skipTest("per-process CPU time not observable on this host")
+        self.assertEqual(
+            window.cpu_attribution, estimator.CPU_ATTRIBUTION_PROCESS
+        )
+        self.assertIsNotNone(window.process_cpu_percent)
+        self.assertGreaterEqual(window.process_cpu_percent, 0.0)
+        self.assertLessEqual(window.process_cpu_percent, 100.0)
+
+    def test_absent_pid_degrades_to_system_wide_and_says_so(self) -> None:
+        """A weaker signal is acceptable; an unlabelled one is not."""
+        sampler = TelemetrySampler(device=None, interval_s=0.01, pid=None)
+        sampler.start()
+        time.sleep(0.05)
+        window = sampler.stop()
+        self.assertEqual(
+            window.cpu_attribution, estimator.CPU_ATTRIBUTION_SYSTEM
+        )
+
+    def test_system_and_process_cpu_are_reported_separately(self) -> None:
+        """Both columns exist so the difference is visible in Table B.6."""
+        import os as _os
+
+        sampler = TelemetrySampler(device=None, interval_s=0.01, pid=_os.getpid())
+        sampler.start()
+        time.sleep(0.05)
+        window = sampler.stop()
+        payload = window.as_dict()
+        self.assertIn("cpu_percent", payload)
+        self.assertIn("process_cpu_percent", payload)
+        self.assertIn("cpu_attribution", payload)
+
+
+class TestIdleBaseline(unittest.TestCase):
+    """The 60 s protocol, run over whatever signals the host does expose."""
+
+    def test_reports_gpu_and_cpu_baselines_without_a_power_sensor(self) -> None:
+        device = FakeDevice(power_supported=False)
+        result = measure_idle_baseline(device, seconds=0.1, interval_s=0.005)
+        self.assertFalse(result["power_supported"])
+        self.assertEqual(result["p_idle_w"], 0.0)
+        # FakeDevice reports a constant 55% duty cycle.
+        self.assertAlmostEqual(float(result["gpu_percent_idle"]), 55.0, places=6)
+        self.assertGreater(int(result["n_gpu_samples"]), 1)
+        self.assertIn("cpu_percent_idle", result)
+
+    def test_reports_power_when_the_sensor_exists(self) -> None:
+        device = FakeDevice(power_series=[10_000, 12_000] * 500)
+        result = measure_idle_baseline(device, seconds=0.1, interval_s=0.005)
+        self.assertTrue(result["power_supported"])
+        self.assertGreaterEqual(float(result["p_idle_w"]), 10.0)
+        self.assertLessEqual(float(result["p_idle_w"]), 12.0)
+
+    def test_a_busy_gpu_is_flagged_as_not_idle(self) -> None:
+        """A contaminated baseline biases every figure derived from it."""
+        device = FakeDevice(power_supported=False)  # 55% duty cycle
+        result = measure_idle_baseline(device, seconds=0.06, interval_s=0.005)
+        self.assertFalse(result["quiet"])
+
+    def test_works_with_no_device_at_all(self) -> None:
+        result = measure_idle_baseline(None, seconds=0.06, interval_s=0.005)
+        self.assertFalse(result["power_supported"])
+        self.assertEqual(result["gpu_percent_idle"], 0.0)
 
 
 class TestIdleCalibration(unittest.TestCase):

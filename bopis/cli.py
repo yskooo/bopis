@@ -32,9 +32,11 @@ import datetime as _dt
 import json
 import os
 import re
+import shutil
 import sys
+import textwrap
 import time
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 from bopis import __version__, artifacts, dashboard, dataset, hardware, metrics
 from bopis import config_space as cs
@@ -42,6 +44,7 @@ from bopis import optimizer, runner, tasks
 from bopis.backends.llama_server import LlamaServerBackend
 from bopis.config_space import Config
 from bopis.measure import SimulatedMeasurer
+from bopis.monitor import estimator
 from bopis.monitor.nvml import EnergyMethod
 
 GIB = 1024**3
@@ -60,6 +63,10 @@ def _rule(title: str = "", width: int = 74) -> str:
 
 def _kv(key: str, value: object, indent: int = 2) -> str:
     return f"{' ' * indent}{key:<28} {value}"
+
+
+def _wrap(text: str, width: int = 74) -> List[str]:
+    return textwrap.wrap(text, width=width) or [""]
 
 
 # --------------------------------------------------------------------------- #
@@ -175,9 +182,20 @@ def cmd_profile(args: argparse.Namespace) -> int:
         print("  window at a 100 ms sampling interval.")
     else:
         print("  This GPU reports neither power nor energy telemetry.")
-        print("  GPU energy CANNOT be measured on this machine. Use")
-        print("  --backend sim to exercise the pipeline, or run the study on a")
-        print("  GPU whose driver exposes nvmlDeviceGetPowerUsage.")
+        print("  GPU energy CANNOT be measured on this machine. Three options,")
+        print("  in descending order of what the result can claim:")
+        print()
+        print("  1. Run the study on a GPU whose driver exposes")
+        print("     nvmlDeviceGetPowerUsage. This is the only path to a")
+        print("     measured energy result, and no software change substitutes")
+        print("     for the missing instrument.")
+        print("  2. Run with `--energy-mode resource-estimate` for a labelled")
+        print("     resource-allocation estimate: CPU-time and GPU-utilization")
+        print("     scaled by declared power budgets. Valid for comparing")
+        print("     configurations on this host, not as absolute energy.")
+        print("     See docs/ENERGY_MODES.md.")
+        print("  3. Use `--backend sim` to exercise the pipeline with no")
+        print("     hardware claim at all.")
 
     print()
     print(_rule("TABLE H1 -> FEASIBLE SPACE"))
@@ -314,7 +332,10 @@ def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
         from bopis.backends.llama_server import LlamaServerBackend
         from bopis.measure import HardwareMeasurer
         from bopis.monitor import nvml
-        from bopis.monitor.sampler import TelemetrySampler, measure_idle_power
+        from bopis.monitor.sampler import (
+            TelemetrySampler,
+            measure_idle_baseline,
+        )
 
         model_paths = _parse_model_paths(args.model)
         if not model_paths:
@@ -336,31 +357,79 @@ def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
             log_path=os.path.join(args.out, "llama-server.log"),
         )
 
-        # Calibrate P_idle once, before any inference, per Chapter 3.
+        # Calibrate the idle baseline once, before any inference, per
+        # Chapter 3. On a host with a power sensor this is P_idle. On one
+        # without, the same 60 s protocol still yields the idle GPU duty cycle
+        # the estimator subtracts, so estimate mode is never left guessing it.
         device = None
-        idle = {"supported": False, "p_idle_w": 0.0}
+        estimating = args.energy_mode == "resource-estimate"
+        idle: dict = {"power_supported": False, "p_idle_w": 0.0}
         try:
             handle = nvml.Nvml.open()
             device = handle.device(0)
-            if device.power_supported:
-                print(
-                    f"Calibrating P_idle over {args.idle_seconds:g}s with no "
-                    "inference running..."
-                )
-                idle = measure_idle_power(device, seconds=args.idle_seconds)
+        except nvml.NvmlUnavailable:
+            device = None
+
+        if device is not None or estimating:
+            print(
+                f"Calibrating the idle baseline over {args.idle_seconds:g}s "
+                "with no inference running..."
+            )
+            idle = measure_idle_baseline(device, seconds=args.idle_seconds)
+            if idle["power_supported"]:
                 print(
                     _kv(
                         "P_idle",
                         f"{idle['p_idle_w']:.2f} W "
-                        f"(sd {idle.get('sd_w', 0.0):.2f}, "
-                        f"n={idle.get('n_samples', 0)})",
+                        f"(sd {idle['p_idle_sd_w']:.2f}, "
+                        f"n={idle['n_power_samples']})",
                     )
                 )
-        except nvml.NvmlUnavailable:
-            pass
+            print(
+                _kv(
+                    "Idle GPU utilization",
+                    f"{idle['gpu_percent_idle']:.1f}% "
+                    f"(sd {idle['gpu_percent_idle_sd']:.1f}, "
+                    f"peak {idle['gpu_percent_idle_max']:.0f}%)",
+                )
+            )
+            print(
+                _kv(
+                    "Idle CPU utilization",
+                    f"{idle['cpu_percent_idle']:.1f}% "
+                    f"(sd {idle['cpu_percent_idle_sd']:.1f}, "
+                    f"peak {idle['cpu_percent_idle_max']:.0f}%)",
+                )
+            )
+            if not idle["quiet"]:
+                print(
+                    "  WARNING: this machine was not idle during calibration. "
+                    "The baseline\n"
+                    "  is contaminated and every energy figure derived from it "
+                    "is biased.\n"
+                    "  Close other applications and re-run."
+                )
 
+        budget = None
+        if estimating:
+            budget = estimator.PowerBudget(
+                cpu_tdp_w=args.cpu_tdp_w,
+                gpu_tdp_w=args.gpu_tdp_w,
+                cpu_idle_w=args.cpu_idle_w,
+                gpu_idle_w=args.gpu_idle_w,
+                uncertainty_frac=args.estimate_uncertainty,
+            )
+
+        # ``pid`` is read at each call, not captured once: the server is
+        # relaunched whenever a launch-time parameter changes, and a stale PID
+        # would attribute the CPU term to a dead process.
         sampler_factory = lambda: TelemetrySampler(  # noqa: E731
-            device=device, p_idle_w=float(idle.get("p_idle_w") or 0.0)
+            device=device,
+            p_idle_w=float(idle.get("p_idle_w") or 0.0),
+            pid=backend.pid,
+            estimator_budget=budget,
+            gpu_percent_idle=float(idle.get("gpu_percent_idle") or 0.0),
+            logical_cores=profile.logical_cores,
         )
         return backend, HardwareMeasurer(
             backend, sampler_factory, allow_no_power=args.allow_no_power
@@ -391,15 +460,74 @@ def cmd_run(args: argparse.Namespace) -> int:
         )
         return 2
 
-    if args.backend != "sim" and not profile.can_measure_energy and not args.allow_no_power:
+    estimate_energy = args.energy_mode == "resource-estimate"
+    if (
+        args.backend != "sim"
+        and not profile.can_measure_energy
+        and not args.allow_no_power
+        and not estimate_energy
+    ):
         print(
             "REFUSING TO RUN: this GPU reports neither power nor energy "
             "telemetry, so no energy figure would be measurable.\n"
-            "  Pass --allow-no-power to proceed with energy recorded as null, "
-            "or use --backend sim.",
+            "  Pass --energy-mode resource-estimate to proceed with a "
+            "labelled resource-allocation\n"
+            "  estimate instead of a measurement (see docs/ENERGY_MODES.md), "
+            "--allow-no-power to\n"
+            "  proceed with energy recorded as null, or --backend sim.",
             file=sys.stderr,
         )
         return 2
+
+    if estimate_energy:
+        # Printed before anything else so that nobody can later claim the run
+        # was presented as a measurement. The same text goes into the manifest
+        # and the dashboard.
+        print(_rule("ENERGY MODE: RESOURCE-ALLOCATION ESTIMATE"))
+        if args.backend == "sim":
+            print(
+                "  The simulator computes energy from its analytic model and "
+                "never samples\n"
+                "  hardware, so --energy-mode has no effect here. These rows "
+                "stay labelled\n"
+                "  energy_scope: simulated."
+            )
+        elif profile.can_measure_energy:
+            print(
+                "  This GPU does report power telemetry, so the measured NVML "
+                "path takes\n"
+                "  precedence; the estimator will not be reached. Drop "
+                "--energy-mode to silence\n"
+                "  this notice."
+            )
+        else:
+            for line in _wrap(estimator.caveat(), width=72):
+                print(f"  {line}")
+            print()
+            print("  Formula")
+            print(f"    {estimator.FORMULA}")
+            print(
+                _kv(
+                    "CPU budget",
+                    f"{args.cpu_idle_w:g}-{args.cpu_tdp_w:g} W "
+                    f"(dynamic range {args.cpu_tdp_w - args.cpu_idle_w:g} W)",
+                )
+            )
+            print(
+                _kv(
+                    "GPU budget",
+                    f"{args.gpu_idle_w:g}-{args.gpu_tdp_w:g} W "
+                    f"(dynamic range {args.gpu_tdp_w - args.gpu_idle_w:g} W)",
+                )
+            )
+            print(
+                _kv(
+                    "Declared uncertainty",
+                    f"+/-{100.0 * args.estimate_uncertainty:.0f}% on each "
+                    "budget",
+                )
+            )
+        print()
 
     model = hardware.MISTRAL_7B_INSTRUCT_V03 if args.model_aware else None
     space, rejections = hardware.feasible_space(
@@ -442,6 +570,15 @@ def cmd_run(args: argparse.Namespace) -> int:
         xi=args.xi,
         min_gpu_layers=args.min_gpu_layers,
         allow_no_power=args.allow_no_power,
+        # The simulator never reaches the sampler, so recording estimate mode
+        # here would attach the estimator's caveat to analytic-model rows and
+        # misdescribe them.
+        energy_mode=("auto" if args.backend == "sim" else args.energy_mode),
+        estimate_cpu_tdp_w=args.cpu_tdp_w,
+        estimate_gpu_tdp_w=args.gpu_tdp_w,
+        estimate_cpu_idle_w=args.cpu_idle_w,
+        estimate_gpu_idle_w=args.gpu_idle_w,
+        estimate_uncertainty=args.estimate_uncertainty,
         tariff_php_per_kwh=args.tariff,
         ctx_size=args.ctx_size,
         total_layers=args.total_layers,
@@ -494,7 +631,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         )
     )
     _write_dataset_sample(run_dir, samples)
-    dashboard.write(result)
+    dashboard_path = dashboard.write(result)
+    published_dashboard = os.path.abspath("dashboard_data.js")
+    shutil.copyfile(dashboard_path, published_dashboard)
+    print(f"  Published latest dashboard data to {published_dashboard}")
 
     _print_summary(result)
     return 0
@@ -609,6 +749,19 @@ def _print_summary(result: runner.StudyResult) -> None:
     if warning:
         print()
         print("  WARNING: " + str(warning))
+
+    # Repeated at the end as well as the start: the number a reader copies out
+    # of this summary is the one that needs the qualification attached.
+    caveat = summary.get("energy_caveat")
+    if caveat:
+        print()
+        print(_rule("ENERGY CAVEAT"))
+        for line in _wrap(str(caveat), width=72):
+            print(f"  {line}")
+        print()
+        print("  Every energy figure above carries energy_low_j/energy_high_j "
+              "in\n  Table B.3, and the full model is in the run manifest "
+              "under\n  settings.energy_estimator.")
 
     print()
     print(_rule("ARTIFACTS"))
@@ -826,6 +979,62 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--model-aware", action="store_true")
     p_run.add_argument("--min-gpu-layers", type=int, default=None)
     p_run.add_argument("--allow-no-power", action="store_true")
+    p_run.add_argument(
+        "--energy-mode",
+        choices=["auto", "resource-estimate"],
+        default="auto",
+        help=(
+            "auto (default) measures energy from NVML and refuses the run "
+            "when it cannot; resource-estimate adds a labelled "
+            "resource-allocation estimate below that ladder for hosts with no "
+            "power sensor. Estimated runs are not measured runs -- see "
+            "docs/ENERGY_MODES.md before reporting one."
+        ),
+    )
+    p_run.add_argument(
+        "--cpu-tdp-w",
+        type=float,
+        default=estimator.DEFAULT_CPU_TDP_W,
+        help=(
+            "resource-estimate: CPU package power at full utilization, from "
+            "the vendor specification (default: %(default)s)"
+        ),
+    )
+    p_run.add_argument(
+        "--gpu-tdp-w",
+        type=float,
+        default=estimator.DEFAULT_GPU_TDP_W,
+        help=(
+            "resource-estimate: GPU board power at full utilization "
+            "(default: %(default)s)"
+        ),
+    )
+    p_run.add_argument(
+        "--cpu-idle-w",
+        type=float,
+        default=0.0,
+        help=(
+            "resource-estimate: CPU package power at rest. Leaving this at 0 "
+            "makes the coefficient the full TDP, which overstates light "
+            "loads; set it to narrow the estimate to the true dynamic range"
+        ),
+    )
+    p_run.add_argument(
+        "--gpu-idle-w",
+        type=float,
+        default=0.0,
+        help="resource-estimate: GPU board power at rest (default: 0)",
+    )
+    p_run.add_argument(
+        "--estimate-uncertainty",
+        type=float,
+        default=estimator.DEFAULT_UNCERTAINTY_FRAC,
+        help=(
+            "resource-estimate: fractional uncertainty on each declared power "
+            "budget, propagated in quadrature into energy_low_j/energy_high_j "
+            "(default: %(default)s)"
+        ),
+    )
     p_run.add_argument("--no-noise", action="store_true", help="simulator: noiseless")
     p_run.add_argument(
         "--llama-binary",

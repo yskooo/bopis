@@ -8,7 +8,8 @@ implementations (amendment A-9):
 
 * **Linux / WSL2** -- parse ``/proc`` exactly as the manuscript specifies.
 * **Windows** -- ``ctypes`` calls into ``kernel32``: ``GetSystemTimes``,
-  ``GlobalMemoryStatusEx``, ``GetLogicalProcessorInformation`` and
+  ``GetProcessTimes``, ``GlobalMemoryStatusEx``,
+  ``GetLogicalProcessorInformation``, ``CreateToolhelp32Snapshot`` and
   ``K32GetProcessMemoryInfo``.
 
 ``psutil`` is deliberately not used: it is a third-party package and the
@@ -39,6 +40,24 @@ class CpuTimes(NamedTuple):
     @property
     def total(self) -> float:
         return self.idle + self.busy
+
+
+class ProcessCpuTimes(NamedTuple):
+    """Cumulative CPU seconds charged to one process, summed over its threads.
+
+    Needed because system-wide utilization cannot answer "how much of this
+    machine did the inference process use". On a laptop that is also running a
+    browser, the system-wide figure attributes their load to the workload under
+    test. Both backends here aggregate over every thread of the process, which
+    is what a multi-threaded ``llama-server`` requires.
+    """
+
+    user: float
+    kernel: float
+
+    @property
+    def total(self) -> float:
+        return self.user + self.kernel
 
 
 class MemoryInfo(NamedTuple):
@@ -129,6 +148,35 @@ def _linux_process_memory(pid: int) -> Optional[int]:
     except OSError:
         return None
     return None
+
+
+def _linux_process_cpu_times(pid: int) -> Optional[ProcessCpuTimes]:
+    """``utime``/``stime`` from ``/proc/[pid]/stat``, already thread-aggregated.
+
+    The comm field is parenthesised and may itself contain spaces and
+    parentheses, so the split starts after the *last* ``)`` rather than at a
+    fixed token index.
+    """
+    try:
+        with open(f"/proc/{pid}/stat", "r", encoding="utf-8") as fh:
+            raw = fh.read()
+    except OSError:
+        return None
+    close = raw.rfind(")")
+    if close < 0:
+        return None
+    fields = raw[close + 1 :].split()
+    # fields[0] is `state` (stat field 3), so utime (14) and stime (15) sit at
+    # offsets 11 and 12.
+    if len(fields) < 13:
+        return None
+    hz = os.sysconf("SC_CLK_TCK") or 100
+    try:
+        return ProcessCpuTimes(
+            user=float(fields[11]) / hz, kernel=float(fields[12]) / hz
+        )
+    except ValueError:
+        return None
 
 
 def _linux_process_threads(pid: int) -> Optional[int]:
@@ -241,6 +289,88 @@ if IS_WINDOWS:
         except Exception:
             return platform.processor() or "unknown"
 
+    def _windows_process_cpu_times(pid: int) -> Optional[ProcessCpuTimes]:
+        """``GetProcessTimes``, which sums the kernel and user time of every
+        thread the process has ever run.
+
+        ``PROCESS_QUERY_LIMITED_INFORMATION`` is enough here and, unlike
+        ``PROCESS_QUERY_INFORMATION``, is granted for a child process without
+        elevation -- which matters because the measured process is the
+        ``llama-server`` this tool spawned.
+        """
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        handle = _k32.OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION, False, pid
+        )
+        if not handle:
+            return None
+        try:
+            creation = wintypes.FILETIME()
+            exited = wintypes.FILETIME()
+            kernel = wintypes.FILETIME()
+            user = wintypes.FILETIME()
+            if not _k32.GetProcessTimes(
+                handle,
+                ctypes.byref(creation),
+                ctypes.byref(exited),
+                ctypes.byref(kernel),
+                ctypes.byref(user),
+            ):
+                return None
+            # Units are 100 ns intervals.
+            return ProcessCpuTimes(
+                user=_filetime_to_100ns(user) / 1e7,
+                kernel=_filetime_to_100ns(kernel) / 1e7,
+            )
+        finally:
+            _k32.CloseHandle(handle)
+
+    def _windows_process_threads(pid: int) -> Optional[int]:
+        """Thread count of *pid* via a ``Thread32`` snapshot walk.
+
+        ``/proc/[pid]/status`` has no Windows equivalent, so the thread count
+        comes from ``CreateToolhelp32Snapshot``. Without this the manifest
+        would leave ``n_threads`` empty on Windows, and the ``c`` (CPU-threads)
+        dimension of the search space would have no observed counterpart to
+        check the requested value against.
+        """
+        TH32CS_SNAPTHREAD = 0x00000004
+
+        class _ThreadEntry32(ctypes.Structure):
+            _fields_ = [
+                ("dwSize", ctypes.c_ulong),
+                ("cntUsage", ctypes.c_ulong),
+                ("th32ThreadID", ctypes.c_ulong),
+                ("th32OwnerProcessID", ctypes.c_ulong),
+                ("tpBasePri", ctypes.c_long),
+                ("tpDeltaPri", ctypes.c_long),
+                ("dwFlags", ctypes.c_ulong),
+            ]
+
+        # OpenProcess and friends are declared with the default ``c_int``
+        # restype in this module, so a failed call arrives as -1 rather than as
+        # the pointer-width INVALID_HANDLE_VALUE. Both are rejected.
+        snapshot = _k32.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0)
+        if not snapshot or snapshot == -1:
+            return None
+        try:
+            entry = _ThreadEntry32()
+            entry.dwSize = ctypes.sizeof(_ThreadEntry32)
+            if not _k32.Thread32First(snapshot, ctypes.byref(entry)):
+                return None
+            count = 0
+            while True:
+                if entry.th32OwnerProcessID == pid:
+                    count += 1
+                if not _k32.Thread32Next(snapshot, ctypes.byref(entry)):
+                    break
+            # A live process always owns at least one thread, so a count of
+            # zero means the PID was not found -- report that as "not
+            # observable" rather than as a process with no threads.
+            return count or None
+        finally:
+            _k32.CloseHandle(snapshot)
+
     def _windows_process_memory(pid: int) -> Optional[int]:
         PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
         PROCESS_VM_READ = 0x0010
@@ -282,6 +412,53 @@ def cpu_percent_between(before: CpuTimes, after: CpuTimes) -> float:
     if delta_total <= 0:
         return 0.0
     return max(0.0, min(100.0, 100.0 * (after.busy - before.busy) / delta_total))
+
+
+def process_cpu_times(pid: int) -> Optional[ProcessCpuTimes]:
+    """Cumulative CPU seconds charged to *pid*, or ``None`` if not observable.
+
+    ``None`` is a real outcome, not just an error path: the process may have
+    exited between the two snapshots that bracket a window, and the caller must
+    degrade to the system-wide signal rather than treat zero as the answer.
+    """
+    if IS_LINUX:
+        return _linux_process_cpu_times(pid)
+    if IS_WINDOWS:
+        return _windows_process_cpu_times(pid)
+    return None
+
+
+def process_cpu_fraction(
+    before: ProcessCpuTimes,
+    after: ProcessCpuTimes,
+    wall_s: float,
+    logical_cores: Optional[int] = None,
+) -> Optional[float]:
+    """Share of total machine CPU capacity used by one process, in ``[0, 1]``.
+
+    The denominator is ``logical_cores * wall_s`` -- the CPU-seconds the whole
+    machine could have delivered over the window -- so a process pinning four
+    of eight logical processors returns ``0.5``. That is the quantity the energy
+    estimator multiplies by the CPU package's dynamic power range.
+
+    Normalising by *logical* rather than physical cores assumes package power
+    scales with logical saturation. It does not do so exactly, since the two
+    threads sharing a core do not double its power, so a hyperthreaded host
+    running few threads is charged somewhat less than its true share. The
+    alternative -- normalising by physical cores -- lets a fully loaded
+    hyperthreaded machine exceed 1.0, which is worse.
+
+    Returns ``None`` when the counters moved backwards, which means the PID was
+    reused or the process restarted mid-window; that difference is meaningless
+    and must not be silently reported as low utilization.
+    """
+    cores = logical_cores or os.cpu_count() or 1
+    if wall_s <= 0 or cores <= 0:
+        return None
+    busy = after.total - before.total
+    if busy < 0:
+        return None
+    return max(0.0, min(1.0, busy / (wall_s * cores)))
 
 
 def memory_info() -> MemoryInfo:
@@ -329,6 +506,11 @@ def process_threads(pid: int) -> Optional[int]:
     """Thread count of *pid*, or ``None`` if not observable."""
     if IS_LINUX:
         return _linux_process_threads(pid)
+    if IS_WINDOWS:
+        try:
+            return _windows_process_threads(pid)
+        except Exception:  # pragma: no cover - telemetry is best-effort
+            return None
     return None
 
 

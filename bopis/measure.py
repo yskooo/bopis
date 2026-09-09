@@ -25,6 +25,13 @@ told to minimize it would "discover" that CPU-only inference is free. Rows
 carrying ``gpu_only`` at ``g = 0`` are flagged scope-invalid so they can be
 excluded from comparison.
 
+``estimated_resource_allocation`` rows are exempt from that particular
+exclusion, because the model has a CPU term: at ``g = 0`` the work moves to the
+CPU and the estimate follows it, so the optimizer is not offered a free lunch.
+They carry a different and larger caveat instead -- they are not measurements at
+all -- which :mod:`bopis.monitor.estimator` states and which travels with every
+row through ``energy_basis``.
+
 Standard library only.
 """
 
@@ -44,6 +51,7 @@ class EnergyScope:
 
     GPU_ONLY = "gpu_only"  # NVML board power; excludes CPU/DRAM
     GPU_PLUS_RAPL = "gpu_plus_rapl"  # NVML + Intel RAPL package energy
+    RESOURCE_ESTIMATE = "estimated_resource_allocation"  # utilization proxy
     SIMULATED = "simulated"  # computed by the analytic model
     NONE = "none"  # no energy instrument available
 
@@ -72,13 +80,20 @@ class PromptMeasurement:
     decode_energy_j: Optional[float] = None
     energy_method: str = EnergyMethod.UNAVAILABLE
     energy_scope: str = EnergyScope.NONE
+    energy_basis: str = ""
     energy_crosscheck_j: Optional[float] = None
     crosscheck_method: str = "none"
     clamped_samples: int = 0
     n_samples: int = 0
 
+    # Estimate-mode only: the uncertainty band on ``energy_j``.
+    energy_low_j: Optional[float] = None
+    energy_high_j: Optional[float] = None
+
     # Resources
     cpu_percent: Optional[float] = None
+    process_cpu_percent: Optional[float] = None
+    cpu_attribution: str = "unavailable"
     gpu_percent: Optional[float] = None
     memory_mib: Optional[float] = None
     vram_mib: Optional[float] = None
@@ -132,6 +147,10 @@ class PromptMeasurement:
             "decode_energy_j": self.decode_energy_j,
             "energy_method": self.energy_method,
             "energy_scope": self.energy_scope,
+            "energy_basis": self.energy_basis,
+            "energy_low_j": self.energy_low_j,
+            "energy_high_j": self.energy_high_j,
+            "cpu_attribution": self.cpu_attribution,
             "energy_crosscheck_j": self.energy_crosscheck_j,
             "crosscheck_method": self.crosscheck_method,
             "clamped_samples": self.clamped_samples,
@@ -184,6 +203,7 @@ class PromptMeasurement:
             "task_type": self.task_type,
             "condition": self.condition,
             "cpu_percent": self.cpu_percent,
+            "process_cpu_percent": self.process_cpu_percent,
             "gpu_percent": self.gpu_percent,
             "memory_mib": self.memory_mib,
             "vram_mib": self.vram_mib,
@@ -264,6 +284,10 @@ class SimulatedMeasurer:
             crosscheck_method="none",
             n_samples=0,
             cpu_percent=round(18.0 + 70.0 * (1.0 - gpu_fraction), 2),
+            # The model has no notion of a competing process, so the machine's
+            # CPU load and the workload's are the same figure here.
+            process_cpu_percent=round(18.0 + 70.0 * (1.0 - gpu_fraction), 2),
+            cpu_attribution="simulated",
             gpu_percent=round(6.0 + 88.0 * gpu_fraction, 2),
             memory_mib=round(1800.0 + 900.0 * (1.0 - gpu_fraction) * config.b, 1),
             vram_mib=round(420.0 + 6800.0 * gpu_fraction, 1),
@@ -341,16 +365,22 @@ class HardwareMeasurer:
 
         measurement.energy_j = window.energy_j
         measurement.energy_method = window.energy_method
-        measurement.energy_scope = (
-            EnergyScope.GPU_ONLY
-            if window.energy_j is not None
-            else EnergyScope.NONE
-        )
+        measurement.energy_basis = window.energy_basis
+        if window.energy_j is None:
+            measurement.energy_scope = EnergyScope.NONE
+        elif window.energy_method == EnergyMethod.RESOURCE_ALLOCATION_ESTIMATE:
+            measurement.energy_scope = EnergyScope.RESOURCE_ESTIMATE
+        else:
+            measurement.energy_scope = EnergyScope.GPU_ONLY
         measurement.energy_crosscheck_j = window.energy_crosscheck_j
         measurement.crosscheck_method = window.crosscheck_method
         measurement.clamped_samples = window.clamped_samples
         measurement.n_samples = window.n_samples
+        measurement.energy_low_j = window.energy_low_j
+        measurement.energy_high_j = window.energy_high_j
         measurement.cpu_percent = window.cpu_percent
+        measurement.process_cpu_percent = window.process_cpu_percent
+        measurement.cpu_attribution = window.cpu_attribution
         measurement.gpu_percent = window.gpu_percent_mean
         measurement.memory_mib = window.memory_mib_mean
         measurement.vram_mib = window.vram_mib_mean

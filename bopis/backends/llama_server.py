@@ -117,6 +117,20 @@ class LlamaServerBackend:
     def base_url(self) -> str:
         return f"http://{self.host}:{self.port}"
 
+    @property
+    def pid(self) -> Optional[int]:
+        """PID of the running server, or ``None`` when it is not up.
+
+        The telemetry sampler needs this to charge CPU time to the process that
+        actually performs inference rather than to the whole machine. It has to
+        be read per measurement, not once: the server is relaunched whenever
+        the search moves to a configuration that changes a launch-time
+        parameter, and each relaunch is a new PID.
+        """
+        if self._process is None or self._process.poll() is not None:
+            return None
+        return self._process.pid
+
     # ------------------------------------------------------------------ #
     # Lifecycle
     # ------------------------------------------------------------------ #
