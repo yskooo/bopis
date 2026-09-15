@@ -14,6 +14,145 @@ between tools.
 
 ## A. Applied to the manuscript (docs/THESIS_WRITING2_G2.md)
 
+### A-1 — Define `t` as maximum generation length, not context window
+- **Where:** Table 3.2 row 1; BO configuration tuple definition.
+- **Edit:** Row relabelled "Maximum generation length (t)" (llama.cpp `n_predict`),
+  values unchanged {128, 256, 512, 1024}; context window fixed at 2048 (added to
+  Table 3.3) and held outside the search space.
+- **Verification anchor:** `Maximum generation length (t)`.
+- **status:** M.
+
+### A-2 — EI acquisition sign corrected to the minimisation form
+- **Where:** System Architecture — EI equation and Z.
+- **Edit:** Manuscript now prints `EI(x) = (f(x⁺) − μ(x))·Φ(Z) + σ(x)·φ(Z)` with
+  `Z = (f(x⁺) − μ(x)) / σ(x)`, matching `bopis/acquisition.py`. (Section E once
+  listed EI as "already correct / not touched"; that note is retired here.)
+- **Verification anchor:** `(f(x⁺) − μ(x)) × Φ(Z)`.
+- **status:** M (+C enforced by
+  `tests/test_acquisition.py::test_prefers_lower_predicted_energy`).
+
+### A-3 — Total iteration budget N = 30
+- **Where:** BO procedure Step 6.
+- **Edit:** "N = 30 (10 prior-weighted random seeds + 20 BO-guided steps)"; random
+  search is given the identical 30-evaluation budget.
+- **Verification anchor:** `N \= 30 (10 prior-weighted random seeds`.
+- **status:** M.
+
+### A-7 — GP hyperparameter fitting method corrected
+- **Where:** GP marginal-likelihood paragraph.
+- **Edit:** L-BFGS-B replaced by "a coarse log-space grid search followed by
+  multi-start Nelder-Mead" (no standard-library L-BFGS-B exists).
+- **Verification anchor:** `multi-start Nelder-Mead`.
+- **status:** M (+C GP in `bopis/gp.py`, verified by
+  `tests/test_gp.py::TestAgainstSklearn`).
+
+### A-10 — R² and UCR definitions added
+- **Where:** Data Analysis — surrogate reliability; Table 3.5.
+- **Edit:** R² and UCR formulas specified (`σ_pred = sqrt(σ² + σ_n²)`, target ≈ 0.95);
+  Table 3.5 gains GP R² and GP UCR rows with the LOO basis.
+- **Verification anchor:** `UCR \= fraction of measured energies within`.
+- **status:** M (+C: `bopis/stats.py` R²/UCR helpers, `tests/test_stats.py`).
+
+### A-12 — Dolly's literal category values
+- **Where:** Sources of Data; Stratification; Table T1 row labels.
+- **Edit:** Categories now Dolly's own strings (`open_qa`, `closed_qa`,
+  `information_extraction`, `summarization`, `classification`, `creative_writing`,
+  `brainstorming`, `general_qa`); Table T1's "General Instr." → `general_qa`.
+- **Verification anchor:** backticked `open_qa` … `general_qa` list.
+- **status:** M.
+
+### A-15 — Hypervolume normalized and reference clamped to the nadir
+- **Where:** Data Analysis — HV paragraph.
+- **Edit:** Added min–max normalization (HV ∈ [0, 1]) and component-wise clamping of
+  the reference to the front nadir (`r_eff[d] = max(r[d], max_PF f_d(x))`), with the
+  collapse-to-zero explanation.
+- **Verification anchor:** `Objectives are min–max normalized`.
+- **status:** M (+C: `bopis/pareto.py::hypervolume`,
+  `tests/test_pareto.py::TestHypervolume`).
+
+### A-20 / A-21 — Over-length filter tokenizer, proxy-subset floor, template digest
+- **Where:** Sampling Data (over-length filtering; 50-prompt subset); Research Instrument.
+- **Edit:** characters-per-token heuristic documented for dataset-preparation
+  filtering (authoritative count from the backend at run time, over-context prompts
+  flagged); the 50-prompt proxy subset "allocates at least one prompt to every
+  non-empty task category" (minor deviation from strict proportionality); prompt
+  template recorded with SHA-256 digest per CSV batch.
+- **Verification anchors:** `characters-per-token heuristic`;
+  `at least one prompt to every non-empty task category`; `SHA-256 digest`.
+- **status:** M.
+
+### A-25 / A-26 — `S_min` and `Q_min(task)` defined
+- **Where:** QRR paragraph; x\* constraint
+  `S(x) ≥ S_min(H) and Q(x) ≥ Q_min(task)`.
+- **Edit:** `S_min = 0.95 × mean unoptimized tokens/sec`;
+  `Q_min(task) = 0.98 × mean unoptimized BERTScore F1 for that task category`,
+  evaluated per Dolly category (BERTScore magnitudes differ by task type).
+- **Verification anchors:** `S_min \= 0.95`; `Q_min(task) \= 0.98`.
+- **status:** M (+C: `s_min`/`q_min` in `bopis/metrics.py`, B.4/B.5 rows in
+  `bopis/runner.py`).
+
+### A-29 / A-30 — HW-P0 / HW-B0 feasibility guards
+- **Where:** Table H1 (two new model-aware guard rows); Stage 1; Table 3.2/3.3 notes.
+- **Edit:** Added HW-P0 (weights + KV cache fit VRAM and VRAM + system RAM) and
+  HW-B0 (KV cache for `b` concurrent slots fits VRAM) as the first Table H1 rows;
+  F32 used as the canonical infeasible example (`~27 GiB`); variant set stated as
+  F32/F16/Q8_0/Q4_K_M subject to the guards; on the 2 GB host `g > 0` collapses to
+  `g = 0`.
+- **Verification anchors:** `HW-P0`; `HW-B0`.
+- **status:** M (+C: `bopis/hardware.py`,
+  `tests/test_hardware.py::TestModelSizeGuards`).
+
+### A-32 — Random search without replacement, same selection rule
+- **Where:** Stage 4 (Random Search Baseline).
+- **Edit:** candidates "sampled uniformly at random without replacement"; winner
+  selected by "the same Pareto + retention + argmax-EIR rule used by BOPIS".
+- **Verification anchor:** `sample` + `without replacement` in the Stage 4 paragraph.
+- **status:** M (+C: equal budgets in `bopis/runner.py`; winner by the same Pareto
+  + retention + argmax-EIR rule via `bopis/pareto.py`).
+
+### A-34 — Behaviour when no Pareto member meets the thresholds
+- **Where:** x\* selection, directly after the SRR/QRR definitions.
+- **Edit:** four-rung relaxation ladder with a reported status (`optimal`,
+  `relaxed_qrr_95`, `relaxed_srr_90`, `min_energy_fallback` — the last explicitly
+  not a successful optimization).
+- **Verification anchor:** `relaxed_qrr_95`.
+- **status:** M (+C: `bopis/pareto.py` selection status,
+  `tests/test_pareto.py::TestSelection`).
+
+### A-35 — Prefill and decode energy reported separately
+- **Where:** Data Analysis — J/token paragraph.
+- **Edit:** "prefill and decode energy are additionally reported separately, split
+  at the `prompt_ms` / `predicted_ms` boundary reported by llama.cpp", so prefill
+  energy is not charged to generated tokens.
+- **Verification anchor:** `prefill and decode energy are additionally reported separately`.
+- **status:** M.
+
+### A-36 — RQ 5 evidence base (partial)
+- **Where:** Statement of the Problem 5; Data Analysis — surrogate reliability.
+- **Edit:** leave-one-out cross-validation (see A-40) and the mandatory
+  observation-noise term in σ_pred applied. The third leg — a direct repeatability
+  run (one configuration, five repeats, CV of measured energy) — is defined in
+  `docs/AMENDMENTS.md` but not yet present in the manuscript.
+- **Verification anchor:** `The noise term σ_n² is mandatory in σ_pred`.
+- **status:** M (partial) — repeatability measurement pending.
+
+### A-39 — Table 3.3 completed; profiling dynamic
+- **Where:** Table 3.3.
+- **Edit:** `[fill in: …]` placeholders filled with the host figures (MX330 / i5-1135G7 /
+  16 GB); added `nvmlDeviceGet*` support rows (`NOT_SUPPORTED` on host) and the fixed
+  `--ctx-size 2048`; states the feasible space is derived from run-time profiling.
+- **Verification anchor:** `Hardware profiles are captured dynamically at run time`.
+- **status:** M.
+
+### A-40 — Surrogate reliability on leave-one-out, LOO R² ≥ 0.85
+- **Where:** Data Analysis — GP surrogate accuracy; Table 3.5 GP NPE row.
+- **Edit:** MAE/NPE/R²/UCR computed on leave-one-out predictions; the "NPE below 10%"
+  criterion replaced by "leave-one-out R² ≥ 0.85" alongside LOO NPE, with one-step-
+  ahead figures reported separately as a pessimistic bound.
+- **Verification anchors:** `leave-one-out cross-validation`; `LOO R² ≥ 0.85`.
+- **status:** M (+C: `bopis/stats.py` `leave_one_out_*`/R²/UCR,
+  `tests/test_stats.py`).
+
 ### A-4 — Four precision/quantization columns in Table T1
 - **Where:** "Task-Informed Prior Distribution" table (~4 rows of Table T1).
 - **Edit:** Prior table rows for Open QA, Closed QA, Info Extraction, General
@@ -149,15 +288,20 @@ between tools.
 | Re-profile under clean boot | Needs a reboot + fresh `bopis/profile.py` run to refresh HW-P0 blocks and the Mode A/C matrix. Currently every config is rejected by HW-P0 on this host; the numbers in Figure 3.5 are the stale pre-boot values. **Do before final hand-in.** |
 | Verify cited paper figures (Ma et al. 15% / Jensen, 2026 figures) | Requires web access to the cited papers; I did not fabricate the numbers. Check the exact %/figure numbers yourself or provide sources. |
 | Full `unittest discover` | **Resolved.** Explicit-module full suite (all 14 `tests.test_*` modules): **436 tests, OK, 3 skipped** in 127 s. The earlier 120 s "timeout" was my bash tool's default wall-clock (120 s) cutting off a run that legitimately needs ~127 s — not a test failure. |
+| A-36 repeatability measurement (one config, five repeats, CV of measured energy) | Only the LOO + noise-σ legs of A-36 landed in the manuscript; the repeatability run has no manuscript text yet. Add a short Data-Analysis or Scope sentence once the experiment is run. |
+| A-38 — BERTScore baseline rescaling | Commit `d745a49` lists A-38, and `docs/AMENDMENTS.md` A-38 is "Enable BERTScore baseline rescaling", but no "baseline rescaling / absolute F1 deltas" text is present in `docs/THESIS_WRITING2_G2.md`. Confirm whether the rescaling claim is wanted and add the sentence (it also motivates `QRR ≥ 98%`). |
+| A-37 | Listed in the `d745a49` message but there is **no A-37 entry in `docs/AMENDMENTS.md`**. Confirm which amendment A-37 refers to before trusting the commit label. |
 
 ---
 
 ## E. Verification anchors that were NOT touched (may already be correct — confirm against PDF)
 
-- EI formula in Chapter 3 (BOPIS) was already correct in the manuscript
-  (`EI(x) = (μ(x) − f(x⁺))·Φ(Z) + σ(x)·φ(Z)`, minimisation form). The code in
-  `bopis/acquisition.py` uses the same form. No edit applied here.
-- `Energy per token = E / N_generated` and the J/token normalisation text.
+- EI formula in Chapter 3 (BOPIS): **superseded by A-2** — the manuscript previously
+  printed the maximisation form and has now been corrected to the minimisation form
+  (`EI(x) = (f(x⁺) − μ(x))·Φ(Z) + σ(x)·φ(Z)`), which matches `bopis/acquisition.py`.
+  See the A-2 entry in Section A.
+- `Energy per token = E / N_generated` and the J/token normalisation text
+  (superseded by A-35 for the prefill/decode split).
 
 ---
 
