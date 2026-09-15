@@ -315,7 +315,7 @@ The efficiency of Bayesian Optimization is further evaluated through convergence
    2. Inference Speed (tokens/sec);  
    3. Output quality (BERTScore F1); and  
    4. Resource utilization (CPU%, GPU%, memory usage); and  
-   5. Per-variant performance, as measured across F32, F16, Q8\_0, and Q4\_K\_M GGUF precision/quantization variants in terms of energy consumption, inference speed, and output quality?
+   5. Per-variant performance, as measured across the feasible GGUF precision/quantization variants (the F32/F16/Q8\_0/Q4\_K\_M set, subject to HW-P0/HW-B0 feasibility) in terms of energy consumption, inference speed, and output quality?
 
 &nbsp;
 
