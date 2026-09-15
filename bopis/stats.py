@@ -375,3 +375,76 @@ def compare_conditions(
     if result.significant:
         payload["nemenyi"] = nemenyi(result, alpha=alpha).as_dict()
     return payload
+
+
+# --------------------------------------------------------------------------- #
+# Bootstrap confidence intervals
+# --------------------------------------------------------------------------- #
+
+
+def bootstrap_ci(
+    values: Sequence[float],
+    statistic: str = "mean",
+    n_boot: int = 10000,
+    confidence: float = 0.95,
+    seed: int = 42,
+) -> Dict[str, float]:
+    """Non-parametric bootstrap confidence interval for a summary statistic.
+
+    Resamples *values* with replacement *n_boot* times and reports the
+    percentile interval at the requested *confidence* level.  The standard
+    library :mod:`random` module provides the PRNG; no scipy dependency is
+    introduced.
+
+    Args:
+        values: Observed sample (e.g. one condition's energy-per-prompt vector).
+        statistic: ``"mean"`` or ``"median"``.
+        confidence: Central interval width, default 0.95 → 2.5th / 97.5th
+            percentiles.
+        seed: PRNG seed for reproducibility.
+
+    Returns:
+        A dict with keys ``point``, ``ci_lo``, ``ci_hi``, ``se`` (bootstrap
+        standard error).
+    """
+    import random as _random
+
+    clean = [float(v) for v in values if v is not None and not math.isnan(float(v))]
+    if not clean:
+        return {"point": float("nan"), "ci_lo": float("nan"),
+                "ci_hi": float("nan"), "se": float("nan")}
+
+    n = len(clean)
+    rng = _random.Random(seed)
+
+    if statistic == "median":
+        def _stat(sample: Sequence[float]) -> float:
+            s = sorted(sample)
+            mid = len(s) // 2
+            return s[mid] if len(s) % 2 else (s[mid - 1] + s[mid]) / 2.0
+    else:  # mean
+        def _stat(sample: Sequence[float]) -> float:
+            return sum(sample) / len(sample)
+
+    point = _stat(clean)
+    boot_stats: List[float] = []
+    for _ in range(n_boot):
+        sample = [clean[rng.randrange(n)] for _ in range(n)]
+        boot_stats.append(_stat(sample))
+    boot_stats.sort()
+
+    alpha = (1.0 - confidence) / 2.0
+    lo_idx = int(math.floor(alpha * n_boot))
+    hi_idx = int(math.floor((1.0 - alpha) * n_boot)) - 1
+    lo_idx = max(0, min(lo_idx, n_boot - 1))
+    hi_idx = max(0, min(hi_idx, n_boot - 1))
+
+    se = math.sqrt(
+        sum((b - point) ** 2 for b in boot_stats) / (n_boot - 1)
+    )
+    return {
+        "point": point,
+        "ci_lo": boot_stats[lo_idx],
+        "ci_hi": boot_stats[hi_idx],
+        "se": se,
+    }
