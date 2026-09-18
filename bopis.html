@@ -119,12 +119,86 @@ body {
 .tag.blue { background: #BEE3F8; color: #2C5282; }
 
 /* ─ CHAT ────────── */
-.chat-container { display: flex; flex-direction: column; gap: 24px; margin-top: 10px; padding-bottom: 60px; }
+.chat-container { display: flex; flex-direction: column; gap: 18px; margin-top: 10px; padding-bottom: 60px; }
 .msg { display: flex; flex-direction: column; gap: 8px; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-.user-prompt { font-size: 16px; font-weight: 500; color: #1A202C; background: #FFFBEA; padding: 6px 12px; border-radius: 8px; display: inline-block; align-self: flex-start;}
-.thought-process { font-size: 12px; color: #718096; display: flex; align-items: center; gap: 6px; font-weight: 500; font-style:italic;}
+/* Conversation turns. The user is right-aligned, the assistant left-aligned,
+   following the convention set by ChatGPT/Claude so the reading order is
+   immediately obvious. `.turn` owns the alignment, `.bubble` owns the skin. */
+.turn { display: flex; width: 100%; gap: 10px; align-items: flex-start; }
+.turn.user { justify-content: flex-end; }
+.turn.assistant { justify-content: flex-start; }
+
+.avatar {
+    flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff; margin-top: 2px;
+    user-select: none;
+}
+.avatar.bot  { background: linear-gradient(135deg,#3182CE,#2B6CB0); }
+.avatar.you  { background: #CBD5E0; color: #2D3748; }
+
+.bubble {
+    max-width: min(680px, 78%);
+    padding: 12px 16px;
+    font-size: 14.5px;
+    line-height: 1.62;
+    border-radius: 16px;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+/* User bubble: filled and right-aligned, with the corner nearest the avatar
+   squared off so the tail points at the sender. */
+.bubble.user {
+    background: #3182CE; color: #fff; font-weight: 500;
+    border-bottom-right-radius: 5px;
+}
+.bubble.assistant {
+    background: #fff; color: #2D3748;
+    border: 1px solid #E2E8F0;
+    border-bottom-left-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.035);
+}
+.bubble.error {
+    background: #FFF5F5; border: 1px solid #FEB2B2; color: #742A2A;
+    border-bottom-left-radius: 5px;
+}
+.bubble p { margin: 0 0 10px; white-space: pre-wrap; }
+.bubble p:last-child { margin-bottom: 0; }
+.bubble strong { font-weight: 650; color: #1A202C; }
+.bubble code {
+    background: #EDF2F7; padding: 1px 5px; border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+}
+.bubble ol, .bubble ul { margin: 0 0 10px; padding-left: 22px; }
+.bubble li { margin: 3px 0; }
+
+/* Metrics strip under an assistant bubble. */
+.metrics {
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid #EDF2F7;
+    font-size: 11.5px; color: #718096;
+}
+.metrics b { color: #2D3748; font-weight: 650; }
+.metrics .est { color: #B7791F; }
+
+/* Typing indicator, three bouncing dots. */
+.typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 2px; }
+.typing span {
+    width: 7px; height: 7px; border-radius: 50%; background: #A0AEC0;
+    animation: bounce 1.3s infinite ease-in-out;
+}
+.typing span:nth-child(2) { animation-delay: 0.16s; }
+.typing span:nth-child(3) { animation-delay: 0.32s; }
+@keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+    30%           { transform: translateY(-5px); opacity: 1; }
+}
+
+/* Stage 1 badge sits on the assistant side, above its bubble. */
+.stage1-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-left: 38px; }
 
 .ai-response {
     background: #FFFFFF;
@@ -192,6 +266,58 @@ body {
 
 /* ─ CHARTS / TABLES ────────── */
 .chart-container { margin-top: 16px; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: #FFF; }
+/* ─ WORKSPACE MODE ──────────────────────────────────────────────────────────
+   Chat and dashboard visible at once, IDE-style: conversation on the left,
+   evidence and charts on the right. Both columns scroll independently, so
+   reading the Pareto front does not scroll the chat away. */
+body.workspace-mode .main-area {
+    display: grid;
+    grid-template-columns: minmax(400px, 40fr) minmax(520px, 60fr);
+    gap: 18px;
+    overflow: hidden;              /* each column owns its own scrollbar */
+    padding: 26px 30px 26px 30px;
+}
+body.workspace-mode .panel { display: none; }
+body.workspace-mode .panel.ws-visible {
+    display: flex;
+    overflow-y: auto;
+    min-width: 0;                  /* let grid actually shrink the column */
+    padding-bottom: 120px;         /* clear the floating input dock */
+    gap: 16px;
+}
+/* The chat column keeps the input dock above it, so the dock is constrained to
+   that column's width rather than spanning the whole window. */
+body.workspace-mode .input-dock { right: var(--dock-right, 30px); }
+body.workspace-mode .page-title { font-size: 22px; }
+body.workspace-mode .page-subtitle { font-size: 13px; }
+body.workspace-mode .research-split { grid-template-columns: 1fr; }
+body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1100px) {
+    body.workspace-mode .main-area { grid-template-columns: 1fr; overflow-y: auto; }
+    body.workspace-mode .panel.ws-visible { overflow: visible; }
+}
+.ws-divider { width:1px; background:#E2E8F0; }
+
+/* Replay / auto-rotate controls on the Pareto card. */
+.chart-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+.chart-btn { border:1px solid #CBD5E0; background:#fff; color:#2D3748; border-radius:6px; padding:5px 11px; font-size:11.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+.chart-btn:hover { border-color:#3182CE; color:#2B6CB0; background:#EBF8FF; }
+.chart-btn.on { border-color:#3182CE; background:#3182CE; color:#fff; }
+.replay-readout { font-size:11px; color:#718096; font-family:'IBM Plex Mono', ui-monospace, monospace; }
+
+/* Research split view. Left column is evidence and analysis, right column is
+   charts. Single column below 1200px so this stays usable on a projector. */
+.research-split { display:grid; grid-template-columns: minmax(380px, 5fr) minmax(460px, 7fr); gap:16px; align-items:start; }
+.research-col { display:flex; flex-direction:column; gap:16px; min-width:0; }
+@media (max-width: 1200px) { .research-split { grid-template-columns: 1fr; } }
+
+/* Live-refresh pill in the run-evidence header. */
+.live-pill { display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:11px; font-size:11px; font-weight:600; background:#EDF2F7; color:#4A5568; cursor:pointer; user-select:none; }
+.live-pill.on { background:#E6FFFA; color:#234E52; }
+.live-dot { width:7px; height:7px; border-radius:50%; background:#A0AEC0; }
+.live-pill.on .live-dot { background:#38A169; animation: livePulse 1.6s infinite ease-in-out; }
+@keyframes livePulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.8); } }
+
 .pareto-legend { display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:12px; color:#718096; font-size:11px; }
 .pareto-legend span { display:inline-flex; align-items:center; gap:6px; }
 .legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
@@ -327,6 +453,10 @@ body::before {
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
             Dashboard Overview
         </li>
+        <li class="nav-item" onclick="enterWorkspace(this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 5h8v14H3V5zm10 0h8v6h-8V5zm0 8h8v6h-8v-6z"/></svg>
+            Workspace
+        </li>
         <li class="nav-item" onclick="sw('cfg', this)">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 C11.57,21.83,11.77,22,12,22h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.7z"/></svg>
             System Settings
@@ -404,7 +534,16 @@ body::before {
         </div>
 
         <div class="app-card" id="run-evidence">
-            <div class="card-header"><span>Run evidence</span><button class="btn-action" onclick="document.getElementById('run-file-input').click()">Load run data</button></div>
+            <div class="card-header">
+                <span>Run evidence</span>
+                <span style="display:inline-flex; gap:8px; align-items:center;">
+                    <span class="live-pill" id="live-pill" onclick="toggleLiveRefresh()"
+                          title="Re-reads dashboard_data.js every 4 s and redraws when the run advances. Leave it on while a study is running.">
+                        <span class="live-dot"></span><span id="live-label">Live: off</span>
+                    </span>
+                    <button class="btn-action" onclick="document.getElementById('run-file-input').click()">Load run data</button>
+                </span>
+            </div>
             <input type="file" id="run-file-input" accept=".js,.json" style="display:none">
             <div id="dashboard-status" class="note info">Loading generated run data...</div>
         </div>
@@ -432,26 +571,89 @@ body::before {
             </div>
         </div>
 
-        <div class="cards-grid" style="margin-top:16px;">
-            <div class="app-card" style="grid-column: 1 / -1;">
+        <!-- Research split view: evidence/analysis on the left, the chart and
+             the trade-off surface on the right. Collapses to one column below
+             1200px so a projector or a laptop screen stays readable. -->
+        <div class="research-split" style="margin-top:16px;">
+          <div class="research-col research-left">
+
+            <div class="app-card">
+                <div class="card-header">Selected configuration x* — and why it was chosen</div>
+                <div id="selection-detail" class="detail-d">Load a run to see the selected configuration.</div>
+            </div>
+
+            <div class="app-card">
+                <div class="card-header">BOPIS vs. Random Search — equal budget, same selection rule</div>
+                <div id="method-comparison" class="detail-d">Load a run to compare the two search strategies.</div>
+                <div class="card-subtext" style="margin-top:10px">
+                    Both methods get the identical evaluation budget and pick their winner with the
+                    same rule (Pareto front, then the SRR/QRR floors, then argmax EIR). Any
+                    difference is therefore attributable to the search strategy, not to the budget
+                    or the selection criterion.
+                </div>
+            </div>
+
+            <div class="app-card">
+                <div class="card-header">Surrogate reliability — is the GP trustworthy?</div>
+                <div id="surrogate-detail" class="detail-d">Load a run to see surrogate diagnostics.</div>
+            </div>
+
+          </div>
+          <div class="research-col research-right">
+
+            <div class="app-card">
                 <div class="card-header">Pareto Front — Energy vs. Quality vs. Speed (Bubble Size)</div>
+                <div class="chart-toolbar">
+                    <button class="chart-btn" id="replay-btn" type="button" onclick="toggleReplay()"
+                            title="Replays the search in evaluation order: watch the seeds land, then Expected Improvement close in on the front.">
+                        &#9654; Replay search
+                    </button>
+                    <button class="chart-btn" id="rotate-btn" type="button" onclick="toggleAutoRotate()"
+                            title="Slowly rotates the trade-off surface so the three objectives can be read from every angle.">
+                        &#8635; Auto-rotate
+                    </button>
+                    <span class="replay-readout" id="replay-readout">showing all evaluations</span>
+                </div>
                 <div class="chart-container pareto-viewport">
                     <canvas id="pareto" width="800" height="420" style="max-width:100%"></canvas>
                     <span class="pareto-hint">Drag to rotate · wheel to zoom</span>
                 </div>
                 <div class="pareto-controls">
                     <div class="pareto-selection" id="pareto-selection">Click a point to inspect its configuration.</div>
-                    <button class="pareto-control-button" type="button" onclick="resetParetoView()">Reset view</button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <label class="pareto-control-button" style="cursor:pointer; display:inline-flex; gap:6px; align-items:center;">
+                            <input type="checkbox" id="show-random" onchange="drawPareto3D()" style="margin:0">
+                            Show random search
+                        </label>
+                        <button class="pareto-control-button" type="button" onclick="resetParetoView()">Reset view</button>
+                    </div>
                 </div>
                 <div class="pareto-legend">
                     <span><i class="legend-dot" style="background:#000000"></i>Measured point</span>
                     <span><i class="legend-dot" style="background:#2A788E"></i>Pareto front</span>
                     <span><i class="legend-dot" style="background:#A0DA39"></i>Higher quality</span>
                     <span><i class="legend-dot" style="background:#E53E3E"></i>Default reference</span>
+                    <span><i class="legend-dot" style="background:#B7791F; border-radius:2px"></i>Random search (square)</span>
                 </div>
                 <div class="card-subtext" style="margin-top:10px">Each point is an evaluated configuration. x* is the selected trade-off, not automatically the lowest-energy point.</div>
             </div>
 
+            <div class="app-card">
+                <div class="card-header">Search convergence — best energy found so far</div>
+                <div class="chart-container" style="padding:8px">
+                    <canvas id="convergence" width="760" height="240" style="max-width:100%"></canvas>
+                </div>
+                <div class="card-subtext" style="margin-top:8px">
+                    The first 10 evaluations are prior-weighted random seeds; Expected Improvement
+                    drives the remaining 20. A flat tail means the search stopped finding
+                    improvements, which is convergence rather than failure.
+                </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="cards-grid" style="margin-top:16px;">
             <div class="app-card" style="grid-column: 1 / -1;">
                 <div class="card-header">How Bayesian optimization works here</div>
                 <div class="cards-grid">
@@ -557,8 +759,21 @@ body::before {
 
 <script src="bopis_profile.js"></script>
 <script src="dashboard_data.js" onerror="void 0"></script>
+<script src="bopis_rules.js" onerror="void 0"></script>
+<script src="bopis_model.js" onerror="void 0"></script>
 <script>
 let RUN_DATA = window.BOPIS_DATA || null;
+
+/* Replay/animation state. Declared up here, ahead of every reader, because
+ * `applyRunData(RUN_DATA)` runs during page load and calls drawPareto3D(),
+ * which reads REPLAY_LIMIT. Declaring these further down put them in the
+ * temporal dead zone at that moment and threw
+ * "Cannot access 'REPLAY_TIMER' before initialization", aborting the rest of
+ * the script. See the replay controls below for what they do.
+ */
+let REPLAY_LIMIT = null;     // null = draw every evaluation
+let REPLAY_TIMER = null;
+let ROTATE_FRAME = null;
 
 function ingestRunData(text) {
     try {
@@ -604,7 +819,415 @@ function applyRunData(data) {
     }
     const calibrationStatus = document.getElementById('calibration-status');
     if (calibrationStatus) calibrationStatus.textContent = `${data.meta?.n_total_iterations ?? '—'} configurations evaluated`;
+    renderSelectionDetail(data);
+    renderMethodComparison(data);
+    renderSurrogateDetail(data);
     drawPareto3D();
+    drawConvergence();
+}
+
+/* ── Live refresh ───────────────────────────────────────────────────────────
+ * bopis.html is opened over file://, where fetch() is blocked by the same-origin
+ * policy. Re-appending a <script> element with a cache-busting query string is
+ * the one mechanism that does work: the browser re-requests the file, the script
+ * re-executes, and window.BOPIS_DATA is overwritten.
+ *
+ * Only re-renders when the payload actually changed, so a running study can be
+ * watched without the chart flickering or the 3D view resetting.
+ */
+let LIVE_TIMER = null;
+let LIVE_FINGERPRINT = null;
+
+function runFingerprint(data) {
+    if (!data) return null;
+    // Cheap change detector: run id plus how far the search has progressed.
+    return [
+        data.meta?.run,
+        (data.pareto?.points || []).length,
+        (data.pareto?.random_points || []).length,
+        data.selection?.config_key,
+        data.indicators?.eir_percent
+    ].join('|');
+}
+
+function reloadRunData() {
+    const previous = document.getElementById('live-data-script');
+    if (previous) previous.remove();
+    const script = document.createElement('script');
+    script.id = 'live-data-script';
+    script.src = `dashboard_data.js?t=${Date.now()}`;
+    script.onload = () => {
+        const fresh = window.BOPIS_DATA;
+        const fingerprint = runFingerprint(fresh);
+        if (!fresh || fingerprint === LIVE_FINGERPRINT) return;
+        LIVE_FINGERPRINT = fingerprint;
+        applyRunData(fresh);
+        const label = document.getElementById('live-label');
+        if (label) {
+            const n = (fresh.pareto?.points || []).length;
+            const total = fresh.meta?.n_total_iterations ?? '?';
+            label.textContent = `Live: ${n}/${total} evals`;
+        }
+    };
+    script.onerror = () => {
+        const label = document.getElementById('live-label');
+        if (label) label.textContent = 'Live: no data file';
+    };
+    document.body.appendChild(script);
+}
+
+function toggleLiveRefresh() {
+    const pill = document.getElementById('live-pill');
+    const label = document.getElementById('live-label');
+    if (LIVE_TIMER) {
+        clearInterval(LIVE_TIMER);
+        LIVE_TIMER = null;
+        pill?.classList.remove('on');
+        if (label) label.textContent = 'Live: off';
+        return;
+    }
+    LIVE_FINGERPRINT = runFingerprint(RUN_DATA);
+    pill?.classList.add('on');
+    if (label) label.textContent = 'Live: watching…';
+    reloadRunData();
+    LIVE_TIMER = setInterval(reloadRunData, 4000);
+}
+
+/* ── Surrogate reliability ──────────────────────────────────────────────────
+ * The GP is the learned component, so "can we trust it?" is a fair question.
+ * Leave-one-out is the primary basis per amendment A-40; one-step-ahead is
+ * shown beside it as the deliberately pessimistic bound, because Expected
+ * Improvement probes where the GP is least certain by design.
+ */
+function renderSurrogateDetail(data) {
+    const host = document.getElementById('surrogate-detail');
+    if (!host) return;
+    const s = data.surrogate || {};
+    const loo = s.loo || {};
+    const osa = s.reliability || {};
+    const gp = s.gp || {};
+    const th = data.thresholds || {};
+
+    if (!loo.n && !osa.n) {
+        host.textContent = 'This run payload carries no surrogate diagnostics.';
+        return;
+    }
+
+    const verdict = (value, floor, higherIsBetter = true) => {
+        if (!Number.isFinite(Number(value))) return '<span style="color:#A0AEC0">—</span>';
+        const ok = higherIsBetter ? Number(value) >= floor : Number(value) <= floor;
+        return ok ? '<span style="color:#2F855A">&#10003;</span>'
+                  : '<span style="color:#C53030">&#10007;</span>';
+    };
+
+    host.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:13px">
+            <thead><tr style="border-bottom:2px solid #E2E8F0; font-size:11px;
+                              text-transform:uppercase; color:#718096">
+                <th style="padding:7px 8px; text-align:left">Metric</th>
+                <th style="padding:7px 8px; text-align:right">LOO (primary)</th>
+                <th style="padding:7px 8px; text-align:right">One-step-ahead</th>
+                <th style="padding:7px 8px; text-align:left">Target</th>
+            </tr></thead>
+            <tbody>
+                <tr><td style="padding:7px 8px; color:#4A5568">R&sup2;</td>
+                    <td style="padding:7px 8px; text-align:right"><b>${fmtNum(loo.r_squared, 3)}</b>
+                        ${verdict(loo.r_squared, 0.85)}</td>
+                    <td style="padding:7px 8px; text-align:right">${fmtNum(osa.r_squared, 3)}</td>
+                    <td style="padding:7px 8px; font-size:11px; color:#718096">&ge; 0.85</td></tr>
+                <tr><td style="padding:7px 8px; color:#4A5568">NPE</td>
+                    <td style="padding:7px 8px; text-align:right"><b>${fmtNum(loo.npe_percent, 2)}%</b>
+                        ${verdict(loo.npe_percent, Number(th.npe ?? 10), false)}</td>
+                    <td style="padding:7px 8px; text-align:right">${fmtNum(osa.npe_percent, 2)}%</td>
+                    <td style="padding:7px 8px; font-size:11px; color:#718096">&le; ${escapeHtml(String(th.npe ?? 10))}%</td></tr>
+                <tr><td style="padding:7px 8px; color:#4A5568">UCR (calibration)</td>
+                    <td style="padding:7px 8px; text-align:right"><b>${fmtNum(loo.ucr, 3)}</b>
+                        ${verdict(loo.ucr, Number(th.ucr_target ?? 0.95) - 0.05)}</td>
+                    <td style="padding:7px 8px; text-align:right">${fmtNum(osa.ucr, 3)}</td>
+                    <td style="padding:7px 8px; font-size:11px; color:#718096">&asymp; ${escapeHtml(String(th.ucr_target ?? 0.95))}</td></tr>
+                <tr><td style="padding:7px 8px; color:#4A5568">MAE (J)</td>
+                    <td style="padding:7px 8px; text-align:right"><b>${fmtNum(loo.mae, 2)}</b></td>
+                    <td style="padding:7px 8px; text-align:right">${fmtNum(osa.mae, 2)}</td>
+                    <td style="padding:7px 8px; font-size:11px; color:#718096">lower</td></tr>
+            </tbody>
+        </table>
+        <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:12px; font-size:11.5px; color:#718096">
+            <span>n = <b>${escapeHtml(String(loo.n ?? osa.n ?? '—'))}</b> observations</span>
+            <span>length scale <b>${fmtNum((gp.hyperparameters?.length_scales || [])[0], 3)}</b></span>
+            <span>signal var <b>${fmtNum(gp.hyperparameters?.signal_variance, 3)}</b></span>
+            <span>noise var <b>${fmtNum(gp.hyperparameters?.noise_variance, 5)}</b></span>
+            <span>log marginal likelihood <b>${fmtNum(gp.log_marginal_likelihood, 2)}</b></span>
+        </div>
+        <div style="font-size:11px; color:#A0AEC0; margin-top:8px; line-height:1.5">
+            Hyperparameters are <em>learned</em> by maximizing the log marginal likelihood, not set
+            by hand. Judge the fit on the leave-one-out column: one-step-ahead scores the
+            acquisition function's own high-uncertainty probes and is therefore pessimistic.
+        </div>`;
+}
+
+/* ── Convergence curve ──────────────────────────────────────────────────── */
+function drawConvergence() {
+    const canvas = document.getElementById('convergence');
+    if (!canvas || !RUN_DATA) return;
+    const conv = RUN_DATA.convergence || {};
+    const arms = [
+        { key: 'bopis', colour: '#3182CE', label: 'BOPIS' },
+        { key: 'random_search', colour: '#B7791F', label: 'Random search' }
+    ];
+    const series = arms
+        .map(a => ({ ...a, values: (conv[a.key] || conv[a.key === 'random_search' ? 'rs' : a.key] || {}).best_so_far }))
+        .filter(a => Array.isArray(a.values) && a.values.length)
+        // Truncate to the replay position so the curve grows with the chart.
+        .map(a => REPLAY_LIMIT === null
+            ? a
+            : { ...a, values: a.values.slice(0, Math.max(1, REPLAY_LIMIT)) });
+
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(320, canvas.parentElement.clientWidth - 24);
+    const height = 240;
+    canvas.width = width * ratio; canvas.height = height * ratio;
+    canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    if (!series.length) {
+        ctx.fillStyle = '#A0AEC0'; ctx.font = '12px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('No convergence data in this run payload.', width / 2, height / 2);
+        return;
+    }
+
+    const pad = { l: 56, r: 14, t: 14, b: 30 };
+    // Axes are fixed to the FULL series, not the truncated one, so a replay
+    // shows the curve growing across a stable chart instead of a fixed-length
+    // curve on rescaling axes.
+    const fullSeries = arms
+        .map(a => (conv[a.key] || {}).best_so_far)
+        .filter(v => Array.isArray(v) && v.length);
+    const all = fullSeries.flat();
+    const lo = Math.min(...all), hi = Math.max(...all);
+    const span = (hi - lo) || 1;
+    const n = Math.max(...fullSeries.map(v => v.length));
+    const px = i => pad.l + (width - pad.l - pad.r) * (n > 1 ? i / (n - 1) : 0.5);
+    const py = v => pad.t + (height - pad.t - pad.b) * (1 - (v - lo) / span);
+
+    ctx.strokeStyle = '#EDF2F7'; ctx.lineWidth = 1;
+    ctx.fillStyle = '#A0AEC0'; ctx.font = '10px IBM Plex Sans, sans-serif'; ctx.textAlign = 'right';
+    for (let k = 0; k <= 4; k++) {
+        const v = lo + span * k / 4, y = py(v);
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(width - pad.r, y); ctx.stroke();
+        ctx.fillText(v.toFixed(0), pad.l - 6, y + 3);
+    }
+    ctx.textAlign = 'center';
+    ctx.fillText('evaluation', (pad.l + width - pad.r) / 2, height - 8);
+    ctx.save();
+    ctx.translate(12, (pad.t + height - pad.b) / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('best energy (J)', 0, 0);
+    ctx.restore();
+
+    // Seed/BO boundary: everything left of it is prior-weighted random sampling.
+    const nSeeds = Number(RUN_DATA.meta?.n_seeds);
+    if (Number.isFinite(nSeeds) && nSeeds > 0 && nSeeds < n) {
+        const x = px(nSeeds - 1);
+        ctx.strokeStyle = '#CBD5E0'; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, height - pad.b); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#A0AEC0'; ctx.textAlign = 'left';
+        ctx.fillText('seeds | BO', x + 4, pad.t + 10);
+    }
+
+    series.forEach(s => {
+        ctx.strokeStyle = s.colour; ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        s.values.forEach((v, i) => i ? ctx.lineTo(px(i), py(v)) : ctx.moveTo(px(i), py(v)));
+        ctx.stroke();
+        const last = s.values.length - 1;
+        ctx.fillStyle = s.colour;
+        ctx.beginPath(); ctx.arc(px(last), py(s.values[last]), 3.5, 0, Math.PI * 2); ctx.fill();
+    });
+
+    let legendX = pad.l + 4;
+    ctx.font = '600 11px IBM Plex Sans, sans-serif'; ctx.textAlign = 'left';
+    series.forEach(s => {
+        ctx.fillStyle = s.colour;
+        ctx.fillRect(legendX, pad.t + 2, 9, 9);
+        ctx.fillStyle = '#4A5568';
+        ctx.fillText(s.label, legendX + 13, pad.t + 10);
+        legendX += ctx.measureText(s.label).width + 34;
+    });
+}
+
+/* ── Selected configuration x* ──────────────────────────────────────────────
+ * Shows the five search parameters, the search space they were drawn from, and
+ * the selection *status*. The status matters more than it looks: BOPIS relaxes
+ * its thresholds in four rungs (amendment A-34), and `min_energy_fallback`
+ * explicitly means the optimization did NOT succeed. Rendering the raw status
+ * keeps a failed run from reading as a successful one.
+ */
+function renderSelectionDetail(data) {
+    const host = document.getElementById('selection-detail');
+    if (!host) return;
+    const sel = data.selection || {};
+    const cfg = data.xstar_config || {};
+    const def = data.default_config || {};
+    const space = data.space || {};
+    const th = data.thresholds || {};
+    const ind = data.indicators || {};
+
+    if (!sel.config_key && !cfg.key) {
+        host.textContent = 'This run payload carries no selection.';
+        return;
+    }
+
+    const STATUS_NOTE = {
+        optimal: ['#2F855A', 'All thresholds met without relaxation.'],
+        relaxed_qrr_95: ['#B7791F', 'No configuration met the quality floor; QRR relaxed to 95%.'],
+        relaxed_srr_90: ['#B7791F', 'Speed floor also relaxed, to SRR 90%.'],
+        min_energy_fallback: ['#C53030',
+            'NOT a successful optimization. No Pareto member met any threshold rung, '
+            + 'so the lowest-energy configuration was returned as a fallback.']
+    };
+    const [statusColour, statusNote] =
+        STATUS_NOTE[sel.status] || ['#4A5568', 'Selection status not reported.'];
+
+    const param = (label, value, domain) => `
+        <div class="cfg-row">
+            <span class="cfg-k">${escapeHtml(label)}</span>
+            <span class="cfg-v"><b>${escapeHtml(String(value ?? '—'))}</b>
+                <span style="color:#A0AEC0; font-weight:400">
+                    ${domain ? 'from ' + escapeHtml(domain) : ''}</span></span>
+        </div>`;
+
+    const meetsSrr = Number.isFinite(Number(ind.srr_percent))
+        ? Number(ind.srr_percent) >= Number(th.srr ?? 95) : null;
+    const meetsQrr = Number.isFinite(Number(ind.qrr_percent))
+        ? Number(ind.qrr_percent) >= Number(th.qrr ?? 98) : null;
+    const check = ok => ok === null ? '<span style="color:#A0AEC0">—</span>'
+        : (ok ? '<span style="color:#2F855A">&#10003; met</span>'
+              : '<span style="color:#C53030">&#10007; not met</span>');
+
+    host.innerHTML = `
+        <div style="display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start">
+            <div style="flex:1 1 320px; min-width:300px">
+                <div style="font-weight:700; color:#2D3748; margin-bottom:6px">
+                    x* = <code>${escapeHtml(sel.config_key || cfg.key || '')}</code>
+                </div>
+                ${param('t — max generation length', cfg.t_max_gen_tokens, (space.permitted_t || []).join(' / '))}
+                ${param('b — batch / server slots', cfg.b_batch_size, (space.permitted_batch_sizes || []).join(' / '))}
+                ${param('p — precision variant', cfg.p_precision, (space.permitted_precisions || []).join(' / '))}
+                ${param('g — GPU layers', cfg.g_gpu_layers, (space.permitted_gpu_layers || []).join(' / '))}
+                ${param('c — CPU threads', cfg.c_cpu_threads, (space.permitted_cpu_threads || []).join(' / '))}
+                <div class="cfg-row">
+                    <span class="cfg-k">Searched</span>
+                    <span class="cfg-v"><b>${escapeHtml(String(space.n_feasible ?? '—'))}</b>
+                        feasible of ${escapeHtml(String(space.n_unconstrained ?? 768))} total</span>
+                </div>
+                <div class="cfg-row">
+                    <span class="cfg-k">Unoptimized default</span>
+                    <span class="cfg-v"><code>${escapeHtml(def.key || 'n/a')}</code></span>
+                </div>
+            </div>
+            <div style="flex:1 1 300px; min-width:280px">
+                <div style="font-weight:700; color:${statusColour}; margin-bottom:6px">
+                    Status: ${escapeHtml(sel.status || 'unknown')}
+                </div>
+                <div style="font-size:12px; color:#718096; line-height:1.55; margin-bottom:12px">
+                    ${escapeHtml(statusNote)}
+                </div>
+                <div class="cfg-row"><span class="cfg-k">SRR &ge; ${escapeHtml(String(th.srr ?? 95))}%</span>
+                    <span class="cfg-v">${check(meetsSrr)}</span></div>
+                <div class="cfg-row"><span class="cfg-k">QRR &ge; ${escapeHtml(String(th.qrr ?? 98))}%</span>
+                    <span class="cfg-v">${check(meetsQrr)}</span></div>
+                <div class="cfg-row"><span class="cfg-k">On Pareto front</span>
+                    <span class="cfg-v"><b>${escapeHtml(String(data.pareto?.n_front ?? '—'))}</b> of
+                        ${escapeHtml(String((data.pareto?.points || []).length))} evaluated</span></div>
+                <div class="cfg-row"><span class="cfg-k">Hypervolume (normalized)</span>
+                    <span class="cfg-v"><b>${fmtNum(data.pareto?.hypervolume_normalized, 3)}</b></span></div>
+                <div style="font-size:11px; color:#A0AEC0; margin-top:10px; line-height:1.5">
+                    Selection rule: keep the non-dominated set over (energy&darr;, speed&uarr;,
+                    quality&uarr;), drop anything below the SRR/QRR floors, then take argmax EIR.
+                    x* is a trade-off, not the lowest-energy point.
+                </div>
+            </div>
+        </div>`;
+}
+
+function fmtNum(value, digits) {
+    return Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : '—';
+}
+
+/* ── BOPIS vs Random Search ─────────────────────────────────────────────────
+ * The thesis claim is comparative, so this panel is the one a panelist will
+ * look for. Both arms are reported side by side with the delta, and the
+ * winner is named per metric rather than asserted overall.
+ */
+function renderMethodComparison(data) {
+    const host = document.getElementById('method-comparison');
+    if (!host) return;
+    const b = data.indicators || {};
+    const r = data.random_search_indicators || {};
+    const bSel = data.selection || {};
+    const rSel = data.random_search_selection || {};
+
+    if (!data.random_search_indicators) {
+        host.textContent =
+            'This run payload carries no random-search arm, so no comparison can be shown.';
+        return;
+    }
+
+    const rows = [
+        ['EIR — energy improvement', 'eir_percent', '%', 'higher'],
+        ['SRR — speed retention', 'srr_percent', '%', 'higher'],
+        ['QRR — quality retention', 'qrr_percent', '%', 'higher']
+    ];
+
+    const body = rows.map(([label, key, unit, better]) => {
+        const bv = Number(b[key]), rv = Number(r[key]);
+        const ok = Number.isFinite(bv) && Number.isFinite(rv);
+        const delta = ok ? bv - rv : null;
+        // Judge the winner at the precision actually displayed. Calling a
+        // +0.015 point difference a win while printing it as "+0.0%" reads as
+        // a contradiction, and overstates a difference that is noise at this
+        // sample size.
+        const shown = ok ? Number(delta.toFixed(1)) : null;
+        const tie = ok && shown === 0;
+        const bopisWins = ok && !tie && (better === 'higher' ? bv > rv : bv < rv);
+        const colour = !ok ? '#A0AEC0'
+                     : tie ? '#718096'
+                     : (bopisWins ? '#2F855A' : '#C53030');
+        return `<tr>
+            <td style="padding:8px 10px; color:#4A5568">${escapeHtml(label)}</td>
+            <td style="padding:8px 10px; text-align:right"><b>${fmtNum(bv, 1)}${unit}</b></td>
+            <td style="padding:8px 10px; text-align:right">${fmtNum(rv, 1)}${unit}</td>
+            <td style="padding:8px 10px; text-align:right; color:${colour}; font-weight:650">
+                ${ok ? (delta >= 0 ? '+' : '') + delta.toFixed(1) + unit : '—'}</td>
+            <td style="padding:8px 10px; font-size:11px; color:${colour}">
+                ${!ok ? '—' : (tie ? 'tie (within 0.1)' : (bopisWins ? 'BOPIS' : 'Random'))}</td>
+        </tr>`;
+    }).join('');
+
+    host.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:13px">
+            <thead>
+                <tr style="border-bottom:2px solid #E2E8F0; font-size:11px;
+                           text-transform:uppercase; color:#718096; letter-spacing:.04em">
+                    <th style="padding:8px 10px; text-align:left">Metric</th>
+                    <th style="padding:8px 10px; text-align:right">BOPIS</th>
+                    <th style="padding:8px 10px; text-align:right">Random search</th>
+                    <th style="padding:8px 10px; text-align:right">Delta</th>
+                    <th style="padding:8px 10px; text-align:left">Better</th>
+                </tr>
+            </thead>
+            <tbody>${body}</tbody>
+        </table>
+        <div style="display:flex; flex-wrap:wrap; gap:20px; margin-top:14px; font-size:12px">
+            <div><span style="color:#718096">BOPIS picked</span>
+                 <code>${escapeHtml(bSel.config_key || 'n/a')}</code>
+                 <span style="color:#A0AEC0">(${escapeHtml(bSel.status || '?')})</span></div>
+            <div><span style="color:#718096">Random picked</span>
+                 <code>${escapeHtml(rSel.config_key || 'n/a')}</code>
+                 <span style="color:#A0AEC0">(${escapeHtml(rSel.status || '?')})</span></div>
+        </div>`;
 }
 
 const runFileInput = document.getElementById('run-file-input');
@@ -684,7 +1307,130 @@ function sw(name, btn) {
         inputDock.classList.remove('active');
     }
 
-    if (name === 'tech') setTimeout(drawPareto3D, 100);
+    // Leaving a single-panel tab always exits workspace mode, so the two
+    // layouts can never both claim the main area.
+    exitWorkspace();
+
+    // Both canvases size themselves from their parent's clientWidth, which is 0
+    // while the panel is display:none. They must be redrawn after the panel
+    // becomes visible or they render at the fallback minimum width.
+    if (name === 'tech') setTimeout(() => { drawPareto3D(); drawConvergence(); }, 100);
+}
+
+/* ── Workspace mode ────────────────────────────────────────────────────────
+ * Shows the chat panel and the dashboard panel simultaneously as two columns,
+ * the way an editor shows source beside a preview. Both are already siblings
+ * inside `.main-area`, so this is a CSS-grid switch plus an extra visibility
+ * class — no DOM is moved, which keeps the chat transcript and the canvas
+ * state intact when toggling.
+ */
+function enterWorkspace(btn) {
+    document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    document.body.classList.add('workspace-mode');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active', 'ws-visible'));
+    document.getElementById('panel-chat').classList.add('ws-visible');
+    document.getElementById('panel-tech').classList.add('ws-visible');
+    document.getElementById('global-input').classList.add('active');
+
+    positionDock();
+    // Both canvases were last sized for a full-width panel; the columns are
+    // narrower, so they need a redraw once the grid has laid out.
+    setTimeout(() => { bindParetoControls(); drawPareto3D(); drawConvergence(); }, 120);
+}
+
+function exitWorkspace() {
+    if (!document.body.classList.contains('workspace-mode')) return;
+    document.body.classList.remove('workspace-mode');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('ws-visible'));
+    document.getElementById('global-input').style.removeProperty('--dock-right');
+    document.body.style.removeProperty('--dock-right');
+}
+
+/* The input dock is fixed-position, so in workspace mode it has to be told
+ * where the chat column ends or it would stretch across the charts. */
+function positionDock() {
+    if (!document.body.classList.contains('workspace-mode')) return;
+    const chat = document.getElementById('panel-chat');
+    if (!chat) return;
+    const rect = chat.getBoundingClientRect();
+    document.body.style.setProperty(
+        '--dock-right', Math.max(20, Math.round(window.innerWidth - rect.right)) + 'px');
+}
+
+/* ── Live modelling: replay the search, and auto-rotate ────────────────────
+ * REPLAY_LIMIT caps which evaluations the chart may draw. Animating it from 1
+ * to N replays the optimization: the 10 prior-weighted seeds scatter, then
+ * Expected Improvement visibly converges on the low-energy region and the
+ * interpolated surface firms up as evidence accumulates. It is the clearest
+ * explanation of Bayesian optimization available without saying a word.
+ */
+function replayTotal() {
+    const points = (RUN_DATA?.pareto?.points || []);
+    return points.reduce((max, p) => Math.max(max, Number(p.iteration) || 0), 0);
+}
+
+function setReplayReadout(text) {
+    const el = document.getElementById('replay-readout');
+    if (el) el.textContent = text;
+}
+
+function stopReplay(restoreAll = true) {
+    if (REPLAY_TIMER) { clearInterval(REPLAY_TIMER); REPLAY_TIMER = null; }
+    document.getElementById('replay-btn')?.classList.remove('on');
+    if (restoreAll) {
+        REPLAY_LIMIT = null;
+        setReplayReadout('showing all evaluations');
+        drawPareto3D(); drawConvergence();
+    }
+}
+
+function toggleReplay() {
+    if (REPLAY_TIMER) { stopReplay(true); return; }
+    const total = replayTotal();
+    if (!total) { setReplayReadout('no run data to replay'); return; }
+
+    document.getElementById('replay-btn')?.classList.add('on');
+    REPLAY_LIMIT = 0;
+    const nSeeds = Number(RUN_DATA?.meta?.n_seeds) || 0;
+    const stepMs = Math.max(90, Math.round(6000 / total));   // ~6 s total
+
+    REPLAY_TIMER = setInterval(() => {
+        REPLAY_LIMIT += 1;
+        const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'prior-weighted seed'
+                                                         : 'Expected Improvement';
+        setReplayReadout(`evaluation ${REPLAY_LIMIT} / ${total} · ${phase}`);
+        drawPareto3D(); drawConvergence();
+        if (REPLAY_LIMIT >= total) {
+            clearInterval(REPLAY_TIMER); REPLAY_TIMER = null;
+            document.getElementById('replay-btn')?.classList.remove('on');
+            setReplayReadout(`replay complete · ${total} evaluations · showing all`);
+            REPLAY_LIMIT = null;
+            drawPareto3D(); drawConvergence();
+        }
+    }, stepMs);
+}
+
+function toggleAutoRotate() {
+    const btn = document.getElementById('rotate-btn');
+    if (ROTATE_FRAME) {
+        cancelAnimationFrame(ROTATE_FRAME);
+        ROTATE_FRAME = null;
+        btn?.classList.remove('on');
+        return;
+    }
+    btn?.classList.add('on');
+    const tick = () => {
+        const canvas = document.getElementById('pareto');
+        // Never fight the user: pause while a drag is in progress.
+        if (canvas?._pareto3d && !canvas._pareto3d.dragging) {
+            canvas._pareto3d.yaw += 0.005;
+            drawPareto3D();
+        }
+        ROTATE_FRAME = requestAnimationFrame(tick);
+    };
+    ROTATE_FRAME = requestAnimationFrame(tick);
 }
 
 function sendPrompt(text) {
@@ -708,6 +1454,256 @@ function escapeHtml(value) {
     }[character]));
 }
 
+/* ------------------------------------------------------------------------- *
+ * Stage 1: task classification.
+ *
+ * This is a port of the scoring loop in bopis/classify.py. The rule table,
+ * weights, gate constants and priors are NOT duplicated here -- they are
+ * loaded from bopis_rules.js, which is generated by:
+ *
+ *     python -m bopis.classify --write-js bopis_rules.js
+ *
+ * so Python remains the single source of truth. Only the arithmetic lives in
+ * this file. If the two ever disagree, the Python version is authoritative.
+ *
+ * Measured accuracy on Dolly 15k: 49.7% exact 8-way, 67.5% on the quality-
+ * sensitivity tier. The prior this produces weights only the 10 Bayesian
+ * Optimization seed draws; it does not select x*.
+ * ------------------------------------------------------------------------- */
+
+let RULE_CACHE = null;
+
+function compiledRules() {
+    if (RULE_CACHE) return RULE_CACHE;
+    const table = window.BOPIS_TASK_RULES;
+    if (!table) return null;
+    RULE_CACHE = {
+        table,
+        rules: table.rules.map(rule => ({
+            category: rule.category,
+            weight: rule.weight,
+            label: rule.label,
+            regex: new RegExp(rule.pattern, 'i')
+        })),
+        contextQuestion: new RegExp(table.context_question_pattern, 'i')
+    };
+    return RULE_CACHE;
+}
+
+function classifyPrompt(instruction, context) {
+    const compiled = compiledRules();
+    if (!compiled) return null;
+    const { table, rules, contextQuestion } = compiled;
+
+    const text = (instruction || '').trim();
+    const hasContext = Boolean((context || '').trim());
+
+    const raw = {};
+    table.task_keys.forEach(key => { raw[key] = 0; });
+    const matched = [];
+
+    rules.forEach(rule => {
+        if (rule.regex.test(text)) {
+            raw[rule.category] += rule.weight;
+            matched.push(rule.label);
+        }
+    });
+
+    // Structural gate, mirroring classify_prompt().
+    if (hasContext) {
+        table.no_context_categories.forEach(key => { raw[key] *= table.gate_penalty; });
+        const competing = raw.summarization + raw.information_extraction;
+        if (competing <= 0 && contextQuestion.test(text)) {
+            raw.closed_qa += table.closed_qa_gate_bonus;
+            matched.push('gate:context+question');
+        }
+    } else {
+        table.context_categories.forEach(key => { raw[key] *= table.gate_penalty; });
+    }
+
+    const total = table.task_keys.reduce((sum, key) => sum + raw[key], 0);
+    if (total <= 0) {
+        return {
+            taskKey: table.fallback_task,
+            label: table.tasks[table.fallback_task].label,
+            sensitivity: table.tasks[table.fallback_task].sensitivity,
+            confidence: 0,
+            isConfident: false,
+            fellBack: true,
+            matched: ['fallback:no-rule-fired'],
+            prior: table.priors[table.fallback_task]
+        };
+    }
+
+    const scores = {};
+    table.task_keys.forEach(key => { scores[key] = raw[key] / total; });
+    let best = table.task_keys[0];
+    table.task_keys.forEach(key => { if (scores[key] > scores[best]) best = key; });
+
+    const ordered = Object.values(scores).sort((a, b) => b - a);
+    const margin = ordered.length > 1 ? ordered[0] - ordered[1] : 1;
+
+    return {
+        taskKey: best,
+        label: table.tasks[best].label,
+        sensitivity: table.tasks[best].sensitivity,
+        confidence: scores[best],
+        isConfident: margin >= table.confidence_margin,
+        fellBack: false,
+        matched,
+        prior: table.priors[best]
+    };
+}
+
+/* ------------------------------------------------------------------------- *
+ * The supervised classifier, when bopis_model.js is present.
+ *
+ * Multinomial Naive Bayes, fitted in Python by bopis/classify_trained.py and
+ * exported with:
+ *
+ *     python -m bopis.classify_trained --write-js bopis_model.js
+ *
+ * Only the scoring loop lives here -- a sum of per-feature log-likelihoods --
+ * so the browser's prediction is exact, not an approximation of the Python one.
+ * Held-out accuracy 69.7% exact 8-way, against 48.2% for the rules.
+ *
+ * When bopis_model.js is absent the badge falls back to the rule classifier,
+ * and says which one produced the answer.
+ * ------------------------------------------------------------------------- */
+
+let MODEL_CACHE = null;
+
+function trainedModel() {
+    if (MODEL_CACHE !== null) return MODEL_CACHE;
+    const m = window.BOPIS_TASK_MODEL;
+    MODEL_CACHE = m ? { model: m, vocabulary: new Set(m.vocabulary) } : false;
+    return MODEL_CACHE;
+}
+
+/* Mirrors bopis.classify_trained.tokenize(). */
+function modelTokenize(instruction, context) {
+    const words = String(instruction || '').toLowerCase().match(/[a-z][a-z']*/g) || [];
+    const features = words.map(w => 'w:' + w);
+    if (words.length) {
+        features.push('first:' + words[0]);
+        const head = words.slice(0, 3);
+        for (let i = 0; i + 1 < head.length; i++) {
+            features.push('bg:' + head[i] + '_' + head[i + 1]);
+        }
+    }
+    features.push(String(context || '').trim() ? 'ctx:yes' : 'ctx:no');
+    return features;
+}
+
+function classifyPromptTrained(instruction, context) {
+    const loaded = trainedModel();
+    if (!loaded) return null;
+    const { model, vocabulary } = loaded;
+
+    const tokens = modelTokenize(instruction, context);
+    const logScores = {};
+    model.classes.forEach(cls => {
+        const likelihood = model.log_likelihood[cls];
+        const unseen = model.log_unseen[cls];
+        let total = model.log_prior[cls];
+        tokens.forEach(feature => {
+            if (vocabulary.has(feature)) {
+                const value = likelihood[feature];
+                total += (value === undefined) ? unseen : value;
+            }
+        });
+        logScores[cls] = total;
+    });
+
+    // Softmax over the log posteriors, shifted by the max for stability.
+    let best = model.classes[0];
+    model.classes.forEach(cls => { if (logScores[cls] > logScores[best]) best = cls; });
+    const highest = logScores[best];
+    let sum = 0;
+    const weights = {};
+    model.classes.forEach(cls => {
+        weights[cls] = Math.exp(logScores[cls] - highest);
+        sum += weights[cls];
+    });
+
+    const scores = {};
+    model.classes.forEach(cls => { scores[cls] = weights[cls] / sum; });
+    const ordered = Object.values(scores).sort((a, b) => b - a);
+    const margin = ordered.length > 1 ? ordered[0] - ordered[1] : 1;
+
+    return {
+        taskKey: best,
+        label: model.tasks[best].label,
+        sensitivity: model.tasks[best].sensitivity,
+        confidence: scores[best],
+        isConfident: margin >= 0.15,
+        fellBack: false,
+        matched: ['naive_bayes:alpha=' + model.alpha],
+        prior: model.priors[best],
+        source: 'trained'
+    };
+}
+
+/* Prefer the fitted model; fall back to the rules when it is not exported. */
+function classifyPromptBest(instruction, context) {
+    const trained = classifyPromptTrained(instruction, context);
+    if (trained) return trained;
+    const rules = classifyPrompt(instruction, context);
+    if (rules) rules.source = 'rules';
+    return rules;
+}
+
+function taskBadgeHtml(prediction) {
+    if (!prediction) {
+        return '<div class="task-badge" title="bopis_rules.js not found. Generate it with: '
+            + 'python -m bopis.classify --write-js bopis_rules.js">'
+            + 'Task detection unavailable</div>';
+    }
+    const tierColour = {
+        High: '#C53030', Medium: '#B7791F', Low: '#2F855A'
+    }[prediction.sensitivity] || '#4A5568';
+
+    const priorText = Object.keys(prediction.prior)
+        .map(variant => `${variant} ${(prediction.prior[variant] * 100).toFixed(0)}%`)
+        .join(' · ');
+
+    const caveat = prediction.fellBack
+        ? 'No rule matched; defaulted to the open-domain fallback.'
+        : (prediction.isConfident
+            ? `Matched: ${prediction.matched.join(', ')}`
+            : `Low margin over the runner-up. Matched: ${prediction.matched.join(', ')}`);
+
+    const trained = prediction.source === 'trained';
+    const confidenceText = prediction.fellBack
+        ? 'fallback'
+        : `${(prediction.confidence * 100).toFixed(0)}% ${trained ? 'posterior' : 'of rule mass'}`;
+
+    const method = trained
+        ? 'Naive Bayes trained on Dolly 15k &mdash; 69.7% exact 8-way on a held-out '
+          + 'test set (rule baseline 48.2%)'
+        : 'rule-based &mdash; 49.7% exact / 67.5% sensitivity-tier on Dolly 15k. '
+          + 'Export the trained model with '
+          + '<code>python -m bopis.classify_trained --write-js bopis_model.js</code> '
+          + 'for 69.7%';
+
+    return `
+        <div class="task-badge" title="${escapeHtml(caveat)}">
+            <span style="color:${tierColour};">&#9679;</span>
+            Stage 1 &middot; ${escapeHtml(prediction.label)}
+            <span style="font-weight:400; color:#718096;">
+                &middot; ${escapeHtml(prediction.sensitivity)} sensitivity
+                &middot; ${escapeHtml(confidenceText)}
+                &middot; ${trained ? 'trained model' : 'rules'}
+            </span>
+        </div>
+        <div style="font-size:11px; color:#718096; margin:-6px 0 10px 2px;">
+            Seed prior P(precision | task): ${escapeHtml(priorText)}
+            <span style="color:#A0AEC0;">
+                &mdash; ${method}; weights BO seeding only, not x*
+            </span>
+        </div>`;
+}
+
 async function doChat() {
     const inp = document.getElementById('ci');
     const txt = inp.value.trim();
@@ -716,20 +1712,43 @@ async function doChat() {
     sw('chat', document.querySelector('.nav-item:nth-child(1)')); 
     
     const area = document.getElementById('chat-area');
-    
+
+    // The user's turn, right-aligned.
     const u = document.createElement('div');
     u.className = 'msg';
-    u.innerHTML = `<span class="user-prompt">${txt.replace(/</g, '&lt;')}</span>`;
+    u.innerHTML = `
+        <div class="turn user">
+            <div class="bubble user">${escapeHtml(txt)}</div>
+            <div class="avatar you">You</div>
+        </div>`;
     area.appendChild(u);
     inp.value = '';
+
+    // Stage 1 runs on submit, before the request goes out, so the panel can see
+    // the detected category alongside the answer it produced.
+    const prediction = classifyPromptBest(txt, '');
+    const badge = document.createElement('div');
+    badge.className = 'msg';
+    badge.innerHTML = `<div class="stage1-wrap">${taskBadgeHtml(prediction)}</div>`;
+    area.appendChild(badge);
     scrollToBottom();
 
     chatHistory.push({ role: 'user', content: txt });
+
+    // The assistant's turn starts as a typing indicator in its final position,
+    // so the bubble does not jump when the reply lands.
     const pending = document.createElement('div');
     pending.className = 'msg';
-    pending.innerHTML = '<div class="thought-process">Connecting to local chatbot...</div>';
+    pending.innerHTML = `
+        <div class="turn assistant">
+            <div class="avatar bot">B</div>
+            <div class="bubble assistant">
+                <span class="typing"><span></span><span></span><span></span></span>
+            </div>
+        </div>`;
     area.appendChild(pending);
     scrollToBottom();
+    const wallStart = performance.now();
 
     try {
         const response = await fetch(CHATBOT_CONFIG.endpoint, {
@@ -760,28 +1779,105 @@ async function doChat() {
             ? (generatedTokens / decodeSeconds).toFixed(2)
             : 'n/a';
         const latency = totalSeconds > 0 ? totalSeconds.toFixed(2) : 'n/a';
+        const wallSeconds = (performance.now() - wallStart) / 1000;
+        const energy = estimateEnergy(totalSeconds || wallSeconds, generatedTokens);
+
         pending.innerHTML = `
-            <div class="ai-response" style="border-left: 4px solid #3182CE;">
-                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3182CE; margin-bottom:8px;">Live model output · ${CHATBOT_CONFIG.model}</div>
-                <p style="font-size:14px; color:#2D3748; line-height:1.6; white-space:pre-wrap;">${escapeHtml(reply)}</p>
-                <div style="margin-top:16px; padding-top:12px; border-top:1px solid #EDF2F7; font-size:12px; color:#718096; display:flex; flex-wrap:wrap; gap:10px 18px;">
-                    <span>Prompt tokens: <strong>${promptTokens || 'n/a'}</strong></span>
-                    <span>Generated tokens: <strong>${generatedTokens || 'n/a'}</strong></span>
-                    <span>Decode speed: <strong>${decodeSpeed} tok/s</strong></span>
-                    <span>Latency: <strong>${latency} s</strong></span>
-                    <span>Energy: <strong>unavailable</strong></span>
-                    <span>BERTScore: <strong>offline Dolly evaluation</strong></span>
+            <div class="turn assistant">
+                <div class="avatar bot">B</div>
+                <div class="bubble assistant">
+                    ${renderMarkdown(reply)}
+                    <div class="metrics">
+                        <span>Prompt <b>${promptTokens || 'n/a'}</b> tok</span>
+                        <span>Generated <b>${generatedTokens || 'n/a'}</b> tok</span>
+                        <span>Decode <b>${decodeSpeed}</b> tok/s</span>
+                        <span>Latency <b>${latency}</b> s</span>
+                        ${energy.html}
+                        <span>BERTScore <b>n/a</b> (needs a reference answer)</span>
+                    </div>
                 </div>
             </div>`;
     } catch (error) {
         chatHistory.pop();
         pending.innerHTML = `
-            <div class="ai-response" style="border-left: 4px solid #E53E3E;">
-                <strong>Chatbot unavailable</strong><br>
-                <span style="font-size:13px; color:#718096;">${escapeHtml(error.message)}. Start the llama.cpp server on port 8080 and try again.</span>
+            <div class="turn assistant">
+                <div class="avatar bot">B</div>
+                <div class="bubble error">
+                    <p><strong>Chatbot unavailable</strong></p>
+                    <p style="font-size:13px;">${escapeHtml(error.message)}.
+                    Start llama-server on port 8080 and resend.</p>
+                </div>
             </div>`;
     }
     scrollToBottom();
+}
+
+/* Minimal markdown for model output: paragraphs, **bold**, `code`, and ordered
+ * or bulleted lists. Deliberately not a full parser -- the model emits a small,
+ * predictable subset, and escaping first then substituting a handful of
+ * patterns keeps this XSS-safe without a dependency. */
+function renderMarkdown(text) {
+    const inline = s => escapeHtml(s)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+?)`/g, '<code>$1</code>');
+
+    const blocks = String(text).trim().split(/\n{2,}/);
+    return blocks.map(block => {
+        const lines = block.split('\n');
+        const ordered = lines.every(l => /^\s*\d+[.)]\s+/.test(l)) && lines.length > 1;
+        const bulleted = lines.every(l => /^\s*[-*•]\s+/.test(l)) && lines.length > 1;
+        if (ordered || bulleted) {
+            const items = lines
+                .map(l => `<li>${inline(l.replace(/^\s*(?:\d+[.)]|[-*•])\s+/, ''))}</li>`)
+                .join('');
+            return ordered ? `<ol>${items}</ol>` : `<ul>${items}</ul>`;
+        }
+        return `<p>${inline(block)}</p>`;
+    }).join('');
+}
+
+/* Mode C energy estimate for one reply.
+ *
+ * There is no power sensor on this host, so this is NOT a measurement. It
+ * applies the load-line form from bopis/monitor/estimator.py using the CPU
+ * dynamic-power budget exported in bopis_profile.js, and assumes the inference
+ * process saturates the threads it was given for the duration of the request:
+ *
+ *     E_hat = P_cpu_dyn * T          (g = 0, so the GPU term is zero)
+ *
+ * That assumption is the weak link and is why the figure is labelled
+ * "estimated" everywhere it appears. Reported alongside PHP cost at the tariff
+ * in bopis/metrics.py so the number is interpretable, and per-token so it is
+ * comparable across configurations -- which is the only comparison Mode C
+ * supports. See docs/ENERGY_MODES.md.
+ */
+function estimateEnergy(seconds, generatedTokens) {
+    const cfg = window.BOPIS_PROFILE && window.BOPIS_PROFILE.energy_estimate;
+    if (!cfg || !seconds || seconds <= 0) {
+        return { html: '<span>Energy <b>unavailable</b></span>' };
+    }
+    if (cfg.power_supported) {
+        // A host with real telemetry should not be showing an estimate here.
+        return { html: '<span>Energy <b>see run manifest</b></span>' };
+    }
+
+    const joules = cfg.cpu_tdp_w * seconds;
+    const php = joules / cfg.joules_per_kwh * cfg.tariff_php_per_kwh;
+    const perToken = generatedTokens > 0 ? (joules / generatedTokens) : null;
+    const per1k = php * 1000;
+
+    const title = `Mode C estimate, not measured. ${cfg.cpu_tdp_w} W assumed CPU `
+        + `dynamic power over ${seconds.toFixed(2)} s at g=0. `
+        + `Tariff PHP ${cfg.tariff_php_per_kwh}/kWh. ${cfg.caveat}`;
+
+    return {
+        joules, php,
+        html: `<span class="est" title="${escapeHtml(title)}">`
+            + `~Energy <b>${joules.toFixed(1)} J</b>`
+            + (perToken ? ` (<b>${perToken.toFixed(2)}</b> J/tok)` : '')
+            + ` &middot; ~<b>PHP ${per1k.toFixed(2)}</b>/1k prompts`
+            + ` &middot; <b>estimated (Mode C)</b></span>`
+    };
 }
 
 function scrollToBottom() {
@@ -897,11 +1993,34 @@ function drawP() {
 function drawPareto3D() {
     const canvas = document.getElementById('pareto');
     if (!canvas || !RUN_DATA?.pareto) return;
-    const source = (RUN_DATA.pareto.points || []).map(point => ({
+    // During a replay only evaluations up to REPLAY_LIMIT may be drawn. The
+    // x* marker is withheld too: it is a conclusion, and showing it before the
+    // search has run would misrepresent how it was reached.
+    const withinReplay = point => REPLAY_LIMIT === null
+        || (Number(point.iteration) || 0) <= REPLAY_LIMIT;
+
+    const source = (RUN_DATA.pareto.points || []).filter(withinReplay).map(point => ({
         energy: Number(point.energy_j), speed: Number(point.tokens_per_s), quality: Number(point.quality_f1),
-        front: Boolean(point.on_front), selected: Boolean(point.is_xstar), label: point.label,
-        precision: point.precision, iteration: point.iteration
+        front: Boolean(point.on_front), selected: REPLAY_LIMIT === null && Boolean(point.is_xstar),
+        label: point.label,
+        precision: point.precision, iteration: point.iteration, arm: 'bopis'
     })).filter(point => [point.energy, point.speed, point.quality].every(Number.isFinite));
+
+    // Random-search arm, off by default so the BOPIS front stays readable.
+    // Drawn as squares rather than another colour, because colour already
+    // encodes quality on this chart.
+    const showRandom = !!document.getElementById('show-random')?.checked;
+    if (showRandom) {
+        (RUN_DATA.pareto.random_points || []).filter(withinReplay).forEach(point => {
+            const p = {
+                energy: Number(point.energy_j), speed: Number(point.tokens_per_s),
+                quality: Number(point.quality_f1), front: false, selected: false,
+                label: point.label, precision: point.precision,
+                iteration: point.iteration, arm: 'random'
+            };
+            if ([p.energy, p.speed, p.quality].every(Number.isFinite)) source.push(p);
+        });
+    }
     const reference = RUN_DATA.reference_point || {};
     if (!source.length) return;
     const referencePoint = { energy: Number(reference.energy_j), speed: Number(reference.tokens_per_s), quality: Number(reference.quality_f1), reference: true };
@@ -1031,8 +2150,19 @@ function drawPareto3D() {
         const qualityFraction = (point.quality - bounds.quality.lo) / bounds.quality.span;
         ctx.globalAlpha = point.front || point.selected || point.reference ? 1 : 0.45;
         ctx.fillStyle = point.reference ? '#E53E3E' : colorScale(qualityFraction);
-        ctx.beginPath(); ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = point.selected ? '#102231' : '#111827'; ctx.lineWidth = point.selected ? 2.5 : 1;
+        ctx.beginPath();
+        if (point.arm === 'random') {
+            // Squares for the random-search arm. Shape, not colour: colour is
+            // already carrying quality on this chart.
+            const side = radius * 1.7;
+            ctx.rect(screen.x - side / 2, screen.y - side / 2, side, side);
+        } else {
+            ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.strokeStyle = point.selected ? '#102231'
+                        : point.arm === 'random' ? '#B7791F' : '#111827';
+        ctx.lineWidth = point.selected ? 2.5 : point.arm === 'random' ? 1.6 : 1;
         ctx.stroke();
         targets.push({ point, x: screen.x, y: screen.y, radius: radius + 7 });
         if (point.selected || point.reference) {
@@ -1080,7 +2210,15 @@ function selectParetoPoint(canvas, event) {
         return;
     }
     const point = target.item.point;
-    output.textContent = `${point.selected ? 'x* · ' : point.reference ? 'Default · ' : ''}${point.label || 'Configuration'} · ${point.precision || 'reference'} · Energy ${point.energy.toFixed(2)} J · Speed ${point.speed.toFixed(2)} tok/s · Quality ${point.quality.toFixed(4)} F1 · Iter ${point.iteration ?? '—'}`;
+    const prefix = point.selected ? 'x* (BOPIS pick) · '
+                 : point.reference ? 'Default · '
+                 : point.arm === 'random' ? 'Random search · '
+                 : point.front ? 'On Pareto front · ' : '';
+    output.textContent = `${prefix}${point.label || 'Configuration'} · ${point.precision || 'reference'}`
+        + ` · Energy ${point.energy.toFixed(2)} J`
+        + ` · Speed ${point.speed.toFixed(2)} tok/s`
+        + ` · Quality (BERTScore F1) ${point.quality.toFixed(4)}`
+        + ` · Iter ${point.iteration ?? '—'}`;
 }
 
 function resetParetoView() {
@@ -1092,7 +2230,7 @@ function resetParetoView() {
     drawPareto3D();
 }
 
-window.addEventListener('resize', () => { bindParetoControls(); drawPareto3D(); });
+window.addEventListener('resize', () => { positionDock(); bindParetoControls(); drawPareto3D(); drawConvergence(); });
 setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
 </script>
 </body>

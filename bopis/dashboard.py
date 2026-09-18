@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from bopis import __version__, metrics, schemas
+from bopis import config_space as cs
 from bopis.monitor import estimator
 from bopis.pareto import pareto_front
 from bopis.runner import StudyResult
@@ -141,6 +142,11 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
             ],
             "permitted_batch_sizes": list(result.profile.permitted_batch_sizes),
             "permitted_cpu_threads": list(result.profile.permitted_cpu_threads),
+            # t is not hardware-constrained -- it is the full Table 3.2 domain
+            # (amendment A-1: maximum generation length, not the context
+            # window). Included so the dashboard can show every parameter's
+            # domain rather than four out of five.
+            "permitted_t": list(cs.T_VALUES),
         },
         "selection": result.bo_selection.as_dict(),
         "random_search_selection": result.rs_selection.as_dict(),

@@ -21,6 +21,7 @@ import unittest
 from bopis.stats import (
     NEMENYI_Q,
     average_ranks,
+    bootstrap_ci,
     chi2_sf,
     coefficient_of_variation,
     compare_conditions,
@@ -293,6 +294,47 @@ class TestDescriptives(unittest.TestCase):
             coefficient_of_variation([10.0, 10.0, 10.0]), 0.0, places=12
         )
         self.assertGreater(coefficient_of_variation([8.0, 10.0, 12.0]), 0.0)
+
+
+class TestBootstrapCI(unittest.TestCase):
+    def test_point_estimate_matches_simple_mean(self) -> None:
+        values = [1.0, 2.0, 3.0, 4.0, 5.0]
+        result = bootstrap_ci(values, n_boot=200, seed=1)
+        self.assertAlmostEqual(result["point"], 3.0, places=12)
+
+    def test_degenerate_samples_give_nan(self) -> None:
+        result = bootstrap_ci([], n_boot=50)
+        self.assertTrue(math.isnan(result["point"]))
+        self.assertTrue(math.isnan(result["ci_lo"]))
+        self.assertTrue(math.isnan(result["ci_hi"]))
+        self.assertTrue(math.isnan(result["se"]))
+
+    def test_confidence_interval_brackets_point(self) -> None:
+        values = [2.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]
+        result = bootstrap_ci(values, n_boot=1000, seed=42)
+        self.assertLessEqual(result["ci_lo"], result["point"])
+        self.assertGreaterEqual(result["ci_hi"], result["point"])
+
+    def test_wider_confidence_gives_wider_interval(self) -> None:
+        values = [2.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]
+        narrow = bootstrap_ci(values, confidence=0.80, n_boot=1000, seed=42)
+        wide = bootstrap_ci(values, confidence=0.95, n_boot=1000, seed=42)
+        self.assertGreaterEqual(
+            wide["ci_hi"] - wide["ci_lo"],
+            narrow["ci_hi"] - narrow["ci_lo"],
+        )
+
+    def test_reproducible_with_same_seed(self) -> None:
+        values = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+        a = bootstrap_ci(values, n_boot=500, seed=7)
+        b = bootstrap_ci(values, n_boot=500, seed=7)
+        self.assertEqual(a["ci_lo"], b["ci_lo"])
+        self.assertEqual(a["ci_hi"], b["ci_hi"])
+
+    def test_ignores_none_and_nan_values(self) -> None:
+        values = [1.0, None, 3.0, float("nan"), 5.0]  # type: ignore[list-item]
+        result = bootstrap_ci(values, n_boot=500, seed=3)
+        self.assertAlmostEqual(result["point"], 3.0, places=12)
 
 
 if __name__ == "__main__":
