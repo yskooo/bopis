@@ -1,5 +1,122 @@
 # BOPIS Chatbot Integration
 
+## Quick start (added 2026-09-18)
+
+One command does the whole sequence — refresh the hardware profile, regenerate
+the Stage 1 rule table, start `llama-server`, wait for the model to finish
+loading, then open the UI:
+
+```powershell
+.\demo.ps1 -Run runs\<run-directory> `
+           -LlamaBinary C:\Tools\llama-server.exe `
+           -Model Q4_K_M=C:\Models\model.Q4_K_M.gguf
+```
+
+Without `-Run` it launches a manually specified configuration instead, which is
+fine for showing the chatbot but **is not `x*`** and carries no optimizer claim.
+Without `-LlamaBinary`/`-Model` it runs UI-only. The script waits on `/health`
+before opening the browser, because a 7B model on CPU needs 30–60 s to load and
+opening the UI first is what produces a "connection refused" mid-demo.
+
+### Model choice for a live demo
+
+The manuscript's model is Mistral 7B, but on the 2 GB MX330 every GPU-offload
+configuration is permanently rejected by HW-P0 (3.39 GiB of weights against 1.94
+GiB of VRAM), so `g` collapses to a single level and inference is CPU-only at
+roughly 2–5 tok/s. For a *live* demonstration prefer a 1–3B model at Q4_K_M
+(Qwen2.5-1.5B, Llama-3.2-1B/3B, Phi-3-mini): it fits VRAM at `g > 0`, which
+restores the GPU-layer dimension, and it answers fast enough to hold a room.
+Disclose it as a demo-platform substitution, and note that it also aligns the
+study with the 1B–7B range benchmarked by Zähl & Hennig (2026).
+
+## Stage 1: task classification at deployment time
+
+During evaluation the task category is Dolly's own `category` field — ground
+truth. During deployment there is no label, so `bopis/classify.py` infers one
+from the prompt with a rule-based classifier and looks up
+`P(precision | task)`.
+
+```powershell
+# score the rules against Dolly's 15k human labels
+py -3 -m bopis.classify --data-dir data
+
+# classify one prompt
+py -3 -m bopis.classify --prompt "Summarize this report."
+
+# export the rule table for the bopis.html badge
+py -3 -m bopis.classify --write-js bopis_rules.js
+```
+
+Measured accuracy on all 15,011 labelled Dolly rows: **49.7%** exact 8-way,
+**64.3%** with `open_qa`/`general_qa` merged, **67.5%** on the quality-
+sensitivity tier that actually drives the prior. Quote the tier figure, and be
+ready to explain the bound: the largest error class is `general_qa` predicted as
+`open_qa` (1,798 rows), a distinction Dolly draws on a property of the *answer*
+rather than of the instruction's surface form, so no lexical rule recovers it.
+
+Why a 49.7% classifier is nonetheless acceptable: the prior weights **only the
+10 seed draws** of the 30-evaluation budget. The 20 BO-guided steps follow
+Expected Improvement over the GP, and `x*` is chosen by Pareto dominance plus
+the SRR/QRR thresholds. A misclassification makes the search slightly less
+sample-efficient; it cannot make `x*` wrong.
+
+`bopis.html` shows the detected task as a badge on each submitted prompt. The
+rules are authored in Python and exported to `bopis_rules.js`; the browser
+reimplements only the scoring arithmetic, and the two are cross-checked to agree
+exactly.
+
+### The supervised alternative
+
+`bopis/classify_trained.py` fits a multinomial Naive Bayes classifier to Dolly's
+human labels and reaches **69.7%** exact 8-way accuracy on a held-out test set,
+against **48.2%** for the rules on the same split — **+21.4 points**.
+
+```powershell
+# train, evaluate against the rule baseline, and report
+py -3 -m bopis.classify_trained --data-dir data
+
+# persist the fitted model
+py -3 -m bopis.classify_trained --data-dir data --save task_classifier.json
+```
+
+Protocol: stratified 70/15/15 split (seed 20260101, stratified because Dolly is
+unbalanced), smoothing selected on validation only, test set touched once.
+`predict_prompt()` returns the same `TaskPrediction` type as the rule
+classifier, so the two are interchangeable at the call site.
+
+**The UI badge uses the trained model.** Export it once and `bopis.html` picks
+it up:
+
+```powershell
+py -3 -m bopis.classify_trained --data-dir data --write-js bopis_model.js
+```
+
+That writes ~855 KiB of JSON, which is immaterial for a page opened from local
+disk. If `bopis_model.js` is absent the badge falls back to the rule classifier
+and says so. Either way the badge states which classifier produced the answer,
+so a demo never silently misrepresents its accuracy. The browser's Naive Bayes
+scoring was cross-checked against Python on 150 real Dolly rows and agrees to a
+maximum confidence delta of **0.0** — bitwise-identical posteriors, not an
+approximation.
+
+One finding worth keeping: the rules still *beat* the learned model on
+`closed_qa` (89.1% vs 81.2%) and `open_qa` (78.5% vs 77.0%), where the
+structural context gate is genuinely strong. A gate-then-model hybrid would
+likely beat either alone.
+
+### What "adaptive" can and cannot mean here
+
+Only `t` is a per-request parameter (`n_predict`). `p`, `g`, `c` and `b` are
+`llama-server` **launch flags**, so a single running server cannot switch
+precision or GPU-layer count per prompt. Per-prompt adaptation over the full
+`x = (t, b, p, g, c)` tuple would require one server process per configuration
+or a reload between prompts. Today BOPIS selects **one** `x*` for the workload;
+the classifier informs seeding and reports the per-task `Q_min(task)` threshold
+required by amendment A-26. Do not describe the current system as switching
+configuration per prompt.
+
+---
+
 BOPIS has two related but separate jobs:
 
 1. **Optimization and evaluation:** run the same prompts through candidate
