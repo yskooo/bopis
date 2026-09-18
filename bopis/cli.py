@@ -94,6 +94,27 @@ def cmd_profile(args: argparse.Namespace) -> int:
                 {"config": r.config.key(), "rule": r.rule, "detail": r.detail}
                 for r in rejections
             ],
+            # Constants the chat UI needs to show a *labelled* Mode C energy
+            # estimate per reply. Exported rather than hard-coded in the HTML so
+            # the browser and `bopis.metrics` cannot disagree about the tariff or
+            # the power budgets. This is an estimate, never a measurement: see
+            # docs/ENERGY_MODES.md before quoting a joule figure from the UI.
+            "energy_estimate": {
+                "mode": "C",
+                "basis": "estimated_resource_allocation",
+                "cpu_tdp_w": estimator.DEFAULT_CPU_TDP_W,
+                "gpu_tdp_w": estimator.DEFAULT_GPU_TDP_W,
+                "tariff_php_per_kwh": metrics.DEFAULT_TARIFF_PHP_PER_KWH,
+                "joules_per_kwh": metrics.JOULES_PER_KWH,
+                "power_supported": profile.power_supported,
+                "energy_counter_supported": profile.energy_counter_supported,
+                "caveat": (
+                    "Mode C resource-allocation estimate. This GPU exposes no "
+                    "power sensor, so no joule figure here is measured. Valid "
+                    "for comparing configurations on this host; not valid as an "
+                    "absolute energy claim."
+                ),
+            },
         }
         target = os.path.abspath(args.write_js)
         os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
