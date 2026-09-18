@@ -25,6 +25,12 @@ dashboard_data.js
 *.safetensors
 *.bin
 
+# Downloaded third-party inference binaries (llama.cpp release builds). ~90 MB
+# per backend, and reproducible from a tagged GitHub release, so they are
+# fetched rather than committed. tools/bench.ps1 is ours and is force-added.
+tools/*
+!tools/bench.ps1
+
 # QA scratch
 .qa-*.mjs
 qa-*.png
