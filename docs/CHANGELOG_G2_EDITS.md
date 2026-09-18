@@ -279,6 +279,34 @@ between tools.
 - **Note:** tests are not part of the thesis PDF; this record is for the code/
   tooling chapter and for the researcher's own verification log.
 
+### Full suite — re-verified 2026-09-18 (corrects the entry above)
+- **Root cause found for the import failures.** The invocation recorded above,
+  `python -m unittest tests.test_<module>`, **did not work on this checkout**. It
+  failed for all 14 modules with `ModuleNotFoundError: No module named
+  'tests.test_stats'`. Reason: an unrelated regular package named `tests` is
+  installed in `site-packages`
+  (`…/Python311/Lib/site-packages/tests`), and because the project's `tests/`
+  directory had no `__init__.py` it was only a *namespace* package candidate, so
+  the site-packages package shadowed it. `import tests` resolved to
+  site-packages, not to the repo.
+- **Fix (code):** added `tests/__init__.py`, making the project's `tests/` a
+  regular package. `python -m` prepends the working directory to `sys.path`, so
+  the repo copy now wins. Both invocations resolve after the fix.
+- **Re-verified numbers on this host (all three invocations now pass):**
+  - `python -m unittest discover -s tests -t tests` (works with or without the
+    fix, since it puts `tests/` itself on the path) — **436 tests, OK,
+    0 skipped, 455 s**.
+  - `python -m unittest discover -s tests -t .` (was failing with `ImportError:
+    Start directory is not importable`; fixed by the new `__init__.py`) —
+    **436 tests, OK, 0 skipped, 287 s**.
+  - `python -m unittest tests.test_stats` (only works after the fix) —
+    **39 tests, OK, 1.2 s**.
+- **Deltas from the entry above:** the test *count* (436) reproduces exactly; the
+  **"3 skipped" and "127 s" do not** — this host reports 0 skipped, and wall-clock
+  varied between **287 s and 455 s** across two runs of the identical suite
+  depending on machine load. Do not quote a single runtime figure; allow a
+  generous timeout (≥ 600 s) rather than the 127 s previously recorded.
+
 ---
 
 ## D. Not applied (blocked / requires you)
@@ -287,7 +315,9 @@ between tools.
 | :--- | :--- |
 | Re-profile under clean boot | Needs a reboot + fresh `bopis/profile.py` run to refresh HW-P0 blocks and the Mode A/C matrix. Currently every config is rejected by HW-P0 on this host; the numbers in Figure 3.5 are the stale pre-boot values. **Do before final hand-in.** |
 | Verify cited paper figures (Ma et al. 15% / Jensen, 2026 figures) | Requires web access to the cited papers; I did not fabricate the numbers. Check the exact %/figure numbers yourself or provide sources. |
-| Full `unittest discover` | **Resolved.** Explicit-module full suite (all 14 `tests.test_*` modules): **436 tests, OK, 3 skipped** in 127 s. The earlier 120 s "timeout" was my bash tool's default wall-clock (120 s) cutting off a run that legitimately needs ~127 s — not a test failure. |
+| **Citation audit of `docs/RRL.md` — done 2026-09-18, corrections applied** | Five records were wrong; `docs/RRL.md` now carries inline `VERIFIED`/`NO SUCH PAPER` comments. **Two do not exist:** "Pham, H., Qian, C., Wang, T., & Yu, Y. (2020), *Problems and opportunities in neural network robustness and reproducibility*, arXiv:2206.04236" (no match on arXiv or Scholar; a 2020 paper cannot hold a 2022 ID) and "Xu, Z., et al. (2023), *Evaluating quantization-induced energy reduction in local LLM deployment*" (no match, no ID given). **Three were misattributed:** Efron & Tibshirani (1993) carried Davison & Hinkley's DOI (`10.1017/CBO9780511802843` resolves to *Bootstrap Methods and their Application*, CUP 1997); "Process-level power estimation in VM-based systems" is Colmant, Kurpicz, Felber, Huertas, Rouvoy & Sobe, EuroSys **'15** (`10.1145/2741948.2741971`), not "Lim, Rawson & Ballew, EuroSys '14"; and SparseGPT (a *pruning* paper) was cited for a *quantization* claim, replaced by GPTQ (Frantar, Ashkboos, Hoefler & Alistarh, ICLR 2023, arXiv:2210.17323). Also: the summary table's "INT8 Benefits" role is obsolete — A-23 replaced FP16/INT8 with F32/F16/Q8_0/Q4_K_M. **Verified correct and untouched:** Jones et al. (1998), Gerganov (2023), Zitzler & Thiele (1998), Emmerich et al. (2005), Arlot & Celisse (2010), Agrawal et al. (OSDI '24), Zhong et al. (DistServe), Stojkovic et al. (2408.00741), Rotem et al. (2012), Narayanan et al. (SC21). All 18 arXiv IDs in `ENERGY_ESTIMATOR_AND_ML_BRIEF.md` §4 resolve to real papers with matching titles. |
+| **EnerInfer accuracy figures were a misread — corrected in the brief** | `ENERGY_ESTIMATOR_AND_ML_BRIEF.md` §3.2 Route 1 quoted EnerInfer as reporting "6.5% / 12% / 9.7% / 5.4% deviation" as *prediction accuracy*. Those are not accuracy figures: the paper reports improving energy **efficiency** by up to 65% / 12% / 24% on phones / laptop / dev board. Row removed. **This weakens the MAPE ≤ 15% justification** — the remaining four figures backing it are all still unverified against full texts. Either verify two of them or present the threshold as researcher-defined. |
+| Full `unittest discover` | **Resolved, but for a different reason than recorded.** Re-checked 2026-09-18: the explicit-module invocation was failing outright (site-packages `tests` package shadowing the repo's `tests/`), now fixed by adding `tests/__init__.py`. Verified full suite: **436 tests, OK, 0 skipped, 455 s** via `discover -s tests -t tests`. The "3 skipped / 127 s" figures do not reproduce here. See the re-verification entry in Section C. |
 | A-36 repeatability measurement (one config, five repeats, CV of measured energy) | Only the LOO + noise-σ legs of A-36 landed in the manuscript; the repeatability run has no manuscript text yet. Add a short Data-Analysis or Scope sentence once the experiment is run. |
 | A-38 — BERTScore baseline rescaling | Commit `d745a49` lists A-38, and `docs/AMENDMENTS.md` A-38 is "Enable BERTScore baseline rescaling", but no "baseline rescaling / absolute F1 deltas" text is present in `docs/THESIS_WRITING2_G2.md`. Confirm whether the rescaling claim is wanted and add the sentence (it also motivates `QRR ≥ 98%`). |
 | A-37 | Listed in the `d745a49` message but there is **no A-37 entry in `docs/AMENDMENTS.md`**. Confirm which amendment A-37 refers to before trusting the commit label. |

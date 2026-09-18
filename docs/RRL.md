@@ -17,7 +17,11 @@
 * **Justification & Application:** Validates the underlying execution runtime, GGUF binary formats, and memory-quantization schemes (Q8_0, Q4_K_M). Grounding parameter redefinitions such as evaluating $t$ as `n_predict` directly traces to the llama.cpp engine architecture.
 
 ### 1.3 Non-Parametric Statistical Inference
-* **Reference:** Efron, B., & Tibshirani, R. J. (1993). *An introduction to the bootstrap*. Chapman and Hall/CRC. https://doi.org/10.1017/CBO9780511802843
+* **Reference:** Efron, B., & Tibshirani, R. J. (1993). *An introduction to the bootstrap*. Chapman and Hall/CRC. ISBN 978-0-412-04231-7.
+  <!-- VERIFIED 2026-09-18: the DOI 10.1017/CBO9780511802843 previously listed here
+       belongs to Davison & Hinkley (1997) (see §3.1), not to this book. Efron &
+       Tibshirani has no Cambridge DOI; cite by ISBN. -->
+
 * **Amendment Mapping:** A-16, A-30
 * **Justification & Application:** Establishes the statistical principle for non-parametric 95% bootstrap confidence intervals used when reporting evaluation metrics (EIR, SRR, QRR).
 
@@ -70,28 +74,55 @@
 * **Justification & Application:** Validates hypervolume computation behavior and boundary enforcement at the nadir reference point under constrained multi-objective spaces.
 
 ### 3.3 Low-Bit Quantization Validity
-* **Reference:** Frantar, E., & Alistarh, D. (2023). SparseGPT: Massive language models can be accurately pruned in one shot. In *International Conference on Machine Learning (ICML)*. PMLR. https://arxiv.org/abs/2301.00774
+* **Reference:** Frantar, E., Ashkboos, S., Hoefler, T., & Alistarh, D. (2023). GPTQ: Accurate post-training quantization for generative pre-trained transformers. In *International Conference on Learning Representations (ICLR 2023)*. https://arxiv.org/abs/2210.17323
 * **Amendment Mapping:** A-4, A-23, A-29
-* **Justification & Application:** Establishes that high-compression 4-bit and mixed-precision schemes retain sufficient model capacity for task execution, justifying Q4_K_M inclusion.
+* **Justification & Application:** Establishes that 3–4-bit post-training weight quantization retains accuracy with "negligible degradation relative to the uncompressed baseline," justifying Q4_K_M inclusion in the variant set.
+  <!-- VERIFIED 2026-09-18: replaces the previous SparseGPT citation (Frantar &
+       Alistarh, 2023, arXiv:2301.00774). SparseGPT is a *pruning* paper and does
+       not support a claim about low-bit quantization; GPTQ is the same group's
+       quantization result and is the correct source for this claim. -->
 
 ### 3.4 Process-Level Power Accounting
-* **Reference:** Lim, M. Y., Rawson, F., & Ballew, W. (2014). Process-level power estimation in VM-based systems. In *Proceedings of the 9th European Conference on Computer Systems (EuroSys '14)*. ACM.
+* **Reference:** Colmant, M., Kurpicz, M., Felber, P., Huertas, L., Rouvoy, R., & Sobe, A. (2015). Process-level power estimation in VM-based systems. In *Proceedings of the Tenth European Conference on Computer Systems (EuroSys '15)*. ACM. https://doi.org/10.1145/2741948.2741971
 * **Amendment Mapping:** A-8
-* **Justification & Application:** Grounding for non-NVML / CPU fallback mode (Mode C power accounting), enabling per-process resource attribution.
+* **Justification & Application:** Grounding for non-NVML / CPU fallback mode (Mode C power accounting), enabling per-process resource attribution. The BitWatts middleware described here infers fine-grained per-process power from resource usage without a hardware power meter — the same inference our Mode C estimator performs.
+  <!-- VERIFIED 2026-09-18: this paper was previously attributed to "Lim, M. Y.,
+       Rawson, F., & Ballew, W. (2014), EuroSys '14". Wrong authors, year and
+       proceedings edition. Correct record confirmed via ACM DL. -->
 
 ### 3.5 Floating-Point Reproducibility Limitations
-* **Reference:** Pham, H., Qian, C., Wang, T., & Yu, Y. (2020). Problems and opportunities in neural network robustness and reproducibility. *arXiv preprint arXiv:2206.04236*.
+* **Reference:** Goldberg, D. (1991). What every computer scientist should know about floating-point arithmetic. *ACM Computing Surveys*, 23(1), 5–48. https://doi.org/10.1145/103162.103163
 * **Amendment Mapping:** A-31
-* **Justification & Application:** Justifies the theoretical caveat in Amendment A-31 regarding non-deterministic variance in LLM outputs due to non-associative floating-point reduction order across CPU/GPU offloads.
+* **Justification & Application:** Canonical source for the non-associativity of floating-point addition — the property that makes summation results depend on reduction order. This is the mechanism behind the Amendment A-31 caveat: changing the quantization scheme or the CPU/GPU offload split changes the order in which partial sums are accumulated, so bitwise-identical outputs cannot be guaranteed *across* configurations even under a fixed seed and greedy decoding.
+  <!-- VERIFIED 2026-09-18: replaces "Pham, H., Qian, C., Wang, T., & Yu, Y.
+       (2020). Problems and opportunities in neural network robustness and
+       reproducibility. arXiv:2206.04236" — NO SUCH PAPER EXISTS. The title
+       returns no match on arXiv or Google Scholar, and a 2020 paper cannot
+       carry a 2022 arXiv identifier. Do not cite it. -->
+* **Reference (Secondary, verified real):** Gundersen, O. E., Coakley, K., Kirkpatrick, C., & Gil, Y. (2022). Sources of irreproducibility in machine learning: A review. *arXiv preprint arXiv:2204.07610*. https://arxiv.org/abs/2204.07610
+* **Amendment Mapping:** A-31
+* **Justification & Application:** Taxonomy of irreproducibility sources in ML, used for the general framing that implementation- and hardware-level variation is a recognized reproducibility factor. ⚠️ Confirm in the full text that it treats hardware/floating-point nondeterminism specifically before leaning on it for that narrower claim; the abstract does not say so.
 
 * **Reference (Secondary):** Narayanan, D., Shoeybi, M., Casper, J., LeGresley, P., Patwary, M., Kulkarni, A., ... & Catanzaro, B. (2021). Efficient large-scale language model training on GPU clusters using Megatron-LM. In *Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC21)*. https://arxiv.org/abs/2104.04473
 * **Amendment Mapping:** A-31
 * **Justification & Application:** Demonstrates how tensor parallelism, quantization layers, and hardware execution pipelines alter floating-point reduction order during matrix operations.
 
-### 3.6 Hardware Feasibility Guards
-* **Reference:** Xu, Z., et al. (2023). Evaluating quantization-induced energy reduction in local LLM deployment. *arXiv preprint*.
+### 3.6 Quantization's Energy/Quality Trade-off
+* **Reference:** Shi, T., & Ding, Y. (2025). Systematic characterization of LLM quantization: A performance, energy, and quality perspective. *arXiv preprint arXiv:2508.16712*. https://arxiv.org/abs/2508.16712
+* **Amendment Mapping:** A-23, A-29
+* **Justification & Application:** Empirical characterization of 11 post-training quantization methods across 4 model sizes (7B–70B) on a joint performance/energy/quality basis — the same three-way trade-off BOPIS optimizes. Supports treating precision as an energy-relevant configuration parameter rather than a quality-only one.
+  <!-- VERIFIED 2026-09-18: replaces "Xu, Z., et al. (2023). Evaluating
+       quantization-induced energy reduction in local LLM deployment. arXiv
+       preprint." — NO SUCH PAPER FOUND, and the entry carried no arXiv ID.
+       Do not cite it.
+       SCOPE CAVEAT on the replacement: Shi & Ding evaluate A100/H100
+       datacenter GPUs at 7B-70B. It supports the energy/quality trade-off
+       claim but NOT a claim about consumer-hardware VRAM limits. -->
+
+### 3.6a Hardware Feasibility Guards (HW-P0 / HW-B0)
+* **Basis:** No external citation. The HW-P0 / HW-B0 guards are *derived*, not borrowed: weight footprint and KV-cache size are computed from the GGUF model shape in `bopis/hardware.py::ModelSpec`, and the VRAM/RAM budgets come from run-time host profiling (`bopis/profile.py`). The F32 Mistral 7B ≈ 27 GiB figure is an arithmetic consequence of the model's parameter count at 4 bytes/parameter, not an empirical finding from the literature.
 * **Amendment Mapping:** A-29, A-30, A-39
-* **Justification & Application:** Provides empirical backing for VRAM sizing rules (HW-P0 guard) and establishes why unquantized baseline deployments (e.g., F32 Mistral 7B requiring ~27 GiB VRAM) are infeasible on consumer-grade hardware.
+* **Justification & Application:** Cite Gerganov (2023) (§1.2) for the GGUF footprint semantics and present the guards as the study's own instrument design, verified by `tests/test_hardware.py::TestModelSizeGuards`. Presenting a derived arithmetic bound as a literature finding is a weaker defense than owning it, and invites a request for the source.
 
 ---
 
@@ -107,5 +138,20 @@
 | **Agrawal et al. (2024)** | A-35 | Profiling | Prefill / Decode Separation |
 | **Stojkovic et al. (2024)** | A-25, A-26 | Thresholds | SLO Retention Targets |
 | **Rotem et al. (2012)** | A-8, A-19 | Power | Load-Line Energy Model |
-| **Pham et al. (2020)** | A-31 | Determinism | FP Variance Caveats |
-| **Xu et al. (2023)** | A-29, A-39 | Hardware Guard | VRAM Bounds & INT8 Benefits |
+| **Goldberg (1991)** | A-31 | Determinism | FP Non-Associativity Caveat |
+| **Colmant et al. (2015)** | A-8 | Power | Per-Process Power Attribution |
+| **Frantar et al. (2023), GPTQ** | A-4, A-23, A-29 | Quantization | 4-bit Accuracy Retention |
+| **Shi & Ding (2025)** | A-23, A-29 | Quantization | Energy/Quality Trade-off |
+| *(no citation — derived)* | A-29, A-30, A-39 | Hardware Guard | HW-P0/HW-B0 are own instrument design |
+
+<!-- VERIFIED 2026-09-18. Four rows of the previous table pointed at records that
+     were wrong or non-existent:
+       - "Pham et al. (2020)"  -> paper does not exist; replaced by Goldberg (1991).
+       - "Xu et al. (2023)"    -> paper not found; replaced by Shi & Ding (2025),
+                                  and the VRAM-bound claim de-cited (it is derived).
+       - "INT8 Benefits"       -> INT8 is not in this study at all. Amendment A-23
+                                  replaced FP16/INT8 with F32/F16/Q8_0/Q4_K_M.
+       - SparseGPT             -> pruning paper cited for a quantization claim;
+                                  replaced by GPTQ.
+     Also fixed: Efron & Tibshirani carried Davison & Hinkley's DOI, and the
+     EuroSys per-process power paper was attributed to the wrong authors/year. -->

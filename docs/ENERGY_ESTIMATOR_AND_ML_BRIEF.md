@@ -1,10 +1,42 @@
 # BOPIS Team Brief — Energy Estimator Defense + How the ML Actually Works
 
-**Status:** draft for team sync
+**Status:** draft for team sync — **§0.0 status block added 2026-09-18, read it first**
 **Covers:** (1) why energy stays the thesis's core claim, (2) the estimator formula,
 (3) accuracy & confidence, (4) RRL from 2025–2026 local-LLM energy literature,
 (5) a worked walkthrough of the Bayesian Optimization / Gaussian Process machinery,
 (6) Chapter 3 edit checklist, (7) open issues needing a team decision.
+
+---
+
+## 0.0 State of the tool, verified 2026-09-18
+
+Checked directly against the repo, not against the other docs. The one thing to be
+clear about before the consultation:
+
+**The pipeline is complete and it runs end to end — but it has only ever run against
+the analytic simulator.** All 11 run directories under `runs/` carry
+`"backend": "sim"`, whose own manifest note reads: *"Outputs are computed, not
+measured. No energy figure from this backend may be reported as an empirical
+result."* There is no GGUF model file and no llama.cpp binary anywhere in the
+working tree, so `bopis/backends/llama_server.py` — which exists and is unit-tested
+— has never executed a real inference here.
+
+So the defensible claim tomorrow is **"the instrument is built and verified"**, not
+"we have results." If the panel asks for energy numbers, the honest answer is that
+the measurement apparatus is complete and the simulator validates the control flow,
+and the real measurement campaign is gated on §7.1 (clean-boot re-profile) plus
+obtaining the model weights.
+
+| Component | State |
+|---|---|
+| BO loop, GP surrogate, EI, Pareto, selection ladder | ✅ implemented |
+| `bootstrap_ci` (§7.3) | ✅ implemented, was listed open |
+| EI minimisation sign (§7.2) | ✅ fixed in manuscript + code |
+| HW-P0 / HW-B0 guards | ✅ implemented — ⚠️ **never exercised**, skipped in sim mode |
+| llama.cpp backend | ✅ coded + tested — ⚠️ **never run** (no model, no binary) |
+| Real energy measurement | ❌ none — Mode C estimator only, MX330 has no power telemetry |
+| Feasible space on real model | ❌ still 0 on a loaded host (§7.1) |
+| RRL citations | ⚠️ **2 fabricated + 3 misattributed, now corrected** — see `docs/RRL.md` |
 
 ---
 
@@ -153,18 +185,31 @@ Two routes, pick at least one:
 Published energy *prediction* models for LLM inference report the following
 accuracy, which establishes what is normal for this class of model:
 
-| System | Platform | Reported accuracy |
-|---|---|---|
-| EnerInfer (2026) | high-end phone / mid phone / **laptop** / edge board | 6.5% / 12% / **9.7%** / 5.4% deviation |
-| Multi-Level Hybrid Predictor (2026) | dense + MoE | ~10% MAPE |
-| EnergyLens (2026) | multi-GPU | 9.25–13.19% MAPE |
-| LLMCO2 | Gemma, Bloom, Qwen2, Mixtral, Llama3.1 | 15.5% mean MAPE |
-| CO2-Meter | rk3588, AGX Orin (edge) | MAPE + 10% error bounds |
+| System | Platform | Reported accuracy | Verified? |
+|---|---|---|---|
+| Multi-Level Hybrid Predictor (2026) | dense + MoE | ~10% MAPE | ⚠️ unverified |
+| EnergyLens (2026) | multi-GPU | 9.25–13.19% MAPE | ⚠️ unverified |
+| LLMCO2 | Gemma, Bloom, Qwen2, Mixtral, Llama3.1 | 15.5% mean MAPE | ⚠️ **not in abstract** — must read the PDF |
+| CO2-Meter | rk3588, AGX Orin (edge) | MAPE + 10% error bounds | ⚠️ unverified |
 
-So a **predefined acceptance threshold of MAPE ≤ 15%** is *literature-justified*,
-not arbitrary — it sits at the permissive end of published work in exactly our
-regime. This mirrors how we already justify the NPE < 10% surrogate threshold.
-⚠️ Verify each figure against the paper before quoting it.
+> 🛑 **CORRECTION (checked 2026-09-18) — the EnerInfer row was wrong and has been
+> removed.** It previously read "6.5% / 12% / 9.7% / 5.4% deviation" for
+> phone/phone/laptop/edge board. Those are not accuracy figures. EnerInfer's
+> abstract reports it "improves energy **efficiency** by up to 65%, 12%, and 24%
+> on phones, a laptop, and a development board" — i.e. *energy savings achieved*,
+> not *prediction error*. Quoting them as estimator accuracy would misrepresent
+> the source on the single citation this brief calls "our best." If a prediction-
+> accuracy figure is needed from EnerInfer, it has to come from the evaluation
+> section of the full paper.
+
+**Consequence for the threshold argument:** with EnerInfer removed, the MAPE ≤ 15%
+claim currently rests on four figures of which **zero have been verified against a
+full text.** The reasoning (that ~10–15% MAPE is normal for this class of model)
+is probably sound, but it is not yet defensible as written. Before the defense,
+either verify at least two of the four figures in their PDFs, or present the
+threshold as researcher-defined with the literature offered as indicative support
+rather than justification. This mirrors how we already justify the NPE < 10%
+surrogate threshold.
 
 **Route 2 — validate against a real instrument.**
 - **RAPL (recommended).** The i5-1135G7 exposes `MSR_PKG_ENERGY_STATUS`, a real
@@ -218,7 +263,7 @@ method with a current published literature.
 
 | Citation | What it supports |
 |---|---|
-| **EnerInfer: Energy-Aware On-Device LLM Inference** — Zou, Liu, Sun, Mascherin, Roy, Liu, Peng, Jia & Chen (2026), *ACM SIGOPS ATC*. [arXiv:2606.23001](https://arxiv.org/abs/2606.23001) | **Our single best citation.** On-device (incl. laptop-class) energy-aware LLM inference with per-platform accuracy reported. Read its methods section for the model form. |
+| **EnerInfer: Energy-Aware On-Device LLM Inference** — Zou, B., Liu, N., Sun, B., Mascherin, M., Roy, D., Liu, Y., Peng, Y., Jia, N., & Chen, H. (2026). arXiv preprint. [arXiv:2606.23001](https://arxiv.org/abs/2606.23001) | **Our single best citation.** On-device (incl. laptop-class) energy-aware LLM inference; read its methods section for the model form. ✅ Paper, title and author list verified 2026-09-18. ⚠️ Two fixes: the venue "*ACM SIGOPS ATC*" is **unconfirmed** — arXiv lists it as a cs.SE preprint with no venue, so cite it as a preprint until you can confirm acceptance; and it does **not** report "per-platform accuracy" — see the correction in §3.2. |
 | **Multi-Level Modeling of LLM Inference Latency and Energy via Hybrid Analytical–ML Predictors** (2026). [arXiv:2608.06723](https://arxiv.org/html/2608.06723) | Analytical + ML energy prediction, ~10% MAPE. Precedent for a formula-based predictor. |
 | **EnergyLens: Predictive Energy-Aware Exploration for Multi-GPU LLM Inference Optimization** (2026). [arXiv:2605.14249](https://arxiv.org/abs/2605.14249) | Predictive energy for *configuration exploration* — same use-case as ours. |
 | **LLMCO2: Advancing Accurate Carbon Footprint Prediction for LLM Inferences**. [arXiv:2410.02950](https://arxiv.org/pdf/2410.02950) | Prediction accuracy benchmark (15.5% mean MAPE). |
@@ -452,7 +497,7 @@ MobileLLM-Flash (§4.3) is the precedent for the LOOCV-R² framing.
 
 ## 7. Open issues needing a team decision
 
-### 7.1 🔴 BLOCKER — the feasible configuration space is empty
+### 7.1 🔴 BLOCKER — STILL OPEN — the feasible configuration space is empty
 
 `bopis_profile.js` reports:
 
@@ -462,6 +507,35 @@ n_rejected: 64   (all by rule HW-P0)
 ```
 
 **Zero configurations can execute.** Energy methodology is moot if nothing runs.
+
+> **Status check 2026-09-18 — do not be reassured by the run manifests.** Every
+> run under `runs/` reports `n_feasible: 64, n_rejected: 0`, which looks like this
+> blocker is solved. It is not. All 11 recorded runs use `backend: "sim"`, and
+> `bopis/hardware.py` skips HW-P0/HW-B0 entirely when no `ModelSpec` is supplied
+> ("Both are skipped when no ModelSpec is supplied (e.g. simulator runs), in which
+> case only the literal Table H1 rules apply", [hardware.py:23](../bopis/hardware.py#L23)).
+> So the 64 "feasible" configurations are the *unguarded* Table H1 domains. The
+> guard has never been exercised on a real model in a recorded run.
+>
+> **Re-confirmed live on 2026-09-18** via `python -m bopis profile --model-aware
+> --ctx-size 2048`, which *does* apply the guards:
+>
+> ```
+>   |X_feasible|   0 of 768 unconstrained
+>   Rejected       {'HW-P0': 64}
+>   [HW-P0] (t=128, b=1, p=Q8_0,   g=0)  host share 7.42 GiB exceeds 1.80 GiB available system RAM
+>   [HW-P0] (t=128, b=1, p=Q8_0,   g=14) GPU share 3.39 GiB exceeds 1.94 GiB available VRAM
+>   [HW-P0] (t=128, b=1, p=Q4_K_M, g=0)  host share 4.33 GiB exceeds 1.80 GiB available system RAM
+>   WARNING: no configuration survives the model-size guards.
+> ```
+>
+> The diagnosis below is exactly right. Only **1.80 GiB of 15.78 GiB** RAM was
+> free, so even Q4_K_M at `g = 0` (4.33 GiB) is rejected — but it would fit
+> comfortably after a reboot, as would Q8_0 (7.42 GiB). The `g = 14` rejections
+> are permanent: 3.39 GiB of weights cannot fit a 1.94 GiB card. **Clean-boot
+> re-profile is still the required action, and `g` still collapses to a single
+> level.** Useful detail for the consultation: this is a *host state* problem for
+> the CPU-only configurations and a *hardware ceiling* only for GPU offload.
 
 But note *why*: every rejection cites `exceeds 1.91 GiB available system RAM`, and the
 machine has **15.78 GiB total** — only 2.05 GiB was free at profile time. **We profiled
@@ -484,7 +558,14 @@ Options if a fuller space is required: swap to a ~1–3B model (Qwen2.5-1.5B,
 Llama-3.2-1B/3B, Phi-3-mini) at Q4_K_M/Q8_0 — which also aligns us with the models in
 Zähl & Hennig (§4.2) — or run on a machine with a larger GPU.
 
-### 7.2 🔴 The EI formula in the manuscript has an inverted sign
+### 7.2 ✅ RESOLVED — The EI formula in the manuscript had an inverted sign
+
+> **Fixed 2026-09-18.** Amendment A-2 has been applied to the manuscript: it now
+> prints the minimisation form `EI(x) = (f(x⁺) − μ(x))·Φ(Z) + σ(x)·φ(Z)` with
+> `Z = (f(x⁺) − μ(x)) / σ(x)`. Code confirmed to match at
+> [acquisition.py:72-74](../bopis/acquisition.py#L72-L74) (`improvement = f_best - mu - xi`).
+> Nothing to do — **and do not raise this as an open issue at the consultation.**
+> The original diagnosis is kept below for the record.
 
 The manuscript prints:
 
@@ -502,10 +583,13 @@ minimization form under amendment A-2, and `tests/test_acquisition.py` asserts E
 prefers lower μ. **The manuscript text still needs fixing.** This is exactly the kind
 of thing a panel catches.
 
-### 7.3 🟡 `bopis/stats.py` has no bootstrap
+### 7.3 ✅ RESOLVED — `bopis/stats.py` had no bootstrap
 
-Friedman and Nemenyi are implemented; there is no CI machinery. §3.3 needs it.
-~40 lines, standard library only.
+> **Fixed 2026-09-18.** `bootstrap_ci(…, statistic="mean"|"median", n_boot, seed)`
+> now exists at [stats.py:385](../bopis/stats.py#L385), standard library only,
+> with `TestBootstrapCI` coverage (commit `0cc5a3f`). §3.3 can be written as
+> implemented rather than as planned. Original note kept for the record:
+> Friedman and Nemenyi were implemented; there was no CI machinery.
 
 ### 7.4 🟡 RAPL decision
 
