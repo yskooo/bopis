@@ -11,6 +11,7 @@ Five documents, in the order you probably want them.
 | 3 | **[UI_GUIDE.md](UI_GUIDE.md)** | You are about to demonstrate the tool. Panel-by-panel walkthrough, a 60-second demo path, and a "what to say / what not to say" list. |
 | 4 | **[CHATBOT_INTEGRATION.md](CHATBOT_INTEGRATION.md)** | You are wiring the chatbot, choosing a model, or running the classifiers. |
 | 5 | **[ENERGY_ESTIMATOR_AND_ML_BRIEF.md](ENERGY_ESTIMATOR_AND_ML_BRIEF.md)** | You need the energy-estimator defence, the cancellation proof, or the 2025/2026 energy literature. |
+| 6 | **[ML_ELEMENTS.md](ML_ELEMENTS.md)** | You need the five elements of the machine learning — data, task, model, learning algorithm, evaluation — for both learned components, with worked examples, measured figures and references. Written for the adviser/panel. |
 
 Reference material:
 
