@@ -329,6 +329,61 @@ body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr
 .pareto-control-button { border:1px solid #C9D5D8; background:#FFFFFF; color:#294957; border-radius:4px; padding:6px 10px; font:500 11px 'IBM Plex Mono', monospace; cursor:pointer; }
 .pareto-control-button:hover { border-color:#0C8C9B; color:#0C707B; background:#F0FAF9; }
 .pareto-selection { min-height:28px; color:#6B7F86; font:11px 'IBM Plex Mono', monospace; }
+
+/* ─ SEARCH LOG ───────────────────────────────────────────────────────────────
+   The optimizer's own stdout, in the same card as the chart and driven by the
+   same replay clock. A reader who does not trust a 3D scatter plot can watch
+   the numbers arrive instead: every line here is one evaluation, and the point
+   for that line appears on the canvas on the same tick. */
+.search-log { margin-top:14px; border:1px solid #D8E1EA; border-radius:10px; background:#0E1621; overflow:hidden; }
+.search-log-head {
+    display:flex; align-items:center; gap:8px; padding:7px 10px;
+    background:#16202D; border-bottom:1px solid #243244;
+    font:600 10.5px 'IBM Plex Mono', ui-monospace, monospace;
+    letter-spacing:.09em; text-transform:uppercase; color:#8FA6BF;
+}
+.search-log-head .log-spacer { flex:1; }
+.log-count { font-weight:500; letter-spacing:0; text-transform:none; color:#5A7591; }
+.log-btn {
+    border:1px solid #2E3F54; background:#1B2734; color:#9FB4CC; border-radius:5px;
+    padding:2px 8px; font:600 10px 'IBM Plex Mono', ui-monospace, monospace;
+    cursor:pointer; letter-spacing:.04em; text-transform:uppercase;
+}
+.log-btn:hover { border-color:#3182CE; color:#CFE4F8; background:#22344A; }
+.log-btn.on { border-color:#2F855A; background:#1C3D2C; color:#9AE6B4; }
+.search-log-body {
+    height:172px; overflow-y:auto; padding:8px 0;
+    font:11px/1.6 'IBM Plex Mono', ui-monospace, monospace;
+    scrollbar-width:thin; scrollbar-color:#3A4C63 #0E1621;
+}
+.search-log-body::-webkit-scrollbar { width:9px; }
+.search-log-body::-webkit-scrollbar-track { background:#0E1621; }
+.search-log-body::-webkit-scrollbar-thumb { background:#33455C; border-radius:5px; }
+.log-row {
+    display:grid; grid-template-columns:52px 46px 1fr; gap:10px;
+    padding:1px 10px; color:#B6C7DA; cursor:pointer; border-left:2px solid transparent;
+}
+.log-row:hover { background:#17222F; border-left-color:#3182CE; }
+.log-row.is-current { background:#1A2A3C; border-left-color:#63B3ED; }
+.log-row.is-pick { background:#1C3D2C; border-left-color:#48BB78; }
+.log-row .log-t { color:#5A7591; text-align:right; }
+.log-row .log-lvl { font-weight:600; }
+.log-row .log-msg { white-space:pre-wrap; word-break:break-word; }
+.log-lvl-info  { color:#63B3ED; }
+.log-lvl-seed  { color:#A0AEC0; }
+.log-lvl-gp    { color:#B794F4; }
+.log-lvl-acq   { color:#F6AD55; }
+.log-lvl-front { color:#68D391; }
+.log-lvl-pick  { color:#9AE6B4; }
+.log-lvl-warn  { color:#FC8181; }
+.log-msg .k { color:#E2E8F0; }         /* configuration key            */
+.log-msg .n { color:#F0F4F8; font-weight:600; }  /* a measured number  */
+.log-msg .d { color:#64798F; }         /* punctuation and units        */
+.log-msg .best { color:#68D391; font-weight:600; }
+.log-cursor { display:inline-block; width:7px; height:12px; background:#63B3ED; animation:logBlink 1.05s step-end infinite; vertical-align:-2px; }
+@keyframes logBlink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+.log-foot { padding:6px 10px; border-top:1px solid #243244; background:#131E29; color:#5A7591; font:10px 'IBM Plex Mono', ui-monospace, monospace; }
+.log-empty { padding:10px; color:#5A7591; }
 .rules-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
 .rules-table th { text-align: left; padding: 12px 8px; color: #718096; font-weight: 500; border-bottom: 1px solid #E2E8F0; }
 .rules-table td { padding: 12px 8px; border-bottom: 1px solid #EDF2F7; color: #2D3748; }
@@ -636,6 +691,25 @@ body::before {
                     <span><i class="legend-dot" style="background:#B7791F; border-radius:2px"></i>Random search (square)</span>
                 </div>
                 <div class="card-subtext" style="margin-top:10px">Each point is an evaluated configuration. x* is the selected trade-off, not automatically the lowest-energy point.</div>
+
+                <!-- The search log. Same card as the chart on purpose: the
+                     replay clock drives both, so the line and the point for a
+                     given evaluation appear together. -->
+                <div class="search-log" id="search-log">
+                    <div class="search-log-head">
+                        <span>Search log</span>
+                        <span class="log-count" id="log-count"></span>
+                        <span class="log-spacer"></span>
+                        <button class="log-btn on" id="log-follow-btn" type="button" onclick="toggleLogFollow()"
+                                title="Keeps the newest line in view while a replay streams. Turns itself off if you scroll up to read back.">Follow</button>
+                        <button class="log-btn" type="button" onclick="copySearchLog()"
+                                title="Copies the whole log to the clipboard as plain text.">Copy</button>
+                    </div>
+                    <div class="search-log-body" id="search-log-body">
+                        <div class="log-empty">No run data loaded.</div>
+                    </div>
+                    <div class="log-foot" id="log-foot"></div>
+                </div>
             </div>
 
             <div class="app-card">
@@ -775,6 +849,13 @@ let REPLAY_LIMIT = null;     // null = draw every evaluation
 let REPLAY_TIMER = null;
 let ROTATE_FRAME = null;
 
+/* Search-log state, up here for the same reason: applyRunData() builds the log
+ * during page load, which is before any declaration further down has been
+ * evaluated. */
+let LOG_ROWS = [];        // built once per run, ascending by iteration
+let LOG_FOLLOW = true;    // autoscroll to the newest line
+let LOG_TOTAL = 0;
+
 function ingestRunData(text) {
     try {
         const start = text.indexOf('{');
@@ -822,6 +903,10 @@ function applyRunData(data) {
     renderSelectionDetail(data);
     renderMethodComparison(data);
     renderSurrogateDetail(data);
+    // The log is rebuilt from the artifacts, then shown in full: the evidence
+    // is readable as text on arrival, without having to watch an animation.
+    buildSearchLog(data);
+    renderSearchLog(REPLAY_LIMIT);
     drawPareto3D();
     drawConvergence();
 }
@@ -1359,6 +1444,275 @@ function positionDock() {
         '--dock-right', Math.max(20, Math.round(window.innerWidth - rect.right)) + 'px');
 }
 
+/* ── Search log ─────────────────────────────────────────────────────────────
+ * The optimizer's stdout, reconstructed from the run artifacts and replayed on
+ * the same clock as the chart. Every line is derived from a recorded value:
+ * the measurements come from pareto.points, the acquisition and predictive
+ * lines from surrogate.points (which stores the GP's mu, sigma and expected
+ * improvement for each BO iteration), and the closing diagnostics from
+ * surrogate.gp / surrogate.loo. Nothing here is invented except the elapsed
+ * column, which is interpolated from the run's total wall time and is labelled
+ * as such in the footer — per-evaluation timings were never recorded.
+ *
+ * Clicking a line scrubs the chart to that evaluation, so the log doubles as a
+ * timeline control for the Pareto view.
+ */
+function logNum(value, dp = 2) {
+    return Number.isFinite(Number(value)) ? Number(value).toFixed(dp) : '—';
+}
+
+function buildSearchLog(data) {
+    LOG_ROWS = [];
+    LOG_TOTAL = 0;
+    const points = (data?.pareto?.points || [])
+        .slice()
+        .sort((a, b) => (Number(a.iteration) || 0) - (Number(b.iteration) || 0));
+    if (!points.length) return;
+
+    const total = points.reduce((max, p) => Math.max(max, Number(p.iteration) || 0), 0);
+    LOG_TOTAL = total;
+    const meta = data.meta || {};
+    const nSeeds = Number(meta.n_seeds) || 0;
+    const wall = Number(meta.wall_seconds);
+    const width = String(total).length;
+
+    // Elapsed is interpolated, not measured. See the footer note.
+    const stamp = iter => Number.isFinite(wall) && total
+        ? `+${(wall * iter / total).toFixed(2)}s`
+        : `#${iter}`;
+    const push = (iter, lvl, msg, extra = {}) =>
+        LOG_ROWS.push({ iter, lvl, msg, t: stamp(iter), ...extra });
+    const pad = iter => String(iter).padStart(width, '0');
+
+    const surrogateByIter = new Map(
+        (data.surrogate?.points || []).map(s => [Number(s.iteration), s]));
+
+    push(0, 'info', `bopis ${escapeHtml(meta.bopis_version || '?')} · run <span class="k">`
+        + `${escapeHtml(meta.run || 'unnamed')}</span> <span class="d">·</span> backend=`
+        + `<span class="k">${escapeHtml(meta.backend || '?')}</span> <span class="d">·</span> seed=`
+        + `${escapeHtml(String(meta.seed ?? '?'))}`);
+    push(0, 'info', `budget ${total} evaluations <span class="d">=</span> ${nSeeds} prior-weighted seeds`
+        + ` <span class="d">+</span> ${Math.max(0, total - nSeeds)} Expected Improvement`);
+    if (meta.energy_scope && meta.energy_scope !== 'measured') {
+        push(0, 'warn', `energy is <span class="n">${escapeHtml(meta.energy_scope)}</span> via `
+            + `${escapeHtml(meta.energy_method || 'unknown method')} <span class="d">—</span> not wall-plug measured`);
+    }
+
+    // Running non-dominated set over the evaluations revealed so far. Computed
+    // here rather than read from on_front, because on_front is the *final*
+    // front: a line claiming "joined the front" must be true at that moment.
+    const dominates = (a, b) =>
+        a.energy_j <= b.energy_j && a.tokens_per_s >= b.tokens_per_s && a.quality_f1 >= b.quality_f1 &&
+        (a.energy_j < b.energy_j || a.tokens_per_s > b.tokens_per_s || a.quality_f1 > b.quality_f1);
+
+    const seen = [];
+    let bestEnergy = Infinity;
+    let gpAnnounced = false;
+
+    points.forEach((point, index) => {
+        const iter = Number(point.iteration) || 0;
+        const isSeed = point.source === 'seed' || (nSeeds && iter <= nSeeds);
+        const key = escapeHtml(point.config || point.label || 'configuration');
+
+        if (!isSeed && !gpAnnounced) {
+            gpAnnounced = true;
+            push(iter, 'gp', `seeding complete <span class="d">·</span> fitting GP on `
+                + `<span class="n">${seen.length}</span> observations <span class="d">→</span>`
+                + ` Expected Improvement now selects each trial`);
+        }
+
+        const surrogate = surrogateByIter.get(iter);
+        if (surrogate) {
+            push(iter, 'acq', `EI=<span class="n">${logNum(surrogate.expected_improvement, 3)}</span>`
+                + ` <span class="d">J ·</span> proposes <span class="k">${escapeHtml(surrogate.config || key)}</span>`
+                + ` <span class="d">·</span> predicts <span class="n">${logNum(surrogate.mu)}</span>`
+                + ` <span class="d">±</span> ${logNum(surrogate.sigma)} <span class="d">J</span>`);
+        }
+
+        const energy = Number(point.energy_j);
+        const improved = Number.isFinite(energy) && energy < bestEnergy;
+        push(iter, isSeed ? 'seed' : 'bo',
+            `${pad(iter)}/${total} <span class="k">${key}</span>`
+            + ` <span class="d">E=</span><span class="n">${logNum(energy)}</span><span class="d">J</span>`
+            + ` <span class="d">v=</span><span class="n">${logNum(point.tokens_per_s)}</span><span class="d">tok/s</span>`
+            + ` <span class="d">F1=</span><span class="n">${logNum(point.quality_f1, 4)}</span>`
+            + (improved ? ` <span class="best">new best</span>` : ''),
+            { pointIndex: index });
+        if (improved) bestEnergy = energy;
+
+        // One-step-ahead residual: the honest check on the surrogate, because
+        // mu was predicted before this measurement existed.
+        if (surrogate && Number.isFinite(Number(surrogate.mu)) && Number.isFinite(energy)) {
+            const residual = energy - Number(surrogate.mu);
+            const sigma = Number(surrogate.predictive_sigma ?? surrogate.sigma);
+            const z = Number.isFinite(sigma) && sigma > 0 ? Math.abs(residual) / sigma : NaN;
+            const verdict = !Number.isFinite(z) ? ''
+                : z <= 1 ? ' <span class="best">inside 1σ</span>'
+                : z <= 2 ? ' <span class="d">inside 2σ</span>'
+                : ' <span class="log-lvl-warn">outside 2σ</span>';
+            push(iter, 'gp', `residual <span class="n">${residual >= 0 ? '+' : ''}`
+                + `${logNum(residual)}</span><span class="d">J vs µ ·</span> `
+                + `${Number.isFinite(z) ? logNum(z) + 'σ' : 'σ unavailable'}${verdict}`);
+        }
+
+        const current = {
+            energy_j: energy, tokens_per_s: Number(point.tokens_per_s),
+            quality_f1: Number(point.quality_f1), iteration: iter
+        };
+        const beforeCount = seen.filter(p => !seen.some(q => dominates(q, p))).length;
+        seen.push(current);
+        const front = seen.filter(p => !seen.some(q => dominates(q, p)));
+        const isNonDominated = front.some(p => p.iteration === iter);
+        if (isNonDominated) {
+            const retired = beforeCount + 1 - front.length;
+            push(iter, 'front', `non-dominated <span class="d">·</span> front = `
+                + `<span class="n">${front.length}</span> configuration${front.length === 1 ? '' : 's'}`
+                + (retired > 0 ? ` <span class="d">(${retired} dominated and dropped)</span>` : ''));
+        }
+    });
+
+    // Closing diagnostics. These are whole-run values, so they belong at the
+    // end of the stream rather than beside any single evaluation.
+    const gp = data.surrogate?.gp || {};
+    const hyper = gp.hyperparameters || {};
+    const lengthScales = Array.isArray(hyper.length_scales) ? hyper.length_scales : [];
+    if (Number.isFinite(Number(gp.log_marginal_likelihood))) {
+        push(total, 'gp', `final fit n=<span class="n">${gp.n_observations ?? seen.length}</span>`
+            + ` <span class="d">·</span> ls=<span class="n">${lengthScales.map(v => logNum(v, 3)).join(', ') || '—'}</span>`
+            + ` <span class="d">·</span> signal var=<span class="n">${logNum(hyper.signal_variance, 3)}</span>`
+            + ` <span class="d">·</span> noise var=<span class="n">${logNum(hyper.noise_variance, 5)}</span>`
+            + ` <span class="d">·</span> lml=<span class="n">${logNum(gp.log_marginal_likelihood)}</span>`);
+    }
+    const loo = data.surrogate?.loo || {};
+    if (Number.isFinite(Number(loo.mae))) {
+        push(total, 'gp', `leave-one-out <span class="d">·</span> MAE=<span class="n">${logNum(loo.mae)}</span>`
+            + `<span class="d">J ·</span> R²=<span class="n">${logNum(loo.r_squared, 3)}</span>`
+            + ` <span class="d">·</span> UCR=<span class="n">${logNum(loo.ucr, 3)}</span>`
+            + ` <span class="d">(target ${logNum(loo.ucr_target, 2)})</span>`);
+    }
+
+    const selection = data.selection || {};
+    const thresholds = data.thresholds || {};
+    const srr = Number(selection.srr_percent), qrr = Number(selection.qrr_percent);
+    const srrFloor = Number(thresholds.srr), qrrFloor = Number(thresholds.qrr);
+    const flag = (value, floor) => Number.isFinite(value) && Number.isFinite(floor)
+        ? (value >= floor ? ' <span class="best">✓</span>' : ' <span class="log-lvl-warn">✗</span>') : '';
+    push(total, 'front', `search complete <span class="d">·</span> final front = `
+        + `<span class="n">${data.pareto?.n_front ?? '—'}</span> <span class="d">·</span> applying SRR ≥ `
+        + `${logNum(srrFloor, 0)}% and QRR ≥ ${logNum(qrrFloor, 0)}%, then argmax EIR`);
+    push(total, 'pick', `x* = <span class="k">${escapeHtml(selection.config_key || 'unavailable')}</span>`
+        + ` <span class="d">·</span> EIR <span class="n">${logNum(selection.eir_percent, 1)}%</span>`
+        + ` <span class="d">·</span> SRR <span class="n">${logNum(srr, 1)}%</span>${flag(srr, srrFloor)}`
+        + ` <span class="d">·</span> QRR <span class="n">${logNum(qrr, 1)}%</span>${flag(qrr, qrrFloor)}`
+        + ` <span class="d">·</span> ${escapeHtml(selection.status || 'status unknown')}`);
+}
+
+function renderSearchLog(upTo = null) {
+    const body = document.getElementById('search-log-body');
+    const count = document.getElementById('log-count');
+    const foot = document.getElementById('log-foot');
+    if (!body) return;
+
+    if (!LOG_ROWS.length) {
+        body.innerHTML = '<div class="log-empty">No run data loaded.</div>';
+        if (count) count.textContent = '';
+        if (foot) foot.textContent = '';
+        return;
+    }
+
+    // Rows are built in ascending iteration order, so everything up to `upTo`
+    // is a prefix — the array index is therefore also the LOG_ROWS index.
+    const visible = upTo === null ? LOG_ROWS : LOG_ROWS.filter(row => row.iter <= upTo);
+    const html = visible.map((row, index) => {
+        const classes = ['log-row'];
+        if (upTo !== null && row.iter === upTo && row.iter !== 0) classes.push('is-current');
+        if (row.lvl === 'pick') classes.push('is-pick');
+        return `<div class="${classes.join(' ')}" onclick="logRowClick(${index})"`
+            + (row.pointIndex === undefined ? '' : ' title="Click to scrub the chart to this evaluation"')
+            + `><span class="log-t">${row.t}</span>`
+            + `<span class="log-lvl log-lvl-${row.lvl}">${row.lvl}</span>`
+            + `<span class="log-msg">${row.msg}</span></div>`;
+    }).join('');
+    const cursor = upTo !== null && upTo < LOG_TOTAL
+        ? '<div class="log-row"><span class="log-t"></span><span class="log-lvl"></span>'
+          + '<span class="log-msg"><span class="log-cursor"></span></span></div>'
+        : '';
+    body.innerHTML = html + cursor;
+
+    if (count) {
+        count.textContent = upTo === null
+            ? `${visible.length} lines · ${LOG_TOTAL} evaluations`
+            : `evaluation ${upTo} / ${LOG_TOTAL} · ${visible.length} lines`;
+    }
+    if (foot) {
+        foot.textContent = 'Elapsed column is interpolated from the run’s total wall time; '
+            + 'per-evaluation timings were not recorded. Click any line to scrub the chart to that evaluation.';
+    }
+    if (LOG_FOLLOW) body.scrollTop = body.scrollHeight;
+    bindLogScroll();
+}
+
+/* Follow mode should yield to the reader: scrolling up to re-read a line turns
+ * it off, returning to the bottom turns it back on. */
+function bindLogScroll() {
+    const body = document.getElementById('search-log-body');
+    if (!body || body._logScrollBound) return;
+    body._logScrollBound = true;
+    body.addEventListener('scroll', () => {
+        const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 12;
+        if (LOG_FOLLOW !== atBottom) {
+            LOG_FOLLOW = atBottom;
+            document.getElementById('log-follow-btn')?.classList.toggle('on', LOG_FOLLOW);
+        }
+    });
+}
+
+function toggleLogFollow() {
+    LOG_FOLLOW = !LOG_FOLLOW;
+    document.getElementById('log-follow-btn')?.classList.toggle('on', LOG_FOLLOW);
+    if (LOG_FOLLOW) {
+        const body = document.getElementById('search-log-body');
+        if (body) body.scrollTop = body.scrollHeight;
+    }
+}
+
+function copySearchLog() {
+    const text = LOG_ROWS.map(row => {
+        const message = row.msg.replace(/<[^>]*>/g, '');
+        const plain = document.createElement('textarea');
+        plain.innerHTML = message;
+        return `${row.t.padStart(8)}  ${row.lvl.padEnd(5)}  ${plain.value}`;
+    }).join('\n');
+    navigator.clipboard?.writeText(text).then(
+        () => setReplayReadout('search log copied to clipboard'),
+        () => setReplayReadout('clipboard unavailable in this browser'));
+}
+
+/* Clicking a line scrubs the chart to that evaluation: the log becomes the
+ * timeline control, which is the whole point of pairing them in one card. */
+function logRowClick(index) {
+    const row = LOG_ROWS[index];
+    if (!row) return;
+    stopReplay(false);
+    if (!row.iter) { REPLAY_LIMIT = null; renderSearchLog(null); drawPareto3D(); drawConvergence(); return; }
+
+    REPLAY_LIMIT = row.iter;
+    setReplayReadout(`scrubbed to evaluation ${row.iter} / ${LOG_TOTAL}`);
+    renderSearchLog(row.iter);
+    drawPareto3D();
+    drawConvergence();
+
+    const point = row.pointIndex === undefined ? null
+        : (RUN_DATA?.pareto?.points || [])[row.pointIndex];
+    const output = document.getElementById('pareto-selection');
+    if (output && point) {
+        output.textContent = `Evaluation ${point.iteration} (${point.source || 'trial'}) · `
+            + `${point.label || point.config} · Energy ${logNum(point.energy_j)} J · `
+            + `Speed ${logNum(point.tokens_per_s)} tok/s · Quality (BERTScore F1) `
+            + `${logNum(point.quality_f1, 4)}`;
+    }
+}
+
 /* ── Live modelling: replay the search, and auto-rotate ────────────────────
  * REPLAY_LIMIT caps which evaluations the chart may draw. Animating it from 1
  * to N replays the optimization: the 10 prior-weighted seeds scatter, then
@@ -1382,6 +1736,7 @@ function stopReplay(restoreAll = true) {
     if (restoreAll) {
         REPLAY_LIMIT = null;
         setReplayReadout('showing all evaluations');
+        renderSearchLog(null);
         drawPareto3D(); drawConvergence();
     }
 }
@@ -1396,17 +1751,27 @@ function toggleReplay() {
     const nSeeds = Number(RUN_DATA?.meta?.n_seeds) || 0;
     const stepMs = Math.max(90, Math.round(6000 / total));   // ~6 s total
 
+    // The log starts at the banner rows (iteration 0) and streams from there,
+    // so the console fills in step with the canvas rather than being prefilled.
+    LOG_FOLLOW = true;
+    document.getElementById('log-follow-btn')?.classList.add('on');
+    renderSearchLog(0);
+
     REPLAY_TIMER = setInterval(() => {
         REPLAY_LIMIT += 1;
         const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'prior-weighted seed'
                                                          : 'Expected Improvement';
         setReplayReadout(`evaluation ${REPLAY_LIMIT} / ${total} · ${phase}`);
+        // Log and chart are advanced by the same tick: the line and the point
+        // for an evaluation are never out of step.
+        renderSearchLog(REPLAY_LIMIT);
         drawPareto3D(); drawConvergence();
         if (REPLAY_LIMIT >= total) {
             clearInterval(REPLAY_TIMER); REPLAY_TIMER = null;
             document.getElementById('replay-btn')?.classList.remove('on');
             setReplayReadout(`replay complete · ${total} evaluations · showing all`);
             REPLAY_LIMIT = null;
+            renderSearchLog(null);
             drawPareto3D(); drawConvergence();
         }
     }, stepMs);
