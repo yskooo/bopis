@@ -19,6 +19,8 @@ because "why is this blank?" is the first question a panellist asks.
    **`~estimated (Mode C)`** energy.
 5. On the right, click **▶ Replay search**. Narrate it: *"the first ten are
    prior-weighted random seeds; after that Expected Improvement closes in."*
+   Then point at the **search log** below the chart, which streams the same run
+   as text: what the surrogate predicted, what was measured, and the error.
 6. Point at **x\* and why it was chosen** — the status, the two threshold checks,
    and the selection rule.
 7. Finish on **BOPIS vs. Random Search** — equal budget, same selection rule.
@@ -28,14 +30,28 @@ estimate, and the run on screen is `sim` until a real study has been run.
 
 ## 1. Start it
 
+The server on its own — this is all the chat panel needs:
+
 ```powershell
-.\demo.ps1 -LlamaBinary .\tools\vulkan\llama-server.exe `
+.\tools\cpu\llama-server.exe --model .\models\qwen2.5-1.5b-instruct-q4_k_m.gguf --host 127.0.0.1 --port 8080 --ctx-size 2048 --n-gpu-layers 0 --threads 4 --parallel 1
+```
+
+Port 8080 is hardcoded in `bopis.html`'s `CHATBOT_CONFIG`. Or the launcher,
+which also refreshes the generated files and waits for `/health`:
+
+```powershell
+.\demo.ps1 -LlamaBinary .\tools\cpu\llama-server.exe `
            -Model Q4_K_M=.\models\qwen2.5-1.5b-instruct-q4_k_m.gguf `
            -GpuLayers 0 -Threads 4 -MaxTokens 256
 ```
 
 `GpuLayers 0` is deliberate. Offloading to the MX330 is **3.5x slower** than
-CPU-only — see `STATUS_AND_ACTION_ITEMS.md` §4a.
+CPU-only — see `STATUS_AND_ACTION_ITEMS.md` §4a. Both `tools\cpu\` and
+`tools\vulkan\` are installed; the CPU build is faster on this host.
+
+For the demo sequence and the words to say, see
+[DEMO_RUNBOOK.md](DEMO_RUNBOOK.md) — this guide is the reference, that one is
+the script.
 
 The launcher refreshes three generated files, then starts the server and waits
 for `/health` before opening the browser:
@@ -248,6 +264,50 @@ button again to stop early and restore the full view.
 
 **↻ Auto-rotate** spins the trade-off surface slowly so all three objectives can
 be read from any angle. It pauses while you drag, so it never fights you.
+
+#### The search log — the same run as text
+
+Below the chart, in the same card, is the optimizer's log. It exists because a
+3D scatter plot is not evidence to everyone: some panellists want the numbers.
+On load it shows the whole run (90 lines for a 30-evaluation study); during a
+replay it streams, driven by the **same tick** as the chart, so the line and the
+point for an evaluation always appear together.
+
+Four line types per Bayesian-optimization trial:
+
+```
++5.42s  acq    EI=0.067 J · proposes t128_b2_Q8_0_g14_c2 · predicts 98.34 ± 15.65 J
++5.42s  bo     16/30 t128_b2_Q8_0_g14_c2 E=91.39J v=21.22tok/s F1=0.8206
++5.42s  gp     residual -6.96J vs µ · 0.44σ inside 1σ
++5.42s  front  non-dominated · front = 7 configurations
+```
+
+- **`acq`** — the acquisition step: the expected improvement, the configuration
+  it proposes, and the surrogate's prediction **with its uncertainty**. Read
+  from `surrogate.points[].expected_improvement / mu / sigma`.
+- **`bo`** / **`seed`** — the measurement. `seed` for the prior-weighted seeds,
+  `bo` once Expected Improvement is driving.
+- **`gp`** — the one-step-ahead residual: measured minus predicted, in units of
+  the GP's own sigma. This is the honest calibration check, because `mu` was
+  predicted *before* this measurement existed. `inside 1σ` means the surrogate's
+  stated confidence was justified.
+- **`front`** — the running non-dominated count. Deliberately **recomputed on
+  the evaluations revealed so far**, not read from `on_front` (which is the
+  *final* front), so a line claiming "non-dominated" is true at that moment. You
+  can watch configurations get dominated and dropped. It converges to
+  `pareto.n_front`.
+
+Two caveats the footer states in the UI itself: the elapsed column is
+**interpolated** from the run's total wall time — per-evaluation timings were
+never recorded — and the closing `gp final fit` / `leave-one-out` lines are
+whole-run values, which is why they appear at the end rather than beside any
+single evaluation.
+
+**Click any line to scrub the chart to that evaluation.** The log doubles as a
+timeline control, which is useful when a panellist asks "go back to the one
+where it found the big improvement". **Follow** autoscrolls and switches itself
+off if you scroll up to re-read. **Copy** puts the whole log on the clipboard as
+plain text, which is the fastest way to get it into an appendix.
 
 Click any point to inspect it. The readout names which arm it came from:
 
