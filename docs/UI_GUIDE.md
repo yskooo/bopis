@@ -186,6 +186,55 @@ Random search tries 30 configurations at random (the baseline). BOPIS chooses
 its 30 with the surrogate model. Same budget, same selection rule. Neither is a
 person choosing.
 
+### 2.5 The configuration picker (in the input bar)
+
+Under the prompt box, the **Configuration** chip works like a model picker.
+Its options are the configurations BOPIS selected in the loaded run:
+
+| Option | What it is |
+| :--- | :--- |
+| **BOPIS x\*** (Recommended) | the pick: lowest energy on the Pareto front that keeps quality ≥ 98% and speed ≥ 95% of the default |
+| **Pareto alternatives** | the rest of the front, each labelled *Meets floors* or *Below a floor*, with which floor it fails |
+| **Random search pick** | what the baseline found with the same budget |
+| **Unoptimized default** | the reference every ratio is relative to |
+| **As launched** | the llama-server the chat was started with |
+
+Each option shows its settings in words (e.g. *Qwen2.5-1.5B · Q8_0 · up to 1024
+tokens · batch 2 · 4 threads*) and its energy, speed, F1 and savings versus the
+default. **Choosing one really switches the model.** The bridge launches that
+configuration as its own llama-server (port 8083) and the chat answers with it.
+Replies are also capped at that configuration's `t`. A chat note confirms the
+switch and the load time. Options whose model file is not in `models\` are
+greyed out with the reason.
+
+Every option has a **why? ↗** link, and the input bar has **How BOPIS chose ↗**.
+Both open the page below.
+
+### 2.6 How BOPIS chose (the white-box page)
+
+This is a new sidebar page. It walks through the search that produced `x*`,
+using the run's own numbers:
+
+1. **Rule out what this machine cannot run**: the feasible-space count, linked
+   to the Configurations tab.
+2. **Seeds**: the 10 configurations drawn using the task prior, with that prior
+   (P(precision) from Table T1 and the Dolly task mix) and their measurements.
+3. **The surrogate**: what a Gaussian Process is, in plain words; its fitted
+   hyperparameters (signal variance, noise, length scale); its leave-one-out
+   check.
+4. **Expected Improvement**: what EI means, the quality and speed floors, and a
+   table of every guided step. Each row shows what the GP predicted (μ ± σ)
+   *before* measuring, the EI, P(meets floors), what was actually measured, and
+   the error in σ units.
+5. **The Pareto front and the selection rule**: every front member with its
+   EIR, SRR and QRR, and whether it passes the floors. That shows exactly why
+   `x*` won.
+6. **Why not random search**: the baseline's pick and status under the same
+   budget and rule.
+
+Opened from an option's **why?**, that configuration's rows are highlighted.
+A link at step 4 goes to the Pareto replay on the Dashboard.
+
 ## 2b. Configurations: what BOPIS chooses from
 
 The **Configurations** tab makes the "selection" in Intelligent Configuration

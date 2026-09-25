@@ -153,10 +153,59 @@ class TestReplayAndCompare(unittest.TestCase):
         self.assertIn("BackendError", rows["no_binary"]["error"])
         self.assertEqual(result["prompt"]["prompt_id"], prompt_id)
 
+    def test_deploy_validates_before_launching(self) -> None:
+        """Choosing a configuration in the UI: every refusal is explicit."""
+        with self.assertRaises(RuntimeError):  # no llama binary
+            self.make().deploy("qwen2.5-0.5b_t128_b1_Q4_K_M_g0_c4")
+        instruments = self.make(llama_binary="x")
+        with self.assertRaises(ValueError):
+            instruments.deploy("not-a-key")
+        with self.assertRaises(ValueError):  # model file absent
+            instruments.deploy("qwen2.5-7b_t128_b1_F16_g0_c4")
+        # Going back to the launched server always works.
+        self.assertEqual(instruments.deploy(None), {"deployed": None})
+        self.assertIsNone(instruments.status()["deployed"])
+
     def test_compare_rejects_unknown_prompt(self) -> None:
         instruments = self.make(llama_binary="x")
         with self.assertRaises(ValueError):
             instruments.compare({"prompt_id": "dolly-99999", "configs": {"a": "b"}})
+
+
+class TestSearchPayload(unittest.TestCase):
+    """The "How BOPIS chose" page is built from these fields; they must exist."""
+
+    def test_payload_carries_every_step_the_page_explains(self) -> None:
+        import tempfile as _tempfile
+
+        from bopis import artifacts, dashboard, dataset, hardware, runner, tasks
+        from bopis.backends.simulator import SimulatorBackend
+        from bopis.measure import SimulatedMeasurer
+
+        profile = hardware.profile_host()
+        space, _ = hardware.feasible_space(profile)
+        samples = dataset.synthetic_samples(eval_size=40, proxy_size=8, seed=1)
+        sim = SimulatorBackend(seed=0)
+        with _tempfile.TemporaryDirectory() as out:
+            study = runner.Study(
+                run_dir=artifacts.RunDirectory.create(base=out, label="t"),
+                settings=runner.RunSettings(n_total=12, n_seeds=4, eval_size=40,
+                                            proxy_size=8, skip_validation=True),
+                profile=profile, space=space, samples=samples,
+                measurer=SimulatedMeasurer(sim),
+            )
+            payload = dashboard.build_payload(study.run())
+        search = payload["search"]
+        self.assertEqual(search["acquisition"], "cei")
+        self.assertEqual(len(search["steps"]), 12)
+        self.assertEqual(sum(s["source"] == "seed" for s in search["steps"]), 4)
+        guided = [s for s in search["steps"] if s["source"] != "seed"]
+        self.assertTrue(all(s["mu"] is not None for s in guided))
+        self.assertTrue(all(0.0 <= s["p_feasible"] <= 1.0 for s in guided))
+        self.assertGreater(search["floors"]["quality_f1"], 0)
+        self.assertIn("dataset_prior", payload["task_prior"])
+        self.assertEqual(payload["space"]["n_unconstrained"], len(cs.full_space()))
+        self.assertTrue(all("model" in p for p in payload["pareto"]["points"]))
 
 
 if __name__ == "__main__":

@@ -383,6 +383,7 @@ class Study:
 
         # -- Stage 1: BOPIS search ------------------------------------- #
         prior = tasks.dataset_prior(self.samples.task_proportions())
+        self._task_prior = prior
         self.progress(
             f"Stage 1: BOPIS search, {self.settings.n_total} evaluations "
             f"({self.settings.n_seeds} prior-weighted seeds) over "
@@ -461,6 +462,11 @@ class Study:
             validation=validation,
         )
         summary["wall_seconds"] = round(time.perf_counter() - started, 2)
+        # The seeding prior, so the dashboard can show what weighted the seeds.
+        summary["task_prior"] = {
+            "dataset_prior": dict(self._task_prior),
+            "task_proportions": dict(self.samples.task_proportions()),
+        }
         # A substituted reference changes what EIR/SRR/QRR are relative to, so
         # it travels with the results rather than living only in the log.
         summary["default_config"] = default_config.key()

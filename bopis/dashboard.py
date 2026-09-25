@@ -87,10 +87,37 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
             "predictive_sigma": record.gp_predictive_sigma,
             "measured": record.energy_j,
             "expected_improvement": record.expected_improvement,
+            "p_feasible": record.p_feasible,
         }
         for record in result.bo.records
         if record.gp_mu is not None
     ]
+
+    # -- The search, step by step, for the "How BOPIS chose" page ----------- #
+    # Every BOPIS evaluation in order, with what the surrogate predicted before
+    # it was measured. Seeds carry no prediction: they are drawn from the
+    # task prior before any surrogate exists.
+    search_steps = [
+        {
+            "iteration": record.iteration,
+            "source": record.source,
+            "config": record.config.key(),
+            "energy_j": record.energy_j,
+            "tokens_per_s": record.tokens_per_s,
+            "quality_f1": record.quality_f1,
+            "mu": record.gp_mu,
+            "sigma": record.gp_sigma,
+            "expected_improvement": record.expected_improvement,
+            "p_feasible": record.p_feasible,
+        }
+        for record in result.bo.records
+    ]
+    floors = {
+        "quality_f1": result.search_reference.quality_f1 * metrics.QRR_THRESHOLD / 100.0,
+        "tokens_per_s": result.search_reference.tokens_per_s
+        * metrics.SRR_THRESHOLD
+        / 100.0,
+    }
 
     reference = result.search_reference
     indicators = summary.get("success_indicators")
@@ -135,7 +162,7 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
         "host": result.profile.as_dict(),
         "space": {
             "n_feasible": len(result.space),
-            "n_unconstrained": 768,
+            "n_unconstrained": len(cs.full_space()),
             "rules_fired": result.profile.rules_fired,
             "permitted_precisions": list(result.profile.permitted_precisions),
             "permitted_gpu_layers": [
@@ -172,6 +199,13 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
             ),
         },
         "convergence": summary.get("convergence"),
+        "search": {
+            "acquisition": result.settings.acquisition,
+            "floors": floors,
+            "steps": search_steps,
+            "default_config": summary.get("default_config"),
+            "default_substituted_for": summary.get("default_substituted_for"),
+        },
         "surrogate": {
             "points": gp_points,
             "reliability": summary.get("surrogate_reliability"),

@@ -125,7 +125,13 @@ class Instruments:
         model_paths: Optional[Dict[str, str]] = None,
         compare_port: int = 8081,
         ctx_size: int = 2048,
+        deploy_port: int = 8083,
     ) -> None:
+        #: The configuration the chat is answering with, when the user picked
+        #: one in the UI; None means the llama-server at *llama_url* as launched.
+        self.deploy_port = deploy_port
+        self.deployed = None  # LlamaServerBackend
+        self.deployed_config = None  # Config
         self.llama_binary = llama_binary
         self.model_paths = dict(model_paths or {})
         self.compare_port = compare_port
@@ -206,10 +212,71 @@ class Instruments:
         self._pid = find_pid()
         return self._pid
 
+    # ------------------------------------------------------------------ #
+    # Answering with a chosen configuration
+    # ------------------------------------------------------------------ #
+
+    def deploy(self, key: Optional[str]) -> Dict[str, object]:
+        """Make the chat answer with configuration *key* (None: as launched).
+
+        This is what makes the UI's configuration picker real rather than
+        decorative: the chosen model, precision, threads, slots and GPU layers
+        are launched as their own llama-server on :attr:`deploy_port`, and chat
+        requests are routed there. Replies are capped at the configuration's
+        ``t``, so the chat behaves as the configuration it claims to be.
+        """
+        from bopis import config_space as cs
+        from bopis.backends.llama_server import LlamaServerBackend
+
+        with self.lock:
+            if self.deployed is not None:
+                self.deployed.stop()
+                self.deployed = self.deployed_config = None
+            if not key:
+                return {"deployed": None}
+            if not self.llama_binary:
+                raise RuntimeError(
+                    "choosing a configuration needs `bopis ui --llama-binary "
+                    "<llama-server.exe>`"
+                )
+            config = cs.parse_key(key)
+            if config is None:
+                raise ValueError(f"malformed configuration key {key!r}")
+            backend = LlamaServerBackend(
+                binary=self.llama_binary,
+                model_paths=self.model_paths,
+                port=self.deploy_port,
+                ctx_size=self.ctx_size,
+            )
+            if not backend.gguf_path(config):
+                raise ValueError(f"no GGUF for {config.m} {config.p} in the models folder")
+            started = time.monotonic()
+            backend.start(config)
+            self.deployed, self.deployed_config = backend, config
+            return {
+                "deployed": config.key(),
+                "load_seconds": time.monotonic() - started,
+            }
+
+    def shutdown(self) -> None:
+        if self.deployed is not None:
+            self.deployed.stop()
+
     def chat(self, body: bytes) -> Dict[str, object]:
         """Forward one completion to llama-server, measuring it."""
         with self.lock:
-            pid = self.llama_pid()
+            if self.deployed is not None:
+                pid = self.deployed.pid
+                target = self.deployed.base_url
+                request_body = json.loads(body or b"{}")
+                request_body["max_tokens"] = min(
+                    int(request_body.get("max_tokens") or self.deployed_config.t),
+                    self.deployed_config.t,
+                )
+                body = json.dumps(request_body).encode("utf-8")
+            else:
+                pid = self.llama_pid()
+                target = self.llama_url
             sampler = TelemetrySampler(
                 device=None,
                 pid=pid,
@@ -219,7 +286,7 @@ class Instruments:
                 p_cpu_idle_w=float(self.idle.get("p_cpu_idle_w") or 0.0),
             )
             request = urllib.request.Request(
-                self.llama_url + "/v1/chat/completions",
+                target + "/v1/chat/completions",
                 data=body,
                 headers={"Content-Type": "application/json"},
                 method="POST",
@@ -233,6 +300,7 @@ class Instruments:
         return {
             "completion": payload,
             "energy": self._energy_summary(window, pid),
+            "config": self.deployed_config.key() if self.deployed_config else None,
         }
 
     def _energy_summary(self, window, pid: Optional[int]) -> Dict[str, object]:
@@ -475,6 +543,7 @@ class Instruments:
                 "model": self.bertscore_model or "roberta-large",
             },
             "dolly": {"n": len(self.dolly)},
+            "deployed": self.deployed_config.key() if self.deployed_config else None,
             "compare": {
                 "available": bool(self.llama_binary),
                 "ggufs": sorted(self.model_paths),
@@ -557,6 +626,9 @@ def make_handler(instruments: Instruments, port: int):
             try:
                 if url.path == "/api/chat":
                     return self._json(200, instruments.chat(self._body()))
+                if url.path == "/api/deploy":
+                    request = json.loads(self._body() or b"{}")
+                    return self._json(200, instruments.deploy(request.get("config")))
                 if url.path == "/api/compare":
                     return self._json(
                         200, instruments.compare(json.loads(self._body() or b"{}"))
@@ -597,6 +669,7 @@ def serve(
     except KeyboardInterrupt:
         pass
     finally:
+        instruments.shutdown()
         server.server_close()
 
 
