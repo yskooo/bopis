@@ -50,7 +50,7 @@ import urllib.error
 import urllib.request
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 from urllib.parse import parse_qs, urlparse
 
 from bopis import dataset, metrics
@@ -75,6 +75,158 @@ STATIC_FILES = {
 }
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+#: Where ``bopis run`` writes studies, relative to the repository.
+RUNS_DIR = os.path.join(REPO_ROOT, "runs")
+
+#: Name of the progress file ``bopis run`` rewrites at every stage.
+PROGRESS_NAME = "progress.json"
+
+
+def find_llama_binary(root: str = REPO_ROOT) -> Optional[str]:
+    """The bundled llama-server, so choosing a configuration needs no flag.
+
+    The Vulkan build comes first: the configuration space offloads layers to
+    the GPU (g), and a CPU-only build silently ignores ``--n-gpu-layers``, which
+    would serve a different configuration from the one the user picked.
+    """
+    import shutil
+
+    for flavour in ("vulkan", "cpu"):
+        for name in ("llama-server.exe", "llama-server"):
+            path = os.path.join(root, "tools", flavour, name)
+            if os.path.isfile(path):
+                return path
+    return shutil.which("llama-server")
+
+
+def _live_row(row: Dict[str, str]) -> Dict[str, object]:
+    def number(name: str) -> Optional[float]:
+        try:
+            value = float(row.get(name) or "nan")
+        except ValueError:
+            return None
+        return value if value == value else None  # NaN is not valid JSON
+
+    return {
+        "config": row.get("config"),
+        "source": row.get("source"),
+        "iteration": int(number("iteration") or 0),
+        "energy_j": number("energy_j"),
+        "tokens_per_s": number("tokens_per_s"),
+        "quality_f1": number("quality_f1"),
+        "on_front": row.get("on_pareto_front") == "True",
+        "mu": number("gp_mu"),
+        "sigma": number("gp_sigma"),
+        "expected_improvement": number("expected_improvement"),
+    }
+
+
+def _run_names(runs_dir: str) -> List[str]:
+    if not os.path.isdir(runs_dir):
+        return []
+    return sorted(
+        entry for entry in os.listdir(runs_dir)
+        if os.path.isdir(os.path.join(runs_dir, entry))
+        and os.path.isdir(os.path.join(runs_dir, entry, "calibration"))
+    )
+
+
+def list_runs(runs_dir: str = RUNS_DIR) -> List[Dict[str, object]]:
+    """Every run under *runs_dir*, newest first, for the dashboard's run picker."""
+    runs = []
+    for name in reversed(_run_names(runs_dir)):
+        root = os.path.join(runs_dir, name)
+        backend = None
+        try:
+            with open(os.path.join(root, "manifest.json"), encoding="utf-8") as handle:
+                backend = (json.load(handle).get("backend") or {}).get("backend")
+        except (OSError, ValueError):
+            backend = None
+        try:
+            with open(os.path.join(root, "calibration", "bo_log.csv"),
+                      encoding="utf-8") as handle:
+                n_evals = max(0, sum(1 for _ in handle) - 1)
+        except OSError:
+            n_evals = 0
+        runs.append({
+            "run": name,
+            "finished": os.path.exists(os.path.join(root, "dashboard_data.js")),
+            "backend": backend,
+            "n_evals": n_evals,
+        })
+    return runs
+
+
+def run_prompts(name: str, runs_dir: str = RUNS_DIR,
+                dolly: Sequence = ()) -> Optional[Dict[str, object]]:
+    """The proxy prompts a run's search measured every configuration on.
+
+    ``dataset/sample_*.csv`` records ids and task types, not text, so the text
+    is looked up in the loaded Dolly pool; synthetic prompts have none.
+    """
+    import csv
+    import glob
+
+    root = os.path.join(runs_dir, os.path.basename(name))
+    files = sorted(glob.glob(os.path.join(root, "dataset", "sample_*.csv")))
+    if not files:
+        return None
+    by_id = {p.prompt_id: p for p in dolly}
+    with open(files[0], newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    proxy = []
+    for row in rows:
+        if row.get("in_proxy_subset") != "True":
+            continue
+        prompt = by_id.get(row.get("prompt_id"))
+        proxy.append({
+            "prompt_id": row.get("prompt_id"),
+            "task_type": row.get("task_type"),
+            "prompt_tokens": row.get("estimated_prompt_tokens"),
+            "instruction": prompt.instruction if prompt else None,
+        })
+    return {"run": os.path.basename(name), "n_sample": len(rows), "proxy": proxy}
+
+
+def live_run(runs_dir: str = RUNS_DIR) -> Dict[str, object]:
+    """State of the newest run under *runs_dir*, for the dashboard's Live mode.
+
+    A study streams one row per evaluation into ``calibration/bo_log.csv`` and
+    writes ``dashboard_data.js`` only at the end, so an unfinished run reports
+    its evaluations so far and a finished one points at its full payload.
+    """
+    import csv
+
+    names = _run_names(runs_dir)
+    if not names:
+        return {"run": None}
+    name = names[-1]
+    root = os.path.join(runs_dir, name)
+    progress: Dict[str, object] = {}
+    try:
+        with open(os.path.join(root, PROGRESS_NAME), encoding="utf-8") as handle:
+            progress = json.load(handle)
+    except (OSError, ValueError):
+        progress = {}
+    evaluations: List[Dict[str, object]] = []
+    try:
+        with open(os.path.join(root, "calibration", "bo_log.csv"),
+                  newline="", encoding="utf-8") as handle:
+            evaluations = [_live_row(row) for row in csv.DictReader(handle)]
+    except OSError:
+        evaluations = []
+    finished = os.path.exists(os.path.join(root, "dashboard_data.js"))
+    return {
+        "run": name,
+        "finished": finished,
+        "stage": progress.get("stage"),
+        "backend": progress.get("backend"),
+        "n_total": progress.get("n_total"),
+        "updated": progress.get("updated", os.path.getmtime(root)),
+        "evaluations": evaluations,
+        "data_url": f"/api/live/data?run={name}" if finished else None,
+    }
 
 
 def find_pid(image: str = "llama-server") -> Optional[int]:
@@ -159,6 +311,9 @@ class Instruments:
         self.scorer_error: Optional[str] = None
 
         self.dolly: List[dataset.Prompt] = []
+        self.data_dir = data_dir
+        self.study = None  # subprocess.Popen of a `bopis run` started from the UI
+        self.study_args: List[str] = []
         path = os.path.join(data_dir, dataset.DOLLY_FILENAME)
         if os.path.exists(path):
             self.dolly, _report = dataset.filter_rows(dataset.load_jsonl(path))
@@ -261,6 +416,86 @@ class Instruments:
     def shutdown(self) -> None:
         if self.deployed is not None:
             self.deployed.stop()
+        self.stop_study()
+
+    # -- studies started from the dashboard ----------------------------------- #
+
+    def study_running(self) -> bool:
+        return self.study is not None and self.study.poll() is None
+
+    def study_command(self, request: Dict[str, object]) -> List[str]:
+        """The ``bopis run`` command for a dashboard preset.
+
+        ``sim`` runs the analytic simulator on the Dolly pool (or synthetic
+        prompts without it): about a minute, simulated energy. ``real`` runs
+        the actual study on llama-server with the model files in models\,
+        on its own port so the chat's server on 8080 keeps answering.
+        """
+        import sys
+
+        preset = str(request.get("preset") or "sim")
+        iterations = max(4, min(60, int(request.get("iterations") or 30)))
+        # At least one prompt per Dolly task type: the proxy set is stratified.
+        proxy = max(8, min(100, int(request.get("proxy_size") or 20)))
+        command = [sys.executable, "-m", "bopis", "run", "--out", RUNS_DIR,
+                   "--iterations", str(iterations), "--proxy-size", str(proxy),
+                   "--skip-validation", "--data-dir", self.data_dir]
+        if not self.dolly:
+            command.append("--synthetic")
+        if preset == "sim":
+            return command + ["--backend", "sim", "--label", "ui-sim"]
+        if preset != "real":
+            raise ValueError(f"unknown preset {preset!r}; expected sim or real")
+        if not self.llama_binary:
+            raise ValueError("a real study needs llama-server; none was found in "
+                             "tools\vulkan or tools\cpu")
+        if not self.model_paths:
+            raise ValueError("a real study needs GGUF files in models\\")
+        command += ["--backend", "llama-server", "--model-aware",
+                    "--llama-binary", self.llama_binary,
+                    "--llama-port", "8084", "--label", "ui-real"]
+        for key, path in sorted(self.model_paths.items()):
+            command += ["--model", f"{key}={path}"]
+        # Measured CPU package energy when the sensor feed is up; otherwise the
+        # labelled Mode C estimate (this laptop's MX330 reports no power).
+        command += ["--energy-mode", "cpu-rapl" if self.measuring else "resource-estimate"]
+        return command
+
+    def start_study(self, request: Dict[str, object]) -> Dict[str, object]:
+        if self.study_running():
+            raise ValueError("a study is already running; stop it first")
+        command = self.study_command(request)
+        os.makedirs(RUNS_DIR, exist_ok=True)
+        log = open(os.path.join(RUNS_DIR, "ui_study.log"), "w", encoding="utf-8")
+        self.study = subprocess.Popen(command, cwd=REPO_ROOT, stdout=log,
+                                      stderr=subprocess.STDOUT)
+        self.study_args = command
+        self.log(f"  Study started (pid {self.study.pid}): {' '.join(command[1:])}")
+        return self.study_state()
+
+    def stop_study(self) -> Dict[str, object]:
+        if self.study_running():
+            self.study.terminate()
+            try:
+                self.study.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self.study.kill()
+        return self.study_state()
+
+    def study_state(self) -> Dict[str, object]:
+        state: Dict[str, object] = {"running": self.study_running()}
+        if self.study is not None:
+            state["pid"] = self.study.pid
+            state["exit_code"] = self.study.poll()
+            state["command"] = " ".join(self.study_args[1:])
+            if not state["running"] and state["exit_code"]:
+                try:
+                    with open(os.path.join(RUNS_DIR, "ui_study.log"),
+                              encoding="utf-8", errors="replace") as handle:
+                        state["log_tail"] = handle.read()[-1500:]
+                except OSError:
+                    pass
+        return state
 
     def chat(self, body: bytes) -> Dict[str, object]:
         """Forward one completion to llama-server, measuring it."""
@@ -544,6 +779,7 @@ class Instruments:
             },
             "dolly": {"n": len(self.dolly)},
             "deployed": self.deployed_config.key() if self.deployed_config else None,
+            "study": self.study_state(),
             "compare": {
                 "available": bool(self.llama_binary),
                 "ggufs": sorted(self.model_paths),
@@ -596,6 +832,33 @@ def make_handler(instruments: Instruments, port: int):
             url = urlparse(self.path)
             if url.path == "/api/status":
                 return self._json(200, instruments.status())
+            if url.path == "/api/live":
+                live = live_run()
+                live["study"] = instruments.study_state()
+                return self._json(200, live)
+            if url.path == "/api/runs":
+                return self._json(200, {"runs": list_runs()})
+            if url.path == "/api/run/prompts":
+                run = (parse_qs(url.query).get("run") or [""])[0]
+                prompts = run_prompts(run, dolly=instruments.dolly) if run else None
+                if prompts is None:
+                    return self._json(404, {"error": f"no prompt sample for run {run!r}"})
+                return self._json(200, prompts)
+            if url.path == "/api/live/data":
+                run = os.path.basename((parse_qs(url.query).get("run") or [""])[0])
+                path = os.path.join(RUNS_DIR, run, "dashboard_data.js")
+                if not run or not os.path.isfile(path):
+                    return self._json(404, {"error": f"no finished run {run!r}"})
+                with open(path, "rb") as handle:
+                    data = handle.read()
+                self.send_response(200)
+                self._cors()
+                self.send_header("Content-Type", "text/javascript; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(data)
+                return None
             if url.path == "/api/dolly":
                 query = parse_qs(url.query)
                 prompt = instruments.dolly_prompt(
@@ -633,6 +896,11 @@ def make_handler(instruments: Instruments, port: int):
                     return self._json(
                         200, instruments.compare(json.loads(self._body() or b"{}"))
                     )
+                if url.path == "/api/study":
+                    request = json.loads(self._body() or b"{}")
+                    return self._json(200, instruments.start_study(request))
+                if url.path == "/api/study/stop":
+                    return self._json(200, instruments.stop_study())
                 if url.path == "/api/score":
                     request = json.loads(self._body() or b"{}")
                     candidate = str(request.get("candidate") or "")
