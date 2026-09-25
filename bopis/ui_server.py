@@ -121,7 +121,15 @@ class Instruments:
         cpu_tdp_w: float = estimator.DEFAULT_CPU_TDP_W,
         cpu_idle_w: float = 0.0,
         log=print,
+        llama_binary: Optional[str] = None,
+        model_paths: Optional[Dict[str, str]] = None,
+        compare_port: int = 8081,
+        ctx_size: int = 2048,
     ) -> None:
+        self.llama_binary = llama_binary
+        self.model_paths = dict(model_paths or {})
+        self.compare_port = compare_port
+        self.ctx_size = ctx_size
         self.llama_url = llama_url.rstrip("/")
         self.log = log
         self.lock = threading.Lock()
@@ -294,8 +302,139 @@ class Instruments:
         return payload
 
     # ------------------------------------------------------------------ #
+    # Three-way comparison on one prompt
+    # ------------------------------------------------------------------ #
 
-    def dolly_prompt(self, category: Optional[str] = None) -> Optional[Dict]:
+    def compare(self, request: Dict[str, object]) -> Dict[str, object]:
+        """Run one Dolly prompt under several configurations, as the study does.
+
+        *request* carries ``prompt_id`` and ``configs`` -- ``{condition:
+        config_key}``, typically the unoptimized default, the random-search
+        pick and ``x*`` from the loaded run. For each, a llama-server is
+        launched on :attr:`compare_port` with that configuration (model,
+        precision, threads, slots, GPU layers), the prompt is sent through the
+        study's own ``/completion`` path with the study's own template and
+        ``n_predict = t``, and the request is bracketed by the telemetry
+        sampler. Model loading happens before the window opens, so it is not
+        charged to the answer. All replies are BERTScored against the Dolly
+        reference only after every energy window has closed.
+        """
+        from bopis import config_space as cs
+        from bopis.backends.llama_server import LlamaServerBackend
+
+        if not self.llama_binary:
+            raise RuntimeError(
+                "comparison needs `bopis ui --llama-binary <llama-server.exe>` so "
+                "it can launch each configuration"
+            )
+        prompt = self._dolly_by_id(str(request.get("prompt_id") or ""))
+        if prompt is None:
+            raise ValueError(f"unknown Dolly prompt id {request.get('prompt_id')!r}")
+        configs = request.get("configs") or {}
+        if not isinstance(configs, dict) or not configs:
+            raise ValueError("configs must map condition -> configuration key")
+
+        backend = LlamaServerBackend(
+            binary=self.llama_binary,
+            model_paths=self.model_paths,
+            port=self.compare_port,
+            ctx_size=self.ctx_size,
+        )
+        rows: List[Dict[str, object]] = []
+        with self.lock:
+            for condition, key in configs.items():
+                config = cs.parse_key(str(key))
+                row: Dict[str, object] = {"condition": condition, "config": key}
+                rows.append(row)
+                if config is None:
+                    row["error"] = "malformed configuration key"
+                    continue
+                if not backend.gguf_path(config):
+                    row["error"] = (
+                        f"no GGUF for {config.m} {config.p} in the models folder"
+                    )
+                    continue
+                try:
+                    self._run_one(backend, config, prompt, row)
+                except Exception as exc:  # noqa: BLE001 - reported per condition
+                    row["error"] = f"{type(exc).__name__}: {exc}"
+
+            # Quality only after every window is closed.
+            scorable = [r for r in rows if r.get("text")]
+            if scorable:
+                try:
+                    scores = self._get_scorer().score(
+                        [r["text"] for r in scorable],
+                        [prompt.response] * len(scorable),
+                    )
+                    for row, score in zip(scorable, scores):
+                        row["quality"] = score.as_dict()
+                except RuntimeError as exc:
+                    for row in scorable:
+                        row["quality_error"] = str(exc)
+        return {
+            "prompt": self._prompt_payload(prompt),
+            "rows": rows,
+            "protocol": (
+                "study protocol: /completion, study template, n_predict = t, no "
+                "system prompt; one prompt, so an illustration of the study's "
+                "comparison, not a replacement for its 500-prompt validation"
+            ),
+        }
+
+    def _run_one(self, backend, config, prompt, row: Dict[str, object]) -> None:
+        """Load *config*, measure one generation of *prompt*, stop the server."""
+        try:
+            backend.start(config)  # model load: outside the energy window
+            sampler = TelemetrySampler(
+                device=None,
+                pid=backend.pid,
+                estimator_budget=None if self.measuring else self.budget,
+                logical_cores=os.cpu_count(),
+                cpu_power_source=self.source,
+                p_cpu_idle_w=float(self.idle.get("p_cpu_idle_w") or 0.0),
+            )
+            sampler.start()
+            try:
+                result = backend.generate(prompt.text, config)
+            finally:
+                window = sampler.stop()
+            pid = backend.pid
+        finally:
+            backend.stop()
+        row.update(
+            {
+                "text": result.text,
+                "n_generated_tokens": result.n_generated_tokens,
+                "tokens_per_s": result.decode_tokens_per_s,
+                "latency_s": result.wall_s,
+                "truncated": result.truncated,
+                "energy": self._energy_summary(window, pid),
+            }
+        )
+
+    # ------------------------------------------------------------------ #
+
+    def _dolly_by_id(self, prompt_id: str) -> Optional[dataset.Prompt]:
+        return next((p for p in self.dolly if p.prompt_id == prompt_id), None)
+
+    def _prompt_payload(self, prompt: dataset.Prompt) -> Dict[str, object]:
+        return {
+            "prompt_id": prompt.prompt_id,
+            "task_type": prompt.task_type,
+            "instruction": prompt.instruction,
+            "context": prompt.context,
+            "text": prompt.text,
+            "reference": prompt.response,
+        }
+
+    def dolly_prompt(
+        self, category: Optional[str] = None, prompt_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """A random Dolly prompt, or a specific one by id (to replay it)."""
+        if prompt_id:
+            found = self._dolly_by_id(prompt_id)
+            return self._prompt_payload(found) if found else None
         pool = [p for p in self.dolly if not category or p.task_type == category]
         if not pool:
             return None
@@ -336,6 +475,10 @@ class Instruments:
                 "model": self.bertscore_model or "roberta-large",
             },
             "dolly": {"n": len(self.dolly)},
+            "compare": {
+                "available": bool(self.llama_binary),
+                "ggufs": sorted(self.model_paths),
+            },
         }
 
 
@@ -385,8 +528,11 @@ def make_handler(instruments: Instruments, port: int):
             if url.path == "/api/status":
                 return self._json(200, instruments.status())
             if url.path == "/api/dolly":
-                category = (parse_qs(url.query).get("category") or [None])[0]
-                prompt = instruments.dolly_prompt(category)
+                query = parse_qs(url.query)
+                prompt = instruments.dolly_prompt(
+                    (query.get("category") or [None])[0],
+                    (query.get("id") or [None])[0],
+                )
                 if prompt is None:
                     return self._json(404, {"error": "no Dolly data; run "
                                             "`python -m bopis dataset`"})
@@ -411,6 +557,10 @@ def make_handler(instruments: Instruments, port: int):
             try:
                 if url.path == "/api/chat":
                     return self._json(200, instruments.chat(self._body()))
+                if url.path == "/api/compare":
+                    return self._json(
+                        200, instruments.compare(json.loads(self._body() or b"{}"))
+                    )
                 if url.path == "/api/score":
                     request = json.loads(self._body() or b"{}")
                     candidate = str(request.get("candidate") or "")
@@ -428,6 +578,8 @@ def make_handler(instruments: Instruments, port: int):
                                         f"{instruments.llama_url}: {exc.reason}"})
             except RuntimeError as exc:  # get_scorer's missing-dependency message
                 return self._json(503, {"error": str(exc)})
+            except ValueError as exc:
+                return self._json(400, {"error": str(exc)})
             except Exception as exc:  # noqa: BLE001 - reported to the UI, not hidden
                 return self._json(500, {"error": f"{type(exc).__name__}: {exc}"})
             return self._json(404, {"error": f"not found: {url.path}"})

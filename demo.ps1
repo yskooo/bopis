@@ -91,7 +91,11 @@ param(
     [int]      $UiPort = 8090,
     [int]      $IdleSeconds = 30,
     [string]   $HwmonUrl = 'http://127.0.0.1:8085/data.json',
-    [switch]   $NoBridge
+    [switch]   $NoBridge,
+
+    # Install/configure/start LibreHardwareMonitor first (one UAC prompt), so
+    # energy in the chat is measured rather than estimated.
+    [switch]   $StartHwmon
 )
 
 $ErrorActionPreference = 'Stop'
@@ -346,6 +350,10 @@ if ($canServe) {
 
 $bridgeProc = $null
 $uiUrl = $null
+if ($StartHwmon) {
+    & (Join-Path $repo 'tools\start-hwmon.ps1') -Install
+}
+
 if ($canServe -and -not $NoBridge) {
     Write-Step 'Starting the instrument bridge (bopis ui)'
     Write-Host "    Idle calibration takes $IdleSeconds s -- leave the machine alone." -ForegroundColor DarkGray
@@ -355,7 +363,11 @@ if ($canServe -and -not $NoBridge) {
         '--port', "$UiPort",
         '--llama-url', $baseUrl,
         '--idle-seconds', "$IdleSeconds",
-        '--hwmon-url', $HwmonUrl
+        '--hwmon-url', $HwmonUrl,
+        # Lets the chat run the default / random-search / BOPIS comparison on a
+        # Dolly prompt; model files are found in .\models automatically.
+        '--llama-binary', $LlamaBinary,
+        '--models-dir', (Join-Path $repo 'models')
     )
     if ($serverProc -and -not $Run) { $uiArgs += @('--llama-pid', "$($serverProc.Id)") }
     $bridgeProc = Start-Process -FilePath $py.Exe -ArgumentList $uiArgs `

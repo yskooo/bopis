@@ -28,10 +28,10 @@ huggingface-cli download Qwen/Qwen2.5-1.5B-Instruct-GGUF --include "*q4_k_m*.ggu
 huggingface-cli download Qwen/Qwen2.5-3B-Instruct-GGUF   --include "*q4_k_m*.gguf" "*q8_0*.gguf" --local-dir models
 ```
 
-Then pass each file as `--model MODEL:VARIANT=PATH`, for example
-`--model qwen2.5-3b:Q4_K_M=models\qwen2.5-3b-instruct-q4_k_m.gguf`. Check the file
-names in `models\` after downloading: some larger files are split into
-`-00001-of-0000N` parts, and llama.cpp loads those from the first part.
+Files in `models\` with the official names are found automatically
+(`--models-dir`, default `models`), including files split into
+`-00001-of-0000N` parts, which are measured across all parts. Individual files
+can still be added with `--model MODEL:VARIANT=PATH`.
 `python -m bopis profile --model-aware` shows which model × precision pairs fit
 this machine before you download anything.
 

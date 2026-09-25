@@ -43,6 +43,7 @@ Only the standard library is used.
 from __future__ import annotations
 
 import itertools
+import re
 import math
 from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple
 
@@ -65,6 +66,7 @@ G_VALUES: Tuple[int, ...] = (0, 14, 28, ALL_LAYERS)
 
 #: CPU threads allocated to the inference process.
 C_VALUES: Tuple[int, ...] = (2, 4, 8)
+
 
 class ModelVariant(NamedTuple):
     """One model in the searched ladder: enough shape to predict its footprint.
@@ -306,6 +308,29 @@ def build_space(
             sorted(c_values),
         )
     ]
+
+
+#: ``Config.key()`` strings. The model prefix was added by A-40; keys from
+#: earlier runs have none and denote the default model.
+_KEY = re.compile(
+    r"^(?:([a-z0-9.\-]+)_)?t(\d+)_b(\d+)_(F32|F16|Q8_0|Q4_K_M)_g(All|\d+)_c(\d+)$"
+)
+
+
+def parse_key(key: str) -> Optional[Config]:
+    """The inverse of :meth:`Config.key`, or None for a malformed key."""
+    match = _KEY.fullmatch(key.strip())
+    if not match:
+        return None
+    model_key, t, batch, precision, gpu_layers, threads = match.groups()
+    return Config(
+        t=int(t),
+        b=int(batch),
+        p=precision,
+        g=ALL_LAYERS if gpu_layers == "All" else int(gpu_layers),
+        c=int(threads),
+        m=model_key or DEFAULT_M,
+    )
 
 
 def index_of(space: Sequence[Config], cfg: Config) -> int:

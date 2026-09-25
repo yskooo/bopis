@@ -92,7 +92,10 @@ class LlamaServerBackend:
         request_timeout_s: float = DEFAULT_REQUEST_TIMEOUT_S,
         log_path: Optional[str] = None,
     ) -> None:
-        self.binary = binary
+        # An existing relative path is made absolute: Windows' CreateProcess
+        # does not resolve a relative path written with forward slashes
+        # ("tools/cpu/llama-server.exe") and fails with WinError 2.
+        self.binary = os.path.abspath(binary) if os.path.exists(binary) else binary
         self.model_paths = dict(model_paths)
         self.host = host
         self.port = port

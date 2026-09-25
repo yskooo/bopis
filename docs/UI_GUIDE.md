@@ -160,6 +160,65 @@ BERTScore F1 0.412 (P 0.398 / R 0.427, rescaled)
 In **Workspace**, sending a message now keeps you in Workspace. Earlier, send
 called the chat tab's switch, which exited the split view.
 
+### 2.4 Same prompt again, and the three-way comparison
+
+Every Dolly prompt has a fixed ID (e.g. `dolly-07308`), shown on the Dolly
+button once loaded. Under each Dolly reply there are two buttons:
+
+- **↺ Ask again** loads that exact prompt back into the input. The dock's
+  **↺ recent** list does the same for the last 15 Dolly prompts.
+- **⚖ Compare default · random search · BOPIS** runs that same prompt under
+  the three configurations from the loaded run: the unoptimized default, the
+  random-search pick, and `x*`. Each one starts its own llama-server with that
+  configuration (model, precision, threads, batch, GPU layers) on port 8081,
+  measures the answer, and then all three are BERTScored against the same Dolly
+  reference. The result is a table: energy, speed, F1, and the answer itself.
+
+This is the study's Stage 3 comparison on **one** prompt, using the study
+protocol (`/completion`, study template, `n_predict = t`, no system prompt). It
+is an illustration. The reported comparison is still the run's 500-prompt
+validation. It takes a minute or two, because each configuration loads its own
+model. It needs `bopis ui --llama-binary ...` (demo.ps1 passes it) and the model
+files in `models\`.
+
+**Random search is automated too.** Both search arms are algorithms in the tool.
+Random search tries 30 configurations at random (the baseline). BOPIS chooses
+its 30 with the surrogate model. Same budget, same selection rule. Neither is a
+person choosing.
+
+## 2b. Configurations: what BOPIS chooses from
+
+The **Configurations** tab makes the "selection" in Intelligent Configuration
+Selection visible:
+
+- **The funnel**: 2304 possible configurations. Minus Table H1's limits for this
+  machine (batch, GPU layers, threads). Minus each rejection rule, with its
+  count (doesn't fit in memory, precision not allowed on this GPU, and so on).
+  That leaves the feasible space BOPIS searches. Then the 30 it measured, the
+  Pareto front, and `x*`.
+- **Model × precision grid**: for each model and precision, how many runtime
+  settings are still possible and how much memory it needs, or why it was ruled
+  out. With a run loaded, it also shows how many each search arm tried, and
+  marks ★ `x*` and ◆ the random-search pick.
+- **The full list**: every feasible configuration, filterable by model, and by
+  whether BOPIS or random search tried it or it is on the front.
+
+Every number comes from `bopis_profile.js` (`hardware.feasible_space`) and the
+loaded run; the page only counts.
+
+## 2c. Starting LibreHardwareMonitor automatically
+
+```powershell
+.\tools\start-hwmon.ps1 -Install     # or: .\demo.ps1 ... -StartHwmon
+```
+
+This installs it with winget if needed and writes its settings: web server on
+port 8085, no authentication, start in the tray, and a **250 ms** refresh
+instead of 1 s (so every energy figure's ± range is about 4× narrower). Then it
+starts it as administrator and waits until the CPU Package sensor answers. The
+one Windows admin prompt cannot be avoided: RAPL is read through a kernel
+driver, so no tool (CLI or not) reads it without admin rights.
+
 ---
 
 ## 3. Dashboard

@@ -536,6 +536,10 @@ body::before {
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 5h8v14H3V5zm10 0h8v6h-8V5zm0 8h8v6h-8v-6z"/></svg>
             Workspace
         </li>
+        <li class="nav-item" onclick="sw('configs', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm13 0h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/></svg>
+            Configurations
+        </li>
         <li class="nav-item" onclick="sw('cfg', this)">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 C11.57,21.83,11.77,22,12,22h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.7z"/></svg>
             System Settings
@@ -772,6 +776,40 @@ body::before {
     </div>
 
     <!-- ─ SETTINGS PANEL ────────── -->
+    <div id="panel-configs" class="panel">
+        <div class="page-header">
+            <h1 class="page-title">Configuration Space</h1>
+            <h2 class="page-subtitle">What BOPIS chooses from, what it ruled out and why, and what it picked.</h2>
+        </div>
+        <div class="app-card">
+            <div class="card-header">From every possible configuration to x*</div>
+            <div id="cfg-funnel" style="font-size:13px;">Profile unavailable &mdash; run <code>python -m bopis profile --model-aware --write-js bopis_profile.js</code>.</div>
+        </div>
+        <div class="app-card" style="margin-top:16px;">
+            <div class="card-header">Model &times; precision on this machine</div>
+            <p style="font-size:12px; color:#718096; margin-bottom:10px;">
+                Each cell counts the runtime settings (t, b, g, c) still possible for that model and precision.
+                A cell with none says why. Once a run is loaded, it also shows how many each search arm tried,
+                and marks <b>x*</b>.
+            </p>
+            <div id="cfg-matrix" style="overflow-x:auto; font-size:12.5px;"></div>
+        </div>
+        <div class="app-card" style="margin-top:16px;">
+            <div class="card-header">Every feasible configuration</div>
+            <div style="margin-bottom:10px; font-size:12.5px;">
+                Model <select id="cfg-filter-model" onchange="renderConfigList()"></select>
+                &nbsp; Show <select id="cfg-filter-status" onchange="renderConfigList()">
+                    <option value="all">all</option>
+                    <option value="bopis">tried by BOPIS</option>
+                    <option value="rs">tried by random search</option>
+                    <option value="front">on the Pareto front</option>
+                </select>
+                <span id="cfg-list-count" style="color:#718096; margin-left:8px;"></span>
+            </div>
+            <div id="cfg-list" style="overflow-x:auto; max-height:420px; overflow-y:auto; font-size:12.5px;"></div>
+        </div>
+    </div>
+
     <div id="panel-cfg" class="panel">
         <div class="page-header">
             <h1 class="page-title">System Settings</h1>
@@ -867,6 +905,9 @@ body::before {
         <div class="input-wrapper">
             <button class="btn-dolly" id="dolly-btn" onclick="loadDollyPrompt()"
                     title="Load a random Dolly 15k prompt with its human reference answer, so the reply can be BERTScored">Dolly prompt</button>
+            <select class="btn-dolly" id="dolly-recent" onchange="loadDollyPrompt(this.value); this.value='';"
+                    title="Reload an earlier Dolly prompt by its ID, to ask it again or compare configurations on it"
+                    style="display:none; max-width:120px;"></select>
             <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" oninput="checkDollyArmed()" />
             <button class="btn-send" onclick="doChat()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
         </div>
@@ -1416,6 +1457,151 @@ function applyHardwareProfile() {
     renderRequirements(profile);
 }
 
+/* ── Configurations view ──────────────────────────────────────────────────
+ * The "selection" in Intelligent Configuration Selection, made visible: the
+ * feasible space from bopis_profile.js (hardware.feasible_space), and -- when
+ * a run is loaded -- what each search arm actually tried and what was picked.
+ * Nothing is computed here beyond counting; every set comes from Python.
+ */
+const CFG_KEY_RE = /^(?:([a-z0-9.\-]+)_)?t(\d+)_b(\d+)_(F32|F16|Q8_0|Q4_K_M)_g(All|\d+)_c(\d+)$/;
+
+function parseCfgKey(key) {
+    const m = CFG_KEY_RE.exec(String(key || ''));
+    if (!m) return null;
+    return { key, m: m[1] || 'qwen2.5-1.5b', t: +m[2], b: +m[3], p: m[4], g: m[5], c: +m[6] };
+}
+
+function runSets() {
+    const pareto = (RUN_DATA && RUN_DATA.pareto) || {};
+    const bopis = new Set((pareto.points || []).map(p => p.config));
+    const front = new Set((pareto.points || []).filter(p => p.on_front).map(p => p.config));
+    const rs = new Set((pareto.random_points || []).map(p => p.config));
+    const xstar = (RUN_DATA && RUN_DATA.selection && RUN_DATA.selection.config_key) || null;
+    const rsPick = (RUN_DATA && RUN_DATA.random_search_selection
+        && RUN_DATA.random_search_selection.config_key) || null;
+    return { bopis, front, rs, xstar, rsPick, loaded: Boolean(RUN_DATA && RUN_DATA.pareto) };
+}
+
+function renderConfigurations() {
+    const profile = window.BOPIS_PROFILE;
+    if (!profile || !profile.feasible) return;
+    const space = profile.configuration_space || {};
+    const feasible = profile.feasible.map(parseCfgKey).filter(Boolean);
+    const sets = runSets();
+    const byRule = space.rejected_by_rule || {};
+    const ruleText = {
+        'HW-P1': 'precision not allowed on this GPU (offload only)',
+        'HW-P2': 'precision not allowed on this GPU (offload only)',
+        'HW-P3': 'precision not allowed on this GPU (offload only)',
+        'HW-P0': 'does not fit in memory',
+        'HW-B0': 'KV cache too large for VRAM',
+        'ENERGY-SCOPE': 'outside what the energy instrument measures',
+        'DUPLICATE': 'same placement as g = All',
+        'NO-GGUF': 'model file not downloaded'
+    };
+
+    // Funnel: every stage is a count the reader can check against a file.
+    // Table H1's domain rules narrow b, g and c before any single configuration
+    // is built, so they leave no per-configuration rejection; their share is
+    // whatever the recorded rejections do not account for.
+    const host = profile.host_profile || {};
+    const domainCut = space.n_unconstrained - space.n_feasible - space.n_rejected;
+    const domainRules = (host.rules_fired || []).filter(r => !r.startsWith('HW-P')).join(', ');
+    const steps = [
+        [`${space.n_unconstrained}`, 'possible configurations (4 models × 4 t × 4 b × 3 precisions × 4 g × 3 c)'],
+        ...(domainCut > 0 ? [[`−${domainCut}`,
+            `Table H1 (${escapeHtml(domainRules)}): this machine allows b ∈ {${(host.permitted_batch_sizes || []).join(', ')}}, `
+            + `g ∈ {${(host.permitted_gpu_layers || []).map(g => g === -1 ? 'All' : g).join(', ')}}, `
+            + `c ∈ {${(host.permitted_cpu_threads || []).join(', ')}}`]] : []),
+        ...Object.entries(byRule).map(([rule, n]) => [`−${n}`, `${rule}: ${ruleText[rule] || rule}`]),
+        [`${space.n_feasible}`, `feasible on this machine${profile.cpu_only ? ' (CPU-only)' : ''} — the space BOPIS searches`]
+    ];
+    if (sets.loaded) {
+        steps.push([`${sets.bopis.size}`, 'measured by BOPIS (prior-weighted seeds, then constrained Expected Improvement)']);
+        steps.push([`${sets.front.size}`, 'on the Pareto front (no other tried configuration beats them on energy, speed and quality at once)']);
+        steps.push(['1', `x* = <code>${escapeHtml(sets.xstar || 'none')}</code> — lowest energy on the front that keeps QRR ≥ 98% and SRR ≥ 95%`]);
+    } else {
+        steps.push(['…', 'load a run (Dashboard → Load run data) to see what BOPIS tried and picked']);
+    }
+    document.getElementById('cfg-funnel').innerHTML = steps.map(([n, text]) => `
+        <div style="display:flex; gap:12px; padding:6px 0; border-bottom:1px solid #EDF2F7;">
+            <b style="min-width:64px; text-align:right; font-family:'IBM Plex Mono', monospace;">${n}</b>
+            <span>${text}</span>
+        </div>`).join('');
+
+    // Matrix.
+    const models = Object.keys(profile.models || {});
+    const precisions = ['F16', 'Q8_0', 'Q4_K_M'];
+    const reqs = profile.requirements || [];
+    const rejections = profile.rejections || [];
+    const cell = (model, precision) => {
+        const here = feasible.filter(c => c.m === model && c.p === precision);
+        const req = reqs.find(r => r.model === model && r.precision === precision);
+        const need = req ? `${Number(req.cpu_only_ram_gib).toFixed(1)} GiB` : '';
+        if (!here.length) {
+            const rule = rejections.find(r => {
+                const c = parseCfgKey(r.config);
+                return c && c.m === model && c.p === precision;
+            });
+            const why = rule ? (ruleText[rule.rule] || rule.rule) : 'not feasible';
+            return `<td style="background:#FFF5F5; color:#9B2C2C;">✗ ${escapeHtml(why)}<br><span style="color:#A0AEC0;">needs ${need}</span></td>`;
+        }
+        const keys = here.map(c => c.key);
+        const tried = keys.filter(k => sets.bopis.has(k)).length;
+        const triedRs = keys.filter(k => sets.rs.has(k)).length;
+        const star = keys.includes(sets.xstar) ? ' <b style="color:#2F855A;">★ x*</b>' : '';
+        const rsStar = keys.includes(sets.rsPick) ? ' <span style="color:#805AD5;">◆ RS pick</span>' : '';
+        const runInfo = sets.loaded
+            ? `<br><span style="color:#4A5568;">BOPIS tried ${tried} · RS tried ${triedRs}</span>` : '';
+        return `<td style="background:#F0FFF4;">✓ <b>${here.length}</b> settings${star}${rsStar}`
+            + `<br><span style="color:#A0AEC0;">needs ${need}</span>${runInfo}</td>`;
+    };
+    document.getElementById('cfg-matrix').innerHTML = `
+        <table style="width:100%; border-collapse:separate; border-spacing:4px;">
+            <thead><tr><th></th>${precisions.map(p => `<th>${p}</th>`).join('')}</tr></thead>
+            <tbody>${models.map(m => `<tr><th style="text-align:left;">${escapeHtml(profile.models[m].label)}</th>
+                ${precisions.map(p => cell(m, p)).join('')}</tr>`).join('')}</tbody>
+        </table>`;
+
+    const select = document.getElementById('cfg-filter-model');
+    if (!select.options.length) {
+        select.innerHTML = '<option value="">all</option>'
+            + models.map(m => `<option value="${m}">${escapeHtml(profile.models[m].label)}</option>`).join('');
+    }
+    renderConfigList();
+}
+
+function renderConfigList() {
+    const profile = window.BOPIS_PROFILE;
+    if (!profile || !profile.feasible) return;
+    const sets = runSets();
+    const model = document.getElementById('cfg-filter-model').value;
+    const status = document.getElementById('cfg-filter-status').value;
+    const rows = profile.feasible.map(parseCfgKey).filter(Boolean)
+        .filter(c => !model || c.m === model)
+        .filter(c => status === 'all'
+            || (status === 'bopis' && sets.bopis.has(c.key))
+            || (status === 'rs' && sets.rs.has(c.key))
+            || (status === 'front' && sets.front.has(c.key)));
+    document.getElementById('cfg-list-count').textContent = `${rows.length} configuration${rows.length === 1 ? '' : 's'}`;
+    const tag = c => [
+        c.key === sets.xstar ? '<b style="color:#2F855A;">★ x*</b>' : '',
+        c.key === sets.rsPick ? '<span style="color:#805AD5;">◆ RS pick</span>' : '',
+        sets.front.has(c.key) ? 'front' : '',
+        sets.bopis.has(c.key) ? 'BOPIS' : '',
+        sets.rs.has(c.key) ? 'RS' : ''
+    ].filter(Boolean).join(' · ');
+    document.getElementById('cfg-list').innerHTML = `
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="text-align:left; color:#4A5568; position:sticky; top:0; background:#fff;">
+                <th>model</th><th>precision</th><th>t (max tokens)</th><th>b (batch)</th><th>g (GPU layers)</th><th>c (threads)</th><th>in this run</th>
+            </tr></thead>
+            <tbody>${rows.map(c => `<tr style="border-top:1px solid #EDF2F7;">
+                <td>${escapeHtml(c.m)}</td><td><code>${c.p}</code></td><td>${c.t}</td><td>${c.b}</td>
+                <td>${c.g}</td><td>${c.c}</td><td>${tag(c)}</td></tr>`).join('')}</tbody>
+        </table>`;
+}
+
 /* The "can this machine run it?" table, from bopis_profile.js. Every number
  * comes from hardware.requirements_table(); the page only formats it. */
 function renderRequirements(profile) {
@@ -1477,6 +1663,7 @@ function sw(name, btn) {
     // while the panel is display:none. They must be redrawn after the panel
     // becomes visible or they render at the fallback minimum width.
     if (name === 'tech') setTimeout(() => { drawPareto3D(); drawConvergence(); }, 100);
+    if (name === 'configs') renderConfigurations();
 }
 
 /* ── Workspace mode ────────────────────────────────────────────────────────
@@ -1926,6 +2113,7 @@ async function detectBridge() {
         BRIDGE = null;
     }
     renderInstrumentPill();
+    renderDollyRecent();
 }
 
 function renderInstrumentPill() {
@@ -1958,12 +2146,39 @@ function renderInstrumentPill() {
     if (dolly) dolly.style.display = (BRIDGE.dolly && BRIDGE.dolly.n) ? '' : 'none';
 }
 
-async function loadDollyPrompt() {
+/* Dolly prompts are identified by their row id (e.g. dolly-11150), so the same
+ * prompt can be loaded again -- to re-ask it, or to compare configurations on
+ * exactly the same input. Recent ids are kept in localStorage. */
+const DOLLY_RECENT_KEY = 'bopis.dolly.recent';
+
+function dollyRecent() {
+    try { return JSON.parse(localStorage.getItem(DOLLY_RECENT_KEY) || '[]'); } catch (_e) { return []; }
+}
+
+function rememberDolly(prompt) {
+    const entry = { id: prompt.prompt_id, task: prompt.task_type, head: prompt.instruction.slice(0, 48) };
+    const list = [entry, ...dollyRecent().filter(e => e.id !== entry.id)].slice(0, 15);
+    try { localStorage.setItem(DOLLY_RECENT_KEY, JSON.stringify(list)); } catch (_e) { /* private mode */ }
+    renderDollyRecent();
+}
+
+function renderDollyRecent() {
+    const select = document.getElementById('dolly-recent');
+    if (!select) return;
+    const list = dollyRecent();
+    select.style.display = (BRIDGE && list.length) ? '' : 'none';
+    select.innerHTML = '<option value="">↺ recent</option>' + list.map(e =>
+        `<option value="${escapeHtml(e.id)}">${escapeHtml(e.id)} · ${escapeHtml(e.head)}</option>`).join('');
+}
+
+async function loadDollyPrompt(promptId) {
     if (!BRIDGE) return;
     try {
-        const response = await fetch(`${BRIDGE_BASE}/api/dolly`, { cache: 'no-store' });
+        const query = promptId ? `?id=${encodeURIComponent(promptId)}` : '';
+        const response = await fetch(`${BRIDGE_BASE}/api/dolly${query}`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         DOLLY_PENDING = await response.json();
+        rememberDolly(DOLLY_PENDING);
         const inp = document.getElementById('ci');
         // The input is one line, so the study template's paragraph break is
         // shown as a space. The model is sent the template's exact text.
@@ -1984,7 +2199,7 @@ function checkDollyArmed() {
     if (!btn || !inp) return;
     const armed = DOLLY_PENDING && inp.value.trim() === DOLLY_PENDING.text.trim();
     btn.classList.toggle('armed', Boolean(armed));
-    btn.textContent = armed ? `Dolly · ${DOLLY_PENDING.task_type}` : 'Dolly prompt';
+    btn.textContent = armed ? `Dolly · ${DOLLY_PENDING.prompt_id} · ${DOLLY_PENDING.task_type}` : 'Dolly prompt';
 }
 
 function renderSessionTally() {
@@ -2372,8 +2587,10 @@ async function doChat() {
         const qualityHtml = reference
             ? `<span id="${scoreId}" class="q-pending">BERTScore scoring against the Dolly reference&hellip;</span>`
             : `<span title="BERTScore compares a reply against a human reference answer; free chat has none. Use the Dolly prompt button for a scorable prompt.">BERTScore <b>n/a</b> (free chat has no reference &mdash; use <i>Dolly prompt</i>)</span>`;
+        const compareId = `cmp-${Date.now()}`;
         const referenceHtml = reference
             ? `<details class="ref-note"><summary>Dolly reference (${escapeHtml(reference.prompt_id)}, ${escapeHtml(reference.task_type)})</summary>${renderMarkdown(reference.reference)}</details>`
+              + dollyActionsHtml(reference.prompt_id, compareId)
             : '';
 
         pending.innerHTML = `
@@ -2514,6 +2731,84 @@ function bridgeEnergy(energy, generatedTokens) {
             + ` &middot; <b>PHP ${(php * 1000).toFixed(3)}</b>/1k replies`
             + ` &middot; <b>${energy.measured ? 'measured (RAPL)' : 'estimated (Mode C)'}</b></span>`
     };
+}
+
+/* The three conditions of the study's comparison, from the loaded run. */
+function comparisonConfigs() {
+    if (!RUN_DATA) return null;
+    const configs = {
+        unoptimized: RUN_DATA.default_config && RUN_DATA.default_config.key,
+        random_search: RUN_DATA.random_search_selection && RUN_DATA.random_search_selection.config_key,
+        bopis: RUN_DATA.selection && RUN_DATA.selection.config_key
+    };
+    return Object.values(configs).every(Boolean) ? configs : null;
+}
+
+function dollyActionsHtml(promptId, compareId) {
+    const canCompare = BRIDGE && BRIDGE.compare && BRIDGE.compare.available && comparisonConfigs();
+    const why = !BRIDGE || !(BRIDGE.compare && BRIDGE.compare.available)
+        ? 'Start bopis ui with --llama-binary to enable the comparison'
+        : 'Load a run first (Dashboard → Load run data): the comparison uses its default, random-search pick and x*';
+    return `
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-dolly" onclick="loadDollyPrompt('${escapeHtml(promptId)}')"
+                title="Load this exact Dolly prompt into the input again">↺ Ask again</button>
+            <button class="btn-dolly" ${canCompare ? '' : 'disabled'} title="${canCompare ? '' : escapeHtml(why)}"
+                onclick="compareOnPrompt('${escapeHtml(promptId)}', '${compareId}', this)">
+                ⚖ Compare default · random search · BOPIS on this prompt</button>
+        </div>
+        <div id="${compareId}"></div>`;
+}
+
+const CONDITION_LABEL = { unoptimized: 'Unoptimized default', random_search: 'Random search pick', bopis: 'BOPIS x*' };
+
+async function compareOnPrompt(promptId, targetId, button) {
+    const target = document.getElementById(targetId);
+    const configs = comparisonConfigs();
+    if (!target || !configs) return;
+    button.disabled = true;
+    target.innerHTML = `<div class="ref-note">Running the same prompt under three configurations —
+        each one loads its own model, so this takes a minute or two&hellip;</div>`;
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/compare`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt_id: promptId, configs })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        const num = (v, dp) => Number.isFinite(Number(v)) ? Number(v).toFixed(dp) : 'n/a';
+        const rows = result.rows.map(row => {
+            if (row.error) {
+                return `<tr><td>${CONDITION_LABEL[row.condition] || escapeHtml(row.condition)}</td>
+                    <td><code>${escapeHtml(row.config)}</code></td><td colspan="4" style="color:#C53030;">${escapeHtml(row.error)}</td></tr>`;
+            }
+            const e = row.energy || {};
+            const q = row.quality || {};
+            return `<tr>
+                <td>${CONDITION_LABEL[row.condition] || escapeHtml(row.condition)}</td>
+                <td><code>${escapeHtml(row.config)}</code></td>
+                <td class="${e.measured ? 'meas' : 'est'}">${e.measured ? '' : '~'}${num(e.energy_j, 1)} J</td>
+                <td>${num(row.tokens_per_s, 1)} tok/s</td>
+                <td>${num(q.quality_f1, 3)}</td>
+                <td><details><summary>${num(row.n_generated_tokens, 0)} tok</summary>${renderMarkdown(row.text || '')}</details></td>
+            </tr>`;
+        }).join('');
+        target.innerHTML = `
+            <div class="ref-note" style="border-left-color:#805AD5;">
+                <b>Same Dolly prompt, three configurations</b>
+                <table class="metrics" style="width:100%; border-collapse:collapse; display:table; margin-top:6px;">
+                    <thead><tr style="text-align:left;"><th>Condition</th><th>Configuration</th><th>Energy</th>
+                        <th>Speed</th><th>BERTScore F1</th><th>Answer</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <div style="color:#718096; margin-top:4px;">${escapeHtml(result.protocol)}</div>
+            </div>`;
+    } catch (error) {
+        target.innerHTML = `<div class="ref-note" style="border-left-color:#C53030;">Comparison failed: ${escapeHtml(error.message)}</div>`;
+    } finally {
+        button.disabled = false;
+    }
 }
 
 async function scoreReply(elementId, candidate, referenceText) {

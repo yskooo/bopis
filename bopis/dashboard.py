@@ -51,6 +51,7 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
             {
                 "config": evaluation.config.key(),
                 "label": str(evaluation.config),
+                "model": evaluation.config.m,
                 "precision": evaluation.config.p,
                 "iteration": evaluation.iteration,
                 "source": evaluation.source,
@@ -66,6 +67,7 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
         {
             "config": evaluation.config.key(),
             "label": str(evaluation.config),
+            "model": evaluation.config.m,
             "precision": evaluation.config.p,
             "iteration": evaluation.iteration,
             "energy_j": evaluation.energy_j,

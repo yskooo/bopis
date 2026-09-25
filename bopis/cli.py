@@ -99,6 +99,11 @@ def cmd_profile(args: argparse.Namespace) -> int:
             # What each model x precision needs, for the UI's "can I run it?"
             # answers. Deterministic footprint arithmetic, not a forecast.
             "requirements": requirements,
+            # Every configuration the search may choose from, for the UI's
+            # Configurations view -- the "selection" in Intelligent
+            # Configuration Selection, made visible.
+            "feasible": [cfg.key() for cfg in space],
+            "cpu_only": bool(args.cpu_only),
             "models": {
                 key: {"label": v.label, "n_params": v.n_params,
                       "n_layers": v.n_layers, "hf_repo": v.hf_repo}
@@ -412,13 +417,30 @@ def _parse_model_paths(values: Optional[Sequence[str]]) -> dict:
 
 
 def _gguf_sizes(model_paths: dict) -> dict:
-    """``{(model, variant): bytes}`` for every supplied GGUF that exists."""
+    """``{(model, variant): bytes}`` for every supplied GGUF that exists.
+
+    Split GGUFs are counted across all their shards (see :mod:`bopis.gguf`).
+    """
+    from bopis import gguf
+
     sizes = {}
     for key, path in model_paths.items():
         model_key, variant = key.split(":", 1)
         if os.path.exists(path):
-            sizes[(model_key, variant)] = os.path.getsize(path)
+            try:
+                sizes[(model_key, variant)] = gguf.total_size(path)
+            except FileNotFoundError as exc:
+                print(f"  skipping {key}: {exc}")
     return sizes
+
+
+def _model_paths(args: argparse.Namespace) -> dict:
+    """Explicit ``--model`` flags, on top of whatever ``--models-dir`` holds."""
+    from bopis import gguf
+
+    paths = gguf.discover(args.models_dir) if getattr(args, "models_dir", None) else {}
+    paths.update(_parse_model_paths(getattr(args, "model", None)))
+    return paths
 
 
 def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
@@ -440,7 +462,7 @@ def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
             measure_idle_baseline,
         )
 
-        model_paths = _parse_model_paths(args.model)
+        model_paths = _model_paths(args)
         if not model_paths:
             raise SystemExit(
                 "--backend llama-server needs at least one model, e.g.\n"
@@ -689,7 +711,14 @@ def cmd_ui(args: argparse.Namespace) -> int:
         bertscore_layer=args.bertscore_layer,
         cpu_tdp_w=args.cpu_tdp_w,
         cpu_idle_w=args.cpu_idle_w,
+        llama_binary=args.llama_binary,
+        model_paths=_model_paths(args),
+        compare_port=args.compare_port,
+        ctx_size=args.ctx_size,
     )
+    if args.llama_binary:
+        print(_kv("Comparison", f"{len(instruments.model_paths)} GGUFs, port "
+                  f"{args.compare_port}"))
     ui_server.serve(instruments, host=args.host, port=args.port)
     return 0
 
@@ -802,7 +831,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     # file sizes replace the footprint estimate in the memory guard.
     gguf_bytes = None
     if args.backend == "llama-server":
-        gguf_bytes = _gguf_sizes(_parse_model_paths(args.model))
+        gguf_bytes = _gguf_sizes(_model_paths(args))
         present = sorted(f"{m}:{p}" for m, p in gguf_bytes)
         print(_kv("GGUFs supplied", ", ".join(present) or "none found on disk"))
     space, rejections = hardware.feasible_space(
@@ -1121,13 +1150,6 @@ def cmd_report(args: argparse.Namespace) -> int:
 # --------------------------------------------------------------------------- #
 
 
-#: Configuration keys. The model prefix was added by A-40; keys from earlier
-#: runs have none and denote the default model.
-_CONFIG_KEY = re.compile(
-    r"^(?:([a-z0-9.\-]+)_)?t(\d+)_b(\d+)_(F32|F16|Q8_0|Q4_K_M)_g(All|\d+)_c(\d+)$"
-)
-
-
 def _selected_config(run: artifacts.RunDirectory) -> Config:
     """Read the BOPIS-selected configuration from ``selection.csv``."""
     path = run.path("selection.csv")
@@ -1138,20 +1160,12 @@ def _selected_config(run: artifacts.RunDirectory) -> Config:
         for row in csv.DictReader(handle):
             if row.get("selected", "").strip().lower() not in {"true", "1", "yes"}:
                 continue
-            match = _CONFIG_KEY.fullmatch(row.get("config", "").strip())
-            if not match:
+            config = cs.parse_key(row.get("config", ""))
+            if config is None:
                 raise SystemExit(
                     f"invalid selected configuration key: {row.get('config')!r}"
                 )
-            model_key, t, batch, precision, gpu_layers, threads = match.groups()
-            return Config(
-                t=int(t),
-                b=int(batch),
-                p=precision,
-                g=cs.ALL_LAYERS if gpu_layers == "All" else int(gpu_layers),
-                c=int(threads),
-                m=model_key or cs.DEFAULT_M,
-            )
+            return config
     raise SystemExit(f"{path} has no selected BOPIS configuration")
 
 
@@ -1160,7 +1174,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     run = artifacts.RunDirectory(args.run)
     config = _selected_config(run)
     profile = hardware.profile_host()
-    model_paths = _parse_model_paths(args.model)
+    model_paths = _model_paths(args)
     space, rejections = hardware.feasible_space(
         profile,
         models=hardware.MODEL_LADDER,
@@ -1372,8 +1386,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="GGUF path per model and precision, e.g. --model "
         "qwen2.5-3b:Q4_K_M=/models/qwen2.5-3b-instruct-q4_k_m.gguf (repeatable; "
         "a bare VARIANT means the default model, qwen2.5-1.5b). Only supplied "
-        "pairs are searched. Old form: --model "
-        "Q4_K_M=/models/mistral.Q4_K_M.gguf (repeatable)",
+        "pairs are searched. Added on top of --models-dir.",
+    )
+    p_run.add_argument(
+        "--models-dir",
+        default="models",
+        help="directory scanned for the official Qwen2.5 GGUF files, so each "
+        "one need not be passed with --model (default: %(default)s)",
     )
     p_run.add_argument("--llama-host", default="127.0.0.1")
     p_run.add_argument("--llama-port", type=int, default=8080)
@@ -1427,6 +1446,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_ui.add_argument("--data-dir", default="data", help="where Dolly 15k lives")
     p_ui.add_argument(
+        "--llama-binary",
+        default=None,
+        help="llama-server executable; enables the default vs random-search vs "
+        "BOPIS comparison on a Dolly prompt",
+    )
+    p_ui.add_argument("--model", action="append", metavar="[MODEL:]VARIANT=PATH")
+    p_ui.add_argument("--models-dir", default="models")
+    p_ui.add_argument(
+        "--compare-port",
+        type=int,
+        default=8081,
+        help="port for the comparison's own llama-server (8080 stays the chat's)",
+    )
+    p_ui.add_argument("--ctx-size", type=int, default=cs.FIXED_CTX_SIZE)
+    p_ui.add_argument(
         "--cpu-tdp-w",
         type=float,
         default=estimator.DEFAULT_CPU_TDP_W,
@@ -1462,9 +1496,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument(
         "--model",
         action="append",
-        required=True,
         metavar="[MODEL:]VARIANT=PATH",
         help="GGUF path per model and precision; repeat for each available file",
+    )
+    p_serve.add_argument(
+        "--models-dir",
+        default="models",
+        help="directory scanned for the official Qwen2.5 GGUF files",
     )
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8080)
