@@ -71,6 +71,9 @@ class EnergyMethod:
     NVML_ENERGY_COUNTER = "nvml_energy_counter"
     NVML_POWER_INTEGRATION = "nvml_power_integration"
     RESOURCE_ALLOCATION_ESTIMATE = "resource_allocation_estimate"
+    #: Intel RAPL package power, read from OHM/LHM, lag-compensated and
+    #: integrated. See :mod:`bopis.monitor.hwmon`.
+    RAPL_HWMON_POWER_INTEGRATION = "rapl_hwmon_power_integration"
     UNAVAILABLE = "unavailable"
 
 

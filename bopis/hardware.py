@@ -31,7 +31,7 @@ from __future__ import annotations
 import dataclasses
 import platform
 import sys
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 from bopis import config_space as cs
 from bopis.config_space import ALL_LAYERS, Config
@@ -77,8 +77,9 @@ class ModelSpec:
         )
 
 
-#: Table 3.3's base model. Mistral 7B Instruct v0.3 uses grouped-query attention
-#: (8 KV heads for 32 query heads), which is why its KV cache is modest.
+#: Table 3.3's original base model. Superseded as the study model by the Qwen2.5
+#: ladder (amendment A-40); kept so a single-model footprint check is still
+#: expressible and earlier runs remain interpretable.
 MISTRAL_7B_INSTRUCT_V03 = ModelSpec(
     name="Mistral-7B-Instruct-v0.3",
     n_params=7.248e9,
@@ -86,6 +87,22 @@ MISTRAL_7B_INSTRUCT_V03 = ModelSpec(
     n_kv_heads=8,
     head_dim=128,
 )
+
+
+def spec_for(key: str) -> ModelSpec:
+    """The footprint model for one rung of :data:`bopis.config_space.MODELS`."""
+    v = cs.MODELS[key]
+    return ModelSpec(
+        name=v.label,
+        n_params=v.n_params,
+        n_layers=v.n_layers,
+        n_kv_heads=v.n_kv_heads,
+        head_dim=v.head_dim,
+    )
+
+
+#: Footprint models for the searched ladder, keyed like ``Config.m``.
+MODEL_LADDER: Dict[str, ModelSpec] = {key: spec_for(key) for key in cs.M_VALUES}
 
 
 # --------------------------------------------------------------------------- #
@@ -297,10 +314,16 @@ def _fits_memory(
     profile: HostProfile,
     model: ModelSpec,
     ctx_size: int,
+    weight_bytes: Optional[float] = None,
 ) -> Optional[Rejection]:
-    """Apply HW-P0 and HW-B0 to a single configuration."""
+    """Apply HW-P0 and HW-B0 to a single configuration.
+
+    *weight_bytes* is the actual GGUF file size when known, which beats the
+    bits-per-weight estimate: K-quants keep some tensors at higher precision,
+    so a real Q4_K_M file is somewhat larger than 4.83 bits x parameters.
+    """
     total_layers = model.n_layers
-    weights = model.weight_bytes(cfg.p)
+    weights = weight_bytes if weight_bytes else model.weight_bytes(cfg.p)
     kv = model.kv_cache_bytes(ctx_size, cfg.b)
     gpu_fraction = cfg.gpu_fraction(total_layers)
 
@@ -342,33 +365,121 @@ def feasible_space(
     model: Optional[ModelSpec] = None,
     ctx_size: int = cs.FIXED_CTX_SIZE,
     min_gpu_layers: Optional[int] = None,
+    max_gpu_layers: Optional[int] = None,
+    models: Optional[Mapping[str, ModelSpec]] = None,
+    gguf_bytes: Optional[Mapping[Tuple[str, str], int]] = None,
 ) -> Tuple[List[Config], List[Rejection]]:
     """Build ``X_feasible`` for *profile*.
 
-    Returns ``(configs, rejections)``. When *model* is ``None`` only the literal
-    Table H1 domains are applied; supplying a :class:`ModelSpec` additionally
-    enforces HW-P0 / HW-B0.
+    Returns ``(configs, rejections)``. Which models are searched, and how their
+    memory is checked:
+
+    * *models* -- the searched rungs, each checked against its own footprint
+      (HW-P0 / HW-B0). The normal study mode: ``models=MODEL_LADDER``.
+    * *model* -- a single footprint applied to the default model only. The
+      pre-A-40 single-model mode.
+    * neither -- every rung, literal Table H1 domains, no memory guards (the
+      simulator).
+
+    *gguf_bytes* maps ``(model, precision)`` to the size of the GGUF file the
+    run will actually load. When given, it replaces the footprint estimate, and
+    any pair without a file is rejected ``NO-GGUF`` -- a configuration whose
+    weights are not on disk cannot be measured, so offering it to the search
+    would waste an evaluation.
+
+    **Precision and offload (amendment A-41).** Table H1's HW-P rules key the
+    precision domain on VRAM. That is right for layers placed *on* the GPU and
+    wrong for ``g = 0``, where the weights live in system RAM and VRAM plays no
+    part: on a 2 GB MX330 it was excluding F16 for CPU-only inference even
+    though a 1.5B model at F16 needs under 3 GiB of RAM. So the VRAM precision
+    rule now applies only to configurations with ``g > 0``; at ``g = 0`` the
+    HW-P0 RAM guard alone decides.
 
     *min_gpu_layers* excludes configurations with too little GPU offload. This
     exists because GPU-only energy accounting is not a valid objective at
     ``g = 0``: with no layer on the GPU the measured energy approaches idle, and
     Bayesian Optimization would "discover" that CPU-only inference is free
     (amendment A-19). Study runs should set this; simulator runs need not.
+
+    *max_gpu_layers* is the reverse guard, for CPU-package energy accounting
+    (RAPL): that instrument sees nothing on the discrete GPU, so offloaded
+    layers would run for free as far as the objective could tell. ``0`` pins
+    the search to CPU-only inference.
     """
+    if models is not None:
+        m_values: Sequence[str] = [k for k in cs.M_VALUES if k in models]
+    elif model is not None:
+        m_values = (cs.DEFAULT_M,)
+    else:
+        m_values = cs.M_VALUES
+
     space = cs.build_space(
         t_values=cs.T_VALUES,
         b_values=profile.permitted_batch_sizes,
-        p_values=profile.permitted_precisions,
+        # Every precision is built; the VRAM rule is applied per configuration
+        # below, because it only binds when layers are offloaded (A-41).
+        p_values=cs.P_VALUES,
         g_values=profile.permitted_gpu_layers,
         c_values=profile.permitted_cpu_threads,
+        m_values=m_values,
+    )
+    vram_precisions = set(profile.permitted_precisions)
+    p_rule = next(
+        (r for r in profile.rules_fired if r.startswith("HW-P")), "HW-P"
     )
 
     kept: List[Config] = []
     rejections: List[Rejection] = []
 
+    def spec(cfg: Config) -> Optional[ModelSpec]:
+        if models is not None:
+            return models.get(cfg.m)
+        return model
+
     for cfg in space:
+        cfg_spec = spec(cfg)
+        layers = cfg_spec.n_layers if cfg_spec else (cfg.n_layers or 32)
+
+        if gguf_bytes is not None and (cfg.m, cfg.p) not in gguf_bytes:
+            rejections.append(
+                Rejection(cfg, "NO-GGUF", f"no GGUF file supplied for {cfg.m} {cfg.p}")
+            )
+            continue
+
+        resolved_g = cfg.resolved_gpu_layers(layers)
+        if cfg.g != 0 and cfg.p not in vram_precisions:
+            rejections.append(
+                Rejection(
+                    cfg,
+                    p_rule,
+                    f"{cfg.p} is not permitted for GPU offload on "
+                    f"{profile.vram_gib:.2f} GiB VRAM (g={cfg.g_label}); at g=0 "
+                    "the weights stay in system RAM and this rule does not apply",
+                )
+            )
+            continue
+
+        # On a shallow model a numeric g can reach every layer, making it the
+        # same placement as "All". Evaluating both would spend budget measuring
+        # one configuration twice.
+        if (
+            cfg.g != ALL_LAYERS
+            and cfg.g > 0
+            and resolved_g >= layers
+            and ALL_LAYERS in profile.permitted_gpu_layers
+        ):
+            rejections.append(
+                Rejection(
+                    cfg,
+                    "DUPLICATE",
+                    f"g={cfg.g} covers all {layers} layers of {cfg.m}; "
+                    "identical to g=All",
+                )
+            )
+            continue
+
         if min_gpu_layers is not None:
-            resolved = cfg.resolved_gpu_layers(model.n_layers if model else 32)
+            resolved = resolved_g
             if resolved < min_gpu_layers:
                 rejections.append(
                     Rejection(
@@ -381,8 +492,28 @@ def feasible_space(
                 )
                 continue
 
-        if model is not None:
-            rejection = _fits_memory(cfg, profile, model, ctx_size)
+        if max_gpu_layers is not None:
+            resolved = resolved_g
+            if resolved > max_gpu_layers:
+                rejections.append(
+                    Rejection(
+                        cfg,
+                        "ENERGY-SCOPE",
+                        f"g={cfg.g_label} resolves to {resolved} layers, above the "
+                        f"GPU-layer ceiling of {max_gpu_layers}; CPU-package "
+                        "energy accounting would not measure the offloaded work",
+                    )
+                )
+                continue
+
+        if cfg_spec is not None:
+            rejection = _fits_memory(
+                cfg,
+                profile,
+                cfg_spec,
+                ctx_size,
+                weight_bytes=(gguf_bytes or {}).get((cfg.m, cfg.p)),
+            )
             if rejection is not None:
                 rejections.append(rejection)
                 continue
@@ -400,10 +531,86 @@ def summarize_space(
     for rej in rejections:
         by_rule[rej.rule] = by_rule.get(rej.rule, 0) + 1
     variants = sorted({cfg.p for cfg in space}, key=cs.P_VALUES.index)
+    known = [m for m in cs.M_VALUES if any(cfg.m == m for cfg in space)]
     return {
         "n_feasible": len(space),
         "n_rejected": len(rejections),
         "rejected_by_rule": by_rule,
         "n_unconstrained": len(cs.full_space()),
         "precision_variants_present": variants,
+        "models_present": known,
+        "model_precision_pairs": sorted(
+            {f"{cfg.m}:{cfg.p}" for cfg in space},
+            key=lambda s: (cs.M_VALUES.index(s.split(":")[0])
+                           if s.split(":")[0] in cs.M_VALUES else 99, s),
+        ),
     }
+
+
+#: Share of installed RAM assumed unavailable to inference even on an idle
+#: machine, for the requirements table's "could this ever fit" verdict.
+OS_RAM_RESERVE_FRACTION = 0.15
+
+
+def requirements_table(
+    profile: HostProfile,
+    ctx_size: int = cs.FIXED_CTX_SIZE,
+    precisions: Sequence[str] = ("F32",) + cs.P_VALUES,
+    models: Optional[Mapping[str, ModelSpec]] = None,
+) -> List[Dict[str, object]]:
+    """What each (model, precision) needs, and whether this host has it.
+
+    Deterministic arithmetic, the same as HW-P0 -- nothing is trained or
+    learned: ``weights = params x bits_per_weight / 8`` plus the KV cache for
+    one slot at *ctx_size*. It answers the question a user asks before forcing
+    a model onto a machine, and it reports the dropped F32 variant too, so the
+    answer to "what would full precision need?" is on the table rather than
+    implied.
+
+    Verdicts, for CPU-only inference (``g = 0``, weights in system RAM):
+
+    * ``fits`` -- fits in the RAM free *now*.
+    * ``free RAM`` -- fits in installed RAM, but other applications are using
+      the difference; closing them is enough.
+    * ``needs more RAM`` -- exceeds installed RAM less the OS reserve
+      (:data:`OS_RAM_RESERVE_FRACTION`); the machine cannot run it.
+
+    ``full_gpu_fits`` says whether the whole model plus KV cache fits in VRAM,
+    i.e. whether ``g = All`` is possible. llama.cpp's compute buffers add a few
+    hundred MiB beyond both figures, so a verdict at the margin is optimistic.
+    """
+    models = models or MODEL_LADDER
+    # Installed RAM is never all available to one process: the OS and its
+    # services keep a share even on an otherwise idle machine. The reserve is
+    # a round, stated figure, not a measurement.
+    usable_installed = profile.ram_total_bytes * (1.0 - OS_RAM_RESERVE_FRACTION)
+    rows: List[Dict[str, object]] = []
+    for key, spec in models.items():
+        kv = spec.kv_cache_bytes(ctx_size, 1)
+        for precision in precisions:
+            weights = spec.weight_bytes(precision)
+            need = weights + kv
+            if need <= profile.ram_available_bytes:
+                verdict = "fits"
+            elif need <= usable_installed:
+                verdict = "free RAM"
+            else:
+                verdict = "needs more RAM"
+            rows.append(
+                {
+                    "model": key,
+                    "precision": precision,
+                    "searched": precision in cs.P_VALUES,
+                    "weights_gib": weights / GIB,
+                    "kv_cache_gib": kv / GIB,
+                    "cpu_only_ram_gib": need / GIB,
+                    "full_gpu_vram_gib": need / GIB,
+                    "cpu_only_verdict": verdict,
+                    "full_gpu_fits": bool(
+                        profile.gpu_available and need <= profile.vram_total_bytes
+                    ),
+                    "shortfall_gib": max(0.0, need - profile.ram_available_bytes)
+                    / GIB,
+                }
+            )
+    return rows

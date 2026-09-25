@@ -135,13 +135,25 @@ class LlamaServerBackend:
     # Lifecycle
     # ------------------------------------------------------------------ #
 
+    def gguf_path(self, config: Config) -> Optional[str]:
+        """The GGUF for *config*'s model and precision.
+
+        Keys are ``MODEL:VARIANT`` (amendment A-40). A bare ``VARIANT`` key --
+        the pre-A-40 form -- is the default model's file, so single-model
+        invocations keep working unchanged.
+        """
+        path = self.model_paths.get(f"{config.m}:{config.p}")
+        if path is None and config.m == cs.DEFAULT_M:
+            path = self.model_paths.get(config.p)
+        return path
+
     def launch_args(self, config: Config, total_layers: int = 32) -> List[str]:
         """The full command line for *config*. Exposed so it can be logged."""
-        model = self.model_paths.get(config.p)
+        model = self.gguf_path(config)
         if not model:
             raise BackendError(
-                f"no GGUF path configured for precision variant {config.p!r}; "
-                f"known variants: {sorted(self.model_paths)}"
+                f"no GGUF path configured for {config.m}:{config.p}; "
+                f"known: {sorted(self.model_paths)}"
             )
         if not os.path.exists(model):
             raise BackendError(f"GGUF file not found: {model}")
@@ -153,7 +165,8 @@ class LlamaServerBackend:
             "--port", str(self.port),
             "--ctx-size", str(self.ctx_size),
             # `g` is a launch-time placement decision, not a request parameter.
-            "--n-gpu-layers", str(config.resolved_gpu_layers(total_layers)),
+            "--n-gpu-layers",
+            str(config.resolved_gpu_layers(config.n_layers or total_layers)),
             "--threads", str(config.c),
             # `b` concurrency is realized as server slots.
             "--parallel", str(config.b),
@@ -197,7 +210,7 @@ class LlamaServerBackend:
             if self._process is not None and self._process.poll() is not None:
                 raise BackendError(
                     f"llama-server exited with code {self._process.returncode} "
-                    f"while loading {config.p} at g="
+                    f"while loading {config.m} {config.p} at g="
                     f"{config.g_label}. This usually means the model does not "
                     "fit in the requested VRAM; check the HW-P0 guard and the "
                     f"server log{f' at {self.log_path}' if self.log_path else ''}."

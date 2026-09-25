@@ -41,9 +41,11 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple
 
-#: The five configuration-vector columns, shared by every table that records a
+#: The six configuration-vector columns, shared by every table that records a
 #: configuration. Produced by :meth:`bopis.config_space.Config.as_row`.
+#: ``m_model`` was added by amendment A-40.
 CONFIG_COLUMNS: Tuple[str, ...] = (
+    "m_model",
     "t_max_gen_tokens",
     "b_batch_size",
     "p_precision",
@@ -205,6 +207,7 @@ B7_CALIBRATION: Tuple[str, ...] = (
     "gp_sigma",
     "gp_predictive_sigma",
     "expected_improvement",
+    "p_feasible",
     "best_energy_so_far",
     "delta_energy",
     "on_pareto_front",

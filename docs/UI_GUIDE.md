@@ -36,6 +36,19 @@ The server on its own — this is all the chat panel needs:
 .\tools\cpu\llama-server.exe --model .\models\qwen2.5-1.5b-instruct-q4_k_m.gguf --host 127.0.0.1 --port 8080 --ctx-size 2048 --n-gpu-layers 0 --threads 4 --parallel 1
 ```
 
+Then, for measured energy and BERTScore in the chat, the instrument bridge
+(start LibreHardwareMonitor as administrator with *Remote Web Server → Run*
+first, see [ENERGY_MODES.md](ENERGY_MODES.md#mode-d-cpu-package-energy-via-rapl)):
+
+```powershell
+python -m bopis ui          # then open http://127.0.0.1:8090/
+```
+
+It calibrates idle package power for 30 s. Leave the machine alone while it
+does. Without a hardware monitor it still runs, and reports a per-process
+Mode C estimate instead. Without the bridge, `bopis.html` opened as a file
+talks to llama-server directly and falls back to the in-browser estimate.
+
 Port 8080 is hardcoded in `bopis.html`'s `CHATBOT_CONFIG`. Or the launcher,
 which also refreshes the generated files and waits for `/health`:
 
@@ -120,9 +133,32 @@ Prompt 98 tok   Generated 8 tok   Decode 8.72 tok/s   Latency 1.77 s
 BERTScore n/a (needs a reference answer)
 ```
 
-Prompt/generated/decode/latency come straight from llama.cpp's `timings`. The
-energy figure is computed in-browser and the BERTScore field is intentionally
-`n/a` — both explained in §4.
+Prompt/generated/decode/latency come straight from llama.cpp's `timings`.
+
+With `bopis ui` running, the strip reads instead:
+
+```
+Energy 41.3 J [38.9–43.7] (1.62 J/tok) · PHP 0.165/1k replies · measured (RAPL)
+BERTScore F1 0.412 (P 0.398 / R 0.427, rescaled)
+```
+
+(These numbers illustrate the format only.)
+
+- **Green `measured (RAPL)`** is CPU package energy, net of idle, over the
+  request window. The bracket is the monitor's refresh-bin resolution. **Amber
+  `estimated (Mode C)`** means no hardware monitor was reachable. The two are
+  never rendered alike.
+- **BERTScore** appears only for a **Dolly prompt** (the button left of the
+  input). That prompt is sent as a fresh single turn with the study's own
+  template, and after the energy window closes the reply is scored against
+  Dolly's human reference. The reference is shown under the reply. Editing the
+  loaded prompt drops the reference, because it no longer answers the edited
+  text. Free chat still says `n/a`: there is nothing to compare against.
+- The header shows which instruments are live, and a **session tally**: total
+  joules, J/token, PHP, and mean F1.
+
+In **Workspace**, sending a message now keeps you in Workspace. Earlier, send
+called the chat tab's switch, which exited the split view.
 
 ---
 
@@ -447,10 +483,21 @@ So: **quality is measurable on Dolly, never on free chat.** If you want a qualit
 number in a live demo, run a Dolly prompt through the study path and show the
 dashboard, not the chat box.
 
-### 4.1a OPEN GAP — BERTScore is implemented but never invoked
+### 4.1a CLOSED 2026-09-24 — BERTScore now runs inside real studies
 
-Found 2026-09-18 and **not yet fixed**. Know about this before anyone asks how
-quality was computed on a real run.
+`bopis run --backend llama-server` now BERTScores every generation against its
+Dolly reference after each batch. That happens after llama-server is stopped,
+so it never overlaps an energy window. So `quality_f1`, QRR and the Pareto
+colour scale are real on a real run, and selection of `x*` uses them. The
+generations are saved to `raw/generations.jsonl` with their references and
+scores. `--quality none` turns it off. Without torch/transformers, `auto`
+prints a loud *QUALITY: UNSCORED* banner rather than proceeding silently. The
+scorer loads (and on first use downloads roberta-large, ~1.4 GB) **before** the
+study starts.
+
+The history below is kept for the record.
+
+Found 2026-09-18.
 
 `bopis/quality/bertscore.py` is a complete, working BERTScore implementation, and
 `bopis.quality.get_scorer()` is the documented way in. **Nothing in the codebase
@@ -519,7 +566,7 @@ Routes to a real number:
 
 | Route | Gives | Cost |
 | :--- | :--- | :--- |
-| **RAPL** (`MSR_PKG_ENERGY_STATUS`) | Measured CPU joules — and since `g = 0`, that is nearly all of it | Admin kernel driver; breaks the stdlib-only policy |
+| **RAPL** (`MSR_PKG_ENERGY_STATUS`) | Measured CPU joules — and since `g = 0`, that is nearly all of it | **Now implemented** as Mode D: LibreHardwareMonitor/OHM loads the driver, BOPIS reads its web feed with stdlib `urllib`. `--energy-mode cpu-rapl`, `bopis ui` |
 | A GPU exposing NVML power | Measured GPU joules | Different machine |
 | External wall meter | Whole-system joules | ~PHP 1–2k |
 | Mode C (current) | **Relative** comparison only | Free |

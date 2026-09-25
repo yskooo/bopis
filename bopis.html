@@ -183,6 +183,30 @@ body {
 }
 .metrics b { color: #2D3748; font-weight: 650; }
 .metrics .est { color: #B7791F; }
+/* Measured energy (RAPL) is green, estimated (Mode C) stays amber: the colour
+   is the first thing a reader sees, so it carries the measured/estimated
+   distinction rather than relying on the label alone. */
+.metrics .meas { color: #2F855A; }
+.metrics .q-pending { color: #718096; font-style: italic; }
+.metrics .q-ok { color: #2B6CB0; }
+.ref-note {
+    margin-top: 8px; font-size: 11.5px; color: #4A5568;
+    background: #F7FAFC; border-left: 3px solid #90CDF4; padding: 6px 8px;
+}
+.ref-note summary { cursor: pointer; }
+.btn-dolly {
+    background: transparent; border: 1px solid #CBD5E0; border-radius: 4px;
+    color: #4A5568; cursor: pointer; font-size: 11.5px; padding: 4px 8px;
+    white-space: nowrap; font-family: inherit;
+}
+.btn-dolly:hover { border-color: #2B6CB0; color: #2B6CB0; }
+.btn-dolly.armed { background: #EBF8FF; border-color: #2B6CB0; color: #2B6CB0; }
+.instrument-pill {
+    display: inline-block; font-size: 11.5px; padding: 3px 8px; border-radius: 4px;
+    margin-top: 8px; background: #FFFBEB; color: #975A16; border: 1px solid #F6E05E;
+}
+.instrument-pill.measured { background: #F0FFF4; color: #276749; border-color: #9AE6B4; }
+.session-tally { font-size: 11.5px; color: #4A5568; margin-top: 6px; }
 
 /* Typing indicator, three bouncing dots. */
 .typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 2px; }
@@ -534,6 +558,11 @@ body::before {
         <div class="page-header">
             <h1 class="page-title">Welcome, BOPIS-er! 👋</h1>
             <h2 class="page-subtitle">How can I optimize your prompts today?</h2>
+            <span class="instrument-pill" id="instrument-pill"
+                  title="Start `python -m bopis ui` for measured energy and BERTScore">
+                Energy: in-browser estimate (Mode C) &middot; BERTScore: unavailable
+            </span>
+            <div class="session-tally" id="session-tally"></div>
         </div>
 
         <div class="cards-grid">
@@ -768,7 +797,8 @@ body::before {
             <div class="app-card yellow-tint">
                 <div class="card-header">Feasible Configuration Space</div>
                 <div class="cfg-row"><span class="cfg-k">Model-aware feasible configs</span><span class="cfg-v" data-space="feasible">Profile unavailable</span></div>
-                <div class="cfg-row"><span class="cfg-k">Allowed precisions</span><span class="cfg-v" data-profile="precisions">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Models searched</span><span class="cfg-v" data-profile="models">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Precisions for GPU offload (g &gt; 0)</span><span class="cfg-v" data-profile="precisions">Profile unavailable</span></div>
                 <div class="cfg-row"><span class="cfg-k">Allowed GPU layers</span><span class="cfg-v" data-profile="layers">Profile unavailable</span></div>
                 <div class="cfg-row"><span class="cfg-k">Batch sizes</span><span class="cfg-v" data-profile="batches">Profile unavailable</span></div>
                 <div class="cfg-row"><span class="cfg-k">CPU threads</span><span class="cfg-v" data-profile="threads">Profile unavailable</span></div>
@@ -786,6 +816,17 @@ body::before {
                 <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">The laptop can compute, but cannot provide a valid GPU-joule claim. Use supported hardware or an external wattmeter for final energy evidence.</p>
             </div>
             
+            <div class="app-card" style="grid-column: 1 / -1;">
+                <div class="card-header">What each model needs (CPU-only)</div>
+                <p style="font-size:12px; color:#718096; margin-bottom:10px; line-height:1.5;">
+                    Memory = weights (parameters &times; bits per weight &divide; 8) + KV cache.
+                    The same arithmetic the HW-P0 guard applies before the search &mdash;
+                    deterministic, nothing trained. Configurations that do not fit are never
+                    offered to the optimizer, so the laptop is never pushed past what it can do.
+                </p>
+                <div id="requirements-table" style="overflow-x:auto; font-size:12.5px;">Profile unavailable</div>
+            </div>
+
             <div class="app-card">
                 <div class="card-header">Calibration Thresholds</div>
                 <div class="cfg-row"><span class="cfg-k">Q_min (Closed QA / extraction)</span><span class="cfg-v">0.82 F1</span></div>
@@ -824,8 +865,9 @@ body::before {
     <!-- Input Box (Global - only visible on Chat Tab) -->
     <div class="input-dock active" id="global-input">
         <div class="input-wrapper">
-            <button class="btn-add">+</button>
-            <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" />
+            <button class="btn-dolly" id="dolly-btn" onclick="loadDollyPrompt()"
+                    title="Load a random Dolly 15k prompt with its human reference answer, so the reply can be BERTScored">Dolly prompt</button>
+            <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" oninput="checkDollyArmed()" />
             <button class="btn-send" onclick="doChat()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
         </div>
     </div>
@@ -1370,6 +1412,41 @@ function applyHardwareProfile() {
     if (timestamp) timestamp.textContent = `Live profile generated: ${profile.generated_utc}. Refresh with bopis profile --write-js.`;
     const note = document.getElementById('space-note');
     if (note) note.textContent = `Rules fired: ${(host.rules_fired || []).join(', ')}. Values are loaded from the generated profile, not embedded in this HTML.`;
+    set('models', (space.models_present || []).join(', ') || 'none fit right now');
+    renderRequirements(profile);
+}
+
+/* The "can this machine run it?" table, from bopis_profile.js. Every number
+ * comes from hardware.requirements_table(); the page only formats it. */
+function renderRequirements(profile) {
+    const el = document.getElementById('requirements-table');
+    const rows = profile && profile.requirements;
+    if (!el || !rows || !rows.length) return;
+    const models = profile.models || {};
+    const verdict = row => {
+        if (row.cpu_only_verdict === 'fits') return '<span style="color:#2F855A;">fits now</span>';
+        if (row.cpu_only_verdict === 'free RAM') {
+            return `<span style="color:#B7791F;">close apps: free ${Number(row.shortfall_gib).toFixed(1)} GiB</span>`;
+        }
+        return '<span style="color:#C53030;">needs more RAM than installed</span>';
+    };
+    const body = rows.map(row => `
+        <tr style="${row.searched ? '' : 'color:#A0AEC0;'}">
+            <td>${escapeHtml((models[row.model] || {}).label || row.model)}</td>
+            <td><code>${escapeHtml(row.precision)}</code>${row.searched ? '' : ' (not searched)'}</td>
+            <td style="text-align:right;">${Number(row.weights_gib).toFixed(2)} GiB</td>
+            <td style="text-align:right;">${Number(row.cpu_only_ram_gib).toFixed(2)} GiB</td>
+            <td>${verdict(row)}</td>
+            <td>${row.full_gpu_fits ? 'yes' : 'no'}</td>
+        </tr>`).join('');
+    el.innerHTML = `
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="text-align:left; color:#4A5568;">
+                <th>Model</th><th>Precision</th><th style="text-align:right;">Weights</th>
+                <th style="text-align:right;">Needs</th><th>This machine</th><th>Whole model on GPU</th>
+            </tr></thead>
+            <tbody>${body}</tbody>
+        </table>`;
 }
 
 applyHardwareProfile();
@@ -1798,8 +1875,18 @@ function toggleAutoRotate() {
     ROTATE_FRAME = requestAnimationFrame(tick);
 }
 
-function sendPrompt(text) {
+/* Bring the chat into view for a new message without leaving the current
+ * layout. In workspace mode the chat is already on screen beside the
+ * dashboard, and calling sw('chat') there would exit workspace mode -- which
+ * is exactly the jump back to the single-panel chat that sending used to
+ * cause. */
+function showChat() {
+    if (document.body.classList.contains('workspace-mode')) return;
     sw('chat', document.querySelector('.nav-item:nth-child(1)'));
+}
+
+function sendPrompt(text) {
+    showChat();
     const inp = document.getElementById('ci');
     inp.value = text;
     doChat();
@@ -1812,6 +1899,115 @@ const CHATBOT_CONFIG = {
     maxTokens: 512,
     temperature: 0
 };
+
+/* ------------------------------------------------------------------------- *
+ * The instrument bridge: `python -m bopis ui`.
+ *
+ * A browser page cannot read a power sensor or run a transformer, so on its
+ * own this chat can only estimate energy and must report BERTScore as n/a.
+ * When the bridge is running, chat requests go through it instead: it brackets
+ * each one with the study's telemetry sampler (measured CPU package energy via
+ * RAPL when a hardware monitor is live, a per-process Mode C estimate
+ * otherwise) and scores replies to Dolly prompts against their references.
+ *
+ * Served by the bridge, the page talks to its own origin. Opened from file://,
+ * it tries the bridge's default port and falls back to llama-server directly.
+ * ------------------------------------------------------------------------- */
+const BRIDGE_BASE = location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8090';
+let BRIDGE = null;          // /api/status payload, or null when not running
+let DOLLY_PENDING = null;   // { text, reference, prompt_id, task_type }
+const SESSION = { replies: 0, joules: 0, tokens: 0, measured: 0, f1: [] };
+
+async function detectBridge() {
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/status`, { cache: 'no-store' });
+        BRIDGE = response.ok ? await response.json() : null;
+    } catch (_error) {
+        BRIDGE = null;
+    }
+    renderInstrumentPill();
+}
+
+function renderInstrumentPill() {
+    const pill = document.getElementById('instrument-pill');
+    const dolly = document.getElementById('dolly-btn');
+    if (!pill) return;
+    if (!BRIDGE) {
+        pill.className = 'instrument-pill';
+        pill.innerHTML = 'Energy: in-browser estimate (Mode C) &middot; BERTScore: unavailable '
+            + '&mdash; start <code>python -m bopis ui</code> for measured energy and quality';
+        if (dolly) dolly.style.display = 'none';
+        return;
+    }
+    const energy = BRIDGE.energy || {};
+    const quality = BRIDGE.quality || {};
+    const instrument = energy.instrument || {};
+    const energyText = energy.measured
+        ? `Energy: <b>measured</b> CPU package (RAPL, ${escapeHtml(instrument.sensor || 'package')}, `
+          + `idle ${Number(energy.p_cpu_idle_w || 0).toFixed(2)} W subtracted)`
+        : 'Energy: Mode C estimate from llama-server CPU time (no RAPL feed)';
+    const qualityText = quality.available
+        ? `BERTScore: ${escapeHtml(quality.model)} on Dolly prompts`
+        : 'BERTScore: torch/transformers not installed';
+    pill.className = 'instrument-pill' + (energy.measured ? ' measured' : '');
+    pill.innerHTML = `${energyText} &middot; ${qualityText}`;
+    pill.title = energy.measured
+        ? 'Excludes DRAM, display and the discrete GPU; valid as inference energy '
+          + 'when llama-server runs with --n-gpu-layers 0.'
+        : (energy.reason || '');
+    if (dolly) dolly.style.display = (BRIDGE.dolly && BRIDGE.dolly.n) ? '' : 'none';
+}
+
+async function loadDollyPrompt() {
+    if (!BRIDGE) return;
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/dolly`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        DOLLY_PENDING = await response.json();
+        const inp = document.getElementById('ci');
+        // The input is one line, so the study template's paragraph break is
+        // shown as a space. The model is sent the template's exact text.
+        DOLLY_PENDING.modelText = DOLLY_PENDING.text;
+        DOLLY_PENDING.text = DOLLY_PENDING.text.replace(/\s*\n+\s*/g, ' ').trim();
+        inp.value = DOLLY_PENDING.text;
+        inp.focus();
+        checkDollyArmed();
+    } catch (error) {
+        DOLLY_PENDING = null;
+        checkDollyArmed();
+    }
+}
+
+function checkDollyArmed() {
+    const btn = document.getElementById('dolly-btn');
+    const inp = document.getElementById('ci');
+    if (!btn || !inp) return;
+    const armed = DOLLY_PENDING && inp.value.trim() === DOLLY_PENDING.text.trim();
+    btn.classList.toggle('armed', Boolean(armed));
+    btn.textContent = armed ? `Dolly · ${DOLLY_PENDING.task_type}` : 'Dolly prompt';
+}
+
+function renderSessionTally() {
+    const tally = document.getElementById('session-tally');
+    if (!tally || !SESSION.replies) return;
+    // Tariff and unit conversion come from the generated profile, i.e. from
+    // bopis.metrics, never from a literal here.
+    const cfg = window.BOPIS_PROFILE && window.BOPIS_PROFILE.energy_estimate;
+    const php = cfg ? SESSION.joules / cfg.joules_per_kwh * cfg.tariff_php_per_kwh : null;
+    const perToken = SESSION.tokens ? SESSION.joules / SESSION.tokens : null;
+    const f1 = SESSION.f1.length
+        ? ` &middot; mean BERTScore F1 <b>${(SESSION.f1.reduce((a, b) => a + b, 0) / SESSION.f1.length).toFixed(3)}</b> (n=${SESSION.f1.length})`
+        : '';
+    const kind = SESSION.measured === SESSION.replies ? 'measured'
+        : (SESSION.measured ? `${SESSION.measured} measured / ${SESSION.replies - SESSION.measured} estimated` : 'estimated');
+    tally.innerHTML = `Session: <b>${SESSION.replies}</b> replies &middot; `
+        + `<b>${SESSION.joules.toFixed(1)} J</b> ${kind}`
+        + (perToken ? ` (${perToken.toFixed(2)} J/tok)` : '')
+        + (php === null ? '' : ` &middot; PHP ${php.toFixed(5)} (${(php * 1000).toFixed(2)} per 1k such replies)`)
+        + f1;
+}
+
+detectBridge();
 
 function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, character => ({
@@ -2073,9 +2269,16 @@ async function doChat() {
     const inp = document.getElementById('ci');
     const txt = inp.value.trim();
     if (!txt) return;
-    
-    sw('chat', document.querySelector('.nav-item:nth-child(1)')); 
-    
+
+    showChat();
+
+    // A Dolly reference applies only to the Dolly prompt it came with. If the
+    // text was edited, the reference no longer answers it and is dropped.
+    const reference = (DOLLY_PENDING && DOLLY_PENDING.text.trim() === txt)
+        ? DOLLY_PENDING : null;
+    DOLLY_PENDING = null;
+    checkDollyArmed();
+
     const area = document.getElementById('chat-area');
 
     // The user's turn, right-aligned.
@@ -2091,14 +2294,21 @@ async function doChat() {
 
     // Stage 1 runs on submit, before the request goes out, so the panel can see
     // the detected category alongside the answer it produced.
-    const prediction = classifyPromptBest(txt, '');
+    const prediction = reference
+        ? classifyPromptBest(reference.instruction, reference.context)
+        : classifyPromptBest(txt, '');
     const badge = document.createElement('div');
     badge.className = 'msg';
     badge.innerHTML = `<div class="stage1-wrap">${taskBadgeHtml(prediction)}</div>`;
     area.appendChild(badge);
     scrollToBottom();
 
-    chatHistory.push({ role: 'user', content: txt });
+    const userContent = reference ? reference.modelText : txt;
+    // A Dolly prompt is sent as a fresh single turn, the way the study sends
+    // it, so earlier conversation cannot shift the reply being scored.
+    const history = reference ? [] : chatHistory;
+    history.push({ role: 'user', content: userContent });
+    if (reference) chatHistory.push({ role: 'user', content: userContent });
 
     // The assistant's turn starts as a typing indicator in its final position,
     // so the bubble does not jump when the reply lands.
@@ -2116,22 +2326,31 @@ async function doChat() {
     const wallStart = performance.now();
 
     try {
-        const response = await fetch(CHATBOT_CONFIG.endpoint, {
+        const requestBody = JSON.stringify({
+            model: CHATBOT_CONFIG.model,
+            messages: [
+                { role: 'system', content: 'You are BOPIS, a concise and helpful local assistant. Answer only the user request. Do not invent a conversation, roleplay other users, or continue with User/Assistant transcript labels.' },
+                ...history
+            ],
+            max_tokens: CHATBOT_CONFIG.maxTokens,
+            stream: false,
+            temperature: CHATBOT_CONFIG.temperature
+        });
+        // Through the bridge when it is up (measured energy), else direct.
+        const viaBridge = Boolean(BRIDGE);
+        const response = await fetch(
+            viaBridge ? `${BRIDGE_BASE}/api/chat` : CHATBOT_CONFIG.endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: CHATBOT_CONFIG.model,
-                messages: [
-                    { role: 'system', content: 'You are BOPIS, a concise and helpful local assistant. Answer only the user request. Do not invent a conversation, roleplay other users, or continue with User/Assistant transcript labels.' },
-                    ...chatHistory
-                ],
-                max_tokens: CHATBOT_CONFIG.maxTokens,
-                stream: false,
-                temperature: CHATBOT_CONFIG.temperature
-            })
+            body: requestBody
         });
-        if (!response.ok) throw new Error(`llama.cpp returned HTTP ${response.status}`);
-        const data = await response.json();
+        if (!response.ok) {
+            let detail = `HTTP ${response.status}`;
+            try { detail = (await response.json()).error || detail; } catch (_e) { /* not JSON */ }
+            throw new Error(viaBridge ? detail : `llama.cpp returned ${detail}`);
+        }
+        const envelope = await response.json();
+        const data = viaBridge ? envelope.completion : envelope;
         const reply = data.choices?.[0]?.message?.content || data.content;
         if (!reply) throw new Error('The chatbot returned an empty response');
         chatHistory.push({ role: 'assistant', content: reply });
@@ -2145,7 +2364,17 @@ async function doChat() {
             : 'n/a';
         const latency = totalSeconds > 0 ? totalSeconds.toFixed(2) : 'n/a';
         const wallSeconds = (performance.now() - wallStart) / 1000;
-        const energy = estimateEnergy(totalSeconds || wallSeconds, generatedTokens);
+        const energy = viaBridge
+            ? bridgeEnergy(envelope.energy, generatedTokens)
+            : estimateEnergy(totalSeconds || wallSeconds, generatedTokens);
+
+        const scoreId = `q-${Date.now()}`;
+        const qualityHtml = reference
+            ? `<span id="${scoreId}" class="q-pending">BERTScore scoring against the Dolly reference&hellip;</span>`
+            : `<span title="BERTScore compares a reply against a human reference answer; free chat has none. Use the Dolly prompt button for a scorable prompt.">BERTScore <b>n/a</b> (free chat has no reference &mdash; use <i>Dolly prompt</i>)</span>`;
+        const referenceHtml = reference
+            ? `<details class="ref-note"><summary>Dolly reference (${escapeHtml(reference.prompt_id)}, ${escapeHtml(reference.task_type)})</summary>${renderMarkdown(reference.reference)}</details>`
+            : '';
 
         pending.innerHTML = `
             <div class="turn assistant">
@@ -2158,10 +2387,20 @@ async function doChat() {
                         <span>Decode <b>${decodeSpeed}</b> tok/s</span>
                         <span>Latency <b>${latency}</b> s</span>
                         ${energy.html}
-                        <span>BERTScore <b>n/a</b> (needs a reference answer)</span>
+                        ${qualityHtml}
                     </div>
+                    ${referenceHtml}
                 </div>
             </div>`;
+
+        SESSION.replies += 1;
+        if (Number.isFinite(energy.joules)) SESSION.joules += energy.joules;
+        if (energy.measured) SESSION.measured += 1;
+        SESSION.tokens += generatedTokens;
+        renderSessionTally();
+        scrollToBottom();
+
+        if (reference) scoreReply(scoreId, reply, reference.reference);
     } catch (error) {
         chatHistory.pop();
         pending.innerHTML = `
@@ -2245,9 +2484,72 @@ function estimateEnergy(seconds, generatedTokens) {
     };
 }
 
+/* Energy for one reply as reported by the bridge. Measured (RAPL, green) and
+ * estimated (Mode C, amber) are never rendered the same way. The measured band
+ * is the monitor's refresh-bin resolution at the window edges; it does not
+ * cover RAPL's own error. */
+function bridgeEnergy(energy, generatedTokens) {
+    if (!energy || !Number.isFinite(Number(energy.energy_j))) {
+        return { html: '<span>Energy <b>unavailable</b></span>' };
+    }
+    const joules = Number(energy.energy_j);
+    const php = Number(energy.cost_php || 0);
+    const perToken = generatedTokens > 0 ? joules / generatedTokens : null;
+    const low = Number(energy.energy_low_j), high = Number(energy.energy_high_j);
+    const band = Number.isFinite(low) && Number.isFinite(high)
+        ? ` <span title="resolution band">[${low.toFixed(1)}&ndash;${high.toFixed(1)}]</span>` : '';
+    const detail = energy.measured
+        ? `Measured CPU package energy (Intel RAPL via hardware monitor) over `
+          + `${Number(energy.duration_s).toFixed(2)} s, mean package power `
+          + `${Number(energy.cpu_power_mean_w || 0).toFixed(2)} W, idle `
+          + `${Number(energy.p_cpu_idle_w || 0).toFixed(2)} W subtracted. ${energy.caveat}`
+        : `Mode C estimate from llama-server's CPU time `
+          + `(${Number(energy.process_cpu_percent || 0).toFixed(0)}% of the CPU, `
+          + `${energy.cpu_attribution}). ${energy.caveat}`;
+    return {
+        joules, php, measured: Boolean(energy.measured),
+        html: `<span class="${energy.measured ? 'meas' : 'est'}" title="${escapeHtml(detail)}">`
+            + `${energy.measured ? '' : '~'}Energy <b>${joules.toFixed(1)} J</b>${band}`
+            + (perToken ? ` (<b>${perToken.toFixed(2)}</b> J/tok)` : '')
+            + ` &middot; <b>PHP ${(php * 1000).toFixed(3)}</b>/1k replies`
+            + ` &middot; <b>${energy.measured ? 'measured (RAPL)' : 'estimated (Mode C)'}</b></span>`
+    };
+}
+
+async function scoreReply(elementId, candidate, referenceText) {
+    const el = document.getElementById(elementId);
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/score`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ candidate, reference: referenceText })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        SESSION.f1.push(Number(result.quality_f1));
+        renderSessionTally();
+        if (!el) return;
+        el.className = 'q-ok';
+        el.title = `BERTScore ${result.model}, ${result.baseline_rescaled ? 'baseline-rescaled' : 'raw'}; `
+            + `scored after the energy window closed, in ${Number(result.seconds).toFixed(1)} s. `
+            + 'Chat uses a system prompt the study does not, so this is indicative, not a Table B.5 value.';
+        el.innerHTML = `BERTScore F1 <b>${Number(result.quality_f1).toFixed(3)}</b>`
+            + ` (P ${Number(result.quality_precision).toFixed(3)} / R ${Number(result.quality_recall).toFixed(3)}`
+            + `${result.baseline_rescaled ? ', rescaled' : ''})`;
+    } catch (error) {
+        if (!el) return;
+        el.className = '';
+        el.innerHTML = `BERTScore <b>failed</b>: ${escapeHtml(error.message)}`;
+    }
+}
+
 function scrollToBottom() {
-    const mainArea = document.querySelector('.main-area');
-    mainArea.scrollTo({ top: mainArea.scrollHeight, behavior: 'smooth' });
+    // In workspace mode each column owns its scrollbar, so it is the chat
+    // panel that has to scroll, not the (non-scrolling) grid around it.
+    const scroller = document.body.classList.contains('workspace-mode')
+        ? document.getElementById('panel-chat')
+        : document.querySelector('.main-area');
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
 }
 
 function showHardwareNote() {
@@ -2255,7 +2557,7 @@ function showHardwareNote() {
     if (status) {
         status.innerHTML = '<strong>Profile loaded.</strong> This snapshot is from the latest hardware check; run <code>py -3 -m bopis profile --model-aware</code> to refresh it.';
     }
-    sw('chat', document.querySelector('.nav-item:nth-child(1)'));
+    showChat();
 }
 
 function recalibrateHardware() {

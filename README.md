@@ -12,7 +12,33 @@ against an unoptimized default and a random-search baseline.
 python -m bopis profile                          # what can this machine measure?
 python -m bopis dataset                          # fetch and stratify Dolly 15k
 python -m bopis run --backend sim --synthetic    # full study, no GPU needed
+python -m bopis ui                               # chat UI: measured energy + BERTScore
 ```
+
+### The models (amendment A-40)
+
+BOPIS searches the **model size** as well as its settings: the Qwen2.5-Instruct
+ladder, 0.5B / 1.5B / 3B / 7B, at F16, Q8_0 and Q4_K_M. A real run searches
+only the files you supply, so download the rungs you want compared:
+
+```powershell
+python -m pip install -U "huggingface_hub[cli]"
+huggingface-cli download Qwen/Qwen2.5-0.5B-Instruct-GGUF --include "*q4_k_m*.gguf" "*q8_0*.gguf" "*fp16*.gguf" --local-dir models
+huggingface-cli download Qwen/Qwen2.5-1.5B-Instruct-GGUF --include "*q4_k_m*.gguf" "*q8_0*.gguf" "*fp16*.gguf" --local-dir models
+huggingface-cli download Qwen/Qwen2.5-3B-Instruct-GGUF   --include "*q4_k_m*.gguf" "*q8_0*.gguf" --local-dir models
+```
+
+Then pass each file as `--model MODEL:VARIANT=PATH`, for example
+`--model qwen2.5-3b:Q4_K_M=models\qwen2.5-3b-instruct-q4_k_m.gguf`. Check the file
+names in `models\` after downloading: some larger files are split into
+`-00001-of-0000N` parts, and llama.cpp loads those from the first part.
+`python -m bopis profile --model-aware` shows which model × precision pairs fit
+this machine before you download anything.
+
+On a laptop whose GPU reports no power (e.g. the MX330), run CPU-only with
+`--energy-mode cpu-rapl`. This measures CPU package energy (Intel RAPL) through
+LibreHardwareMonitor / Open Hardware Monitor. See
+[docs/ENERGY_MODES.md](docs/ENERGY_MODES.md#mode-d-cpu-package-energy-via-rapl).
 
 ---
 

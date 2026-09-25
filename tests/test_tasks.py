@@ -103,12 +103,20 @@ class TestPrior(unittest.TestCase):
                 row["Q8_0"] + row["Q4_K_M"], int8, places=12, msg=key
             )
 
-    def test_f32_and_f16_are_unchanged(self) -> None:
+    def test_f32_mass_is_folded_into_f16(self) -> None:
+        """A-40: F32 left the space; its mass goes to F16, nothing is lost."""
         from bopis.tasks import _T1_ORIGINAL
 
         for key, (f32, f16, _int8) in _T1_ORIGINAL.items():
-            self.assertAlmostEqual(PRECISION_PRIOR[key]["F32"], f32, places=12)
-            self.assertAlmostEqual(PRECISION_PRIOR[key]["F16"], f16, places=12)
+            self.assertNotIn("F32", PRECISION_PRIOR[key])
+            self.assertAlmostEqual(PRECISION_PRIOR[key]["F16"], f32 + f16, places=12)
+            self.assertAlmostEqual(sum(PRECISION_PRIOR[key].values()), 1.0, places=12)
+
+    def test_sensitive_tasks_still_favour_the_unquantized_variant(self) -> None:
+        for key in ("closed_qa", "information_extraction"):
+            self.assertGreater(
+                PRECISION_PRIOR[key]["F16"], PRECISION_PRIOR["classification"]["F16"]
+            )
 
     def test_high_sensitivity_favours_the_safer_quantization(self) -> None:
         """Quality-sensitive tasks keep more mass on Q8_0 than Q4_K_M."""
@@ -123,8 +131,8 @@ class TestPrior(unittest.TestCase):
 
     def test_prior_for_task_returns_a_copy(self) -> None:
         first = prior_for_task("open_qa")
-        first["F32"] = 99.0
-        self.assertNotEqual(PRECISION_PRIOR["open_qa"]["F32"], 99.0)
+        first["F16"] = 99.0
+        self.assertNotEqual(PRECISION_PRIOR["open_qa"]["F16"], 99.0)
 
     def test_unknown_task_raises(self) -> None:
         with self.assertRaises(KeyError):
@@ -160,8 +168,8 @@ class TestDatasetPrior(unittest.TestCase):
     def test_weighting_shifts_the_result(self) -> None:
         mostly_closed = dataset_prior({"closed_qa": 9.0, "classification": 1.0})
         mostly_class = dataset_prior({"closed_qa": 1.0, "classification": 9.0})
-        # closed_qa is quality-sensitive, so it puts more mass on F32.
-        self.assertGreater(mostly_closed["F32"], mostly_class["F32"])
+        # closed_qa is quality-sensitive, so it puts more mass on F16.
+        self.assertGreater(mostly_closed["F16"], mostly_class["F16"])
         self.assertLess(mostly_closed["Q4_K_M"], mostly_class["Q4_K_M"])
 
     def test_rejects_nonpositive_weights(self) -> None:
@@ -234,16 +242,16 @@ class TestSeedSampling(unittest.TestCase):
 
     def test_prior_biases_the_variant_distribution(self) -> None:
         """A prior concentrated on one variant must dominate the draws."""
-        skewed = {"F32": 0.97, "F16": 0.01, "Q8_0": 0.01, "Q4_K_M": 0.01}
-        counts = {"F32": 0}
+        skewed = {"F16": 0.98, "Q8_0": 0.01, "Q4_K_M": 0.01}
+        counts = {"F16": 0}
         trials = 40
         for trial in range(trials):
             seeds = sample_seed_configs(
                 self.space, 5, skewed, random.Random(trial)
             )
-            counts["F32"] += sum(1 for cfg in seeds if cfg.p == "F32")
-        # Well above the ~25% a uniform draw would give.
-        self.assertGreater(counts["F32"] / (trials * 5), 0.8)
+            counts["F16"] += sum(1 for cfg in seeds if cfg.p == "F16")
+        # Well above the ~33% a uniform draw would give.
+        self.assertGreater(counts["F16"] / (trials * 5), 0.8)
 
     def test_zero_seeds(self) -> None:
         self.assertEqual(
@@ -252,7 +260,8 @@ class TestSeedSampling(unittest.TestCase):
 
     def test_rejects_more_seeds_than_configurations(self) -> None:
         small = cs.build_space(
-            t_values=[128], b_values=[1], p_values=["F32"], g_values=[0], c_values=[2]
+            t_values=[128], b_values=[1], p_values=["F16"], g_values=[0], c_values=[2],
+            m_values=[cs.DEFAULT_M],
         )
         with self.assertRaises(ValueError):
             sample_seed_configs(small, 5, self.prior, random.Random(0))
@@ -262,13 +271,14 @@ class TestSeedSampling(unittest.TestCase):
         space = cs.build_space(
             t_values=[128, 256],
             b_values=[1],
-            p_values=["F32", "Q4_K_M"],
+            p_values=["F16", "Q4_K_M"],
             g_values=[0],
             c_values=[2],
+            m_values=[cs.DEFAULT_M],
         )  # 2 configs per variant, 4 total
         seeds = sample_seed_configs(space, 4, self.prior, random.Random(5))
         self.assertEqual(len(set(seeds)), 4)
-        self.assertEqual({cfg.p for cfg in seeds}, {"F32", "Q4_K_M"})
+        self.assertEqual({cfg.p for cfg in seeds}, {"F16", "Q4_K_M"})
 
 
 if __name__ == "__main__":

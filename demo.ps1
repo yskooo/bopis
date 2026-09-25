@@ -81,7 +81,17 @@ param(
     [int]      $ReadyTimeoutSec = 180,
 
     [switch]   $SkipProfile,
-    [switch]   $NoBrowser
+    [switch]   $NoBrowser,
+
+    # The instrument bridge (`bopis ui`): measured CPU package energy through
+    # LibreHardwareMonitor / Open Hardware Monitor when one is running as
+    # administrator with its Remote Web Server on, a per-process Mode C
+    # estimate otherwise, and BERTScore for Dolly prompts. -NoBridge opens the
+    # bare HTML file instead, as before.
+    [int]      $UiPort = 8090,
+    [int]      $IdleSeconds = 30,
+    [string]   $HwmonUrl = 'http://127.0.0.1:8085/data.json',
+    [switch]   $NoBridge
 )
 
 $ErrorActionPreference = 'Stop'
@@ -125,7 +135,7 @@ Write-Ok 'bopis.html found'
 # Parse -Model into a VARIANT=PATH map.
 $models = @{}
 foreach ($entry in $Model) {
-    if ($entry -match '^([A-Za-z0-9_]+)=(.+)$') {
+    if ($entry -match '^([A-Za-z0-9_.:-]+)=(.+)$') {
         $models[$Matches[1]] = $Matches[2]
     } else {
         # Bare path: assume the variant most likely to fit a consumer GPU.
@@ -334,9 +344,42 @@ if ($canServe) {
 # 3. Open the UI
 # --------------------------------------------------------------------------- #
 
+$bridgeProc = $null
+$uiUrl = $null
+if ($canServe -and -not $NoBridge) {
+    Write-Step 'Starting the instrument bridge (bopis ui)'
+    Write-Host "    Idle calibration takes $IdleSeconds s -- leave the machine alone." -ForegroundColor DarkGray
+    $py = Resolve-Python
+    $uiArgs = $py.Args + @(
+        '-m', 'bopis', 'ui',
+        '--port', "$UiPort",
+        '--llama-url', $baseUrl,
+        '--idle-seconds', "$IdleSeconds",
+        '--hwmon-url', $HwmonUrl
+    )
+    if ($serverProc -and -not $Run) { $uiArgs += @('--llama-pid', "$($serverProc.Id)") }
+    $bridgeProc = Start-Process -FilePath $py.Exe -ArgumentList $uiArgs `
+        -WorkingDirectory $repo -NoNewWindow -PassThru
+
+    $deadline = (Get-Date).AddSeconds($IdleSeconds + 60)
+    while ((Get-Date) -lt $deadline -and -not $bridgeProc.HasExited) {
+        try {
+            $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$UiPort/api/status" -TimeoutSec 3 -UseBasicParsing
+            if ($resp.StatusCode -eq 200) { $uiUrl = "http://127.0.0.1:$UiPort/"; break }
+        } catch { }
+        Start-Sleep -Milliseconds 700
+    }
+    if ($uiUrl) {
+        Write-Ok "Bridge ready at $uiUrl"
+    } else {
+        Write-Warn 'Bridge did not come up; falling back to the bare HTML file.'
+        Write-Warn 'The chat will show an in-browser Mode C estimate and no BERTScore.'
+    }
+}
+
 if (-not $NoBrowser) {
-    Write-Step 'Opening bopis.html'
-    Start-Process (Join-Path $repo 'bopis.html')
+    Write-Step 'Opening the UI'
+    if ($uiUrl) { Start-Process $uiUrl } else { Start-Process (Join-Path $repo 'bopis.html') }
     Write-Ok 'UI opened'
 }
 
@@ -355,6 +398,9 @@ if ($canServe) {
         while (-not $serverProc.HasExited) { Start-Sleep -Seconds 1 }
         Write-Warn "llama-server exited on its own (code $($serverProc.ExitCode))."
     } finally {
+        if ($bridgeProc -and -not $bridgeProc.HasExited) {
+            try { Stop-Process -Id $bridgeProc.Id -Force -ErrorAction Stop } catch { }
+        }
         if ($serverProc -and -not $serverProc.HasExited) {
             Write-Step 'Stopping llama-server'
             try {
