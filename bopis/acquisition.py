@@ -36,6 +36,9 @@ SIGMA_FLOOR = 1e-12
 
 T = TypeVar("T")
 
+#: A GP posterior: feature vector -> ``(mu, sigma)``.
+Predictor = Callable[[Sequence[float]], Tuple[float, float]]
+
 
 def standard_normal_cdf(z: float) -> float:
     """``Phi(z)`` via :func:`math.erf`."""
@@ -72,6 +75,62 @@ def expected_improvement(
     improvement = f_best - mu - xi
     z = improvement / sigma
     return improvement * standard_normal_cdf(z) + sigma * standard_normal_pdf(z)
+
+
+def probability_at_least(mu: float, sigma: float, threshold: float) -> float:
+    """``P(f(x) >= threshold)`` under a Gaussian posterior ``N(mu, sigma^2)``.
+
+    The feasibility factor of constrained Expected Improvement (Gardner et
+    al., 2014; Gelbart, Snoek and Adams, 2014). With no posterior spread it is
+    the indicator of the prediction meeting the threshold.
+    """
+    if sigma <= SIGMA_FLOOR:
+        return 1.0 if mu >= threshold else 0.0
+    return standard_normal_cdf((mu - threshold) / sigma)
+
+
+def argmax_constrained_ei(
+    candidates: Sequence[T],
+    encode: Callable[[T], Sequence[float]],
+    predict: Callable[[Sequence[float]], Tuple[float, float]],
+    f_best: Optional[float],
+    constraints: Sequence[Tuple[Predictor, float]],
+    xi: float = 0.0,
+    exclude: Optional[Sequence[T]] = None,
+) -> Tuple[Optional[T], float, float]:
+    """Exhaustively maximize ``EI(x) * prod_k P(c_k(x) >= threshold_k)``.
+
+    *constraints* pairs a posterior predictor for each constrained objective
+    (quality, speed) with its floor. *f_best* is the lowest energy among
+    observations that **met every floor**; when there is none yet it is
+    ``None`` and the acquisition is the probability of feasibility alone --
+    until a feasible point is known, finding one is the only improvement that
+    counts (Gelbart et al., 2014).
+
+    Returns ``(best_candidate, best_score, its_probability_of_feasibility)``.
+    """
+    excluded = set(exclude or ())
+    best: Optional[T] = None
+    best_score = -math.inf
+    best_pf = 0.0
+    for candidate in candidates:
+        if candidate in excluded:
+            continue
+        features = encode(candidate)
+        pf = 1.0
+        for constraint_predict, threshold in constraints:
+            c_mu, c_sigma = constraint_predict(features)
+            pf *= probability_at_least(c_mu, c_sigma, threshold)
+        if f_best is None:
+            score = pf
+        else:
+            mu, sigma = predict(features)
+            score = expected_improvement(mu, sigma, f_best, xi=xi) * pf
+        if score > best_score:
+            best, best_score, best_pf = candidate, score, pf
+    if best is None:
+        return None, 0.0, 0.0
+    return best, best_score, best_pf
 
 
 def argmax_expected_improvement(

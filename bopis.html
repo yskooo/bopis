@@ -183,6 +183,73 @@ body {
 }
 .metrics b { color: #2D3748; font-weight: 650; }
 .metrics .est { color: #B7791F; }
+/* Measured energy (RAPL) is green, estimated (Mode C) stays amber: the colour
+   is the first thing a reader sees, so it carries the measured/estimated
+   distinction rather than relying on the label alone. */
+.metrics .meas { color: #2F855A; }
+.metrics .q-pending { color: #718096; font-style: italic; }
+.metrics .q-ok { color: #2B6CB0; }
+.ref-note {
+    margin-top: 8px; font-size: 11.5px; color: #4A5568;
+    background: #F7FAFC; border-left: 3px solid #90CDF4; padding: 6px 8px;
+}
+.ref-note summary { cursor: pointer; }
+.btn-dolly {
+    background: transparent; border: 1px solid #CBD5E0; border-radius: 4px;
+    color: #4A5568; cursor: pointer; font-size: 11.5px; padding: 4px 8px;
+    white-space: nowrap; font-family: inherit;
+}
+.btn-dolly:hover { border-color: #2B6CB0; color: #2B6CB0; }
+.btn-dolly.armed { background: #EBF8FF; border-color: #2B6CB0; color: #2B6CB0; }
+/* Two-row input dock: the prompt, then the configuration picker and tools. */
+.input-wrapper.dock-stack { flex-direction: column; align-items: stretch; gap: 6px; border-radius: 16px; }
+.dock-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.dock-tools { gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.dock-link { margin-left: auto; font-size: 12px; color: #2B6CB0; text-decoration: none; white-space: nowrap; }
+.dock-link:hover { text-decoration: underline; }
+.cfg-picker { position: relative; }
+.cfg-chip {
+    background: #F7FAFC; border: 1px solid #CBD5E0; border-radius: 6px; padding: 4px 9px;
+    font-size: 12px; color: #2D3748; cursor: pointer; font-family: inherit; max-width: 300px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cfg-chip:hover { border-color: #2B6CB0; }
+.cfg-chip.busy { opacity: .6; cursor: progress; }
+.cfg-menu {
+    display: none; position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 50;
+    width: 440px; max-height: 60vh; overflow-y: auto; background: #1A2B3C; color: #E2E8F0;
+    border: 1px solid #2D4A5E; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.35); padding: 6px;
+}
+.cfg-menu.open { display: block; }
+.cfg-menu .cfg-head { font-size: 11px; color: #90A4B4; padding: 6px 8px 4px; text-transform: uppercase; letter-spacing: .04em; }
+.cfg-item {
+    display: flex; gap: 8px; align-items: flex-start; padding: 8px; border-radius: 7px; cursor: pointer;
+    border: 1px solid transparent;
+}
+.cfg-item:hover { background: #24394C; }
+.cfg-item.active { border-color: #4FA3C7; background: #1F3446; }
+.cfg-item.disabled { opacity: .45; cursor: not-allowed; }
+.cfg-item .t { font-size: 13px; font-weight: 600; color: #F7FAFC; }
+.cfg-item .tag { font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: #2F855A; color: #fff; margin-left: 6px; font-weight: 600; }
+.cfg-item .tag.alt { background: #4A5568; }
+.cfg-item .s { font-size: 11.5px; color: #A0B4C4; margin-top: 2px; line-height: 1.4; }
+.cfg-item .why { margin-left: auto; font-size: 11px; color: #90CDF4; white-space: nowrap; }
+.cfg-menu .cfg-foot { border-top: 1px solid #2D4A5E; margin-top: 4px; padding: 8px; font-size: 12px; }
+.cfg-menu .cfg-foot a { color: #90CDF4; }
+.explain-step { border-left: 3px solid #4FA3C7; padding: 4px 0 4px 14px; margin: 18px 0; }
+.explain-step h3 { font-size: 15px; color: #1A365D; margin-bottom: 6px; }
+.explain-step p { font-size: 13px; color: #4A5568; line-height: 1.6; margin-bottom: 8px; }
+.explain-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+.explain-table th { text-align: left; color: #4A5568; border-bottom: 1px solid #E2E8F0; padding: 4px 6px; position: sticky; top: 0; background: #fff; }
+.explain-table td { border-bottom: 1px solid #EDF2F7; padding: 4px 6px; }
+.explain-table tr.hl td { background: #F0FFF4; font-weight: 600; }
+.plain { background: #F7FAFC; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #2D3748; line-height: 1.6; }
+.instrument-pill {
+    display: inline-block; font-size: 11.5px; padding: 3px 8px; border-radius: 4px;
+    margin-top: 8px; background: #FFFBEB; color: #975A16; border: 1px solid #F6E05E;
+}
+.instrument-pill.measured { background: #F0FFF4; color: #276749; border-color: #9AE6B4; }
+.session-tally { font-size: 11.5px; color: #4A5568; margin-top: 6px; }
 
 /* Typing indicator, three bouncing dots. */
 .typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 2px; }
@@ -329,6 +396,61 @@ body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr
 .pareto-control-button { border:1px solid #C9D5D8; background:#FFFFFF; color:#294957; border-radius:4px; padding:6px 10px; font:500 11px 'IBM Plex Mono', monospace; cursor:pointer; }
 .pareto-control-button:hover { border-color:#0C8C9B; color:#0C707B; background:#F0FAF9; }
 .pareto-selection { min-height:28px; color:#6B7F86; font:11px 'IBM Plex Mono', monospace; }
+
+/* ─ SEARCH LOG ───────────────────────────────────────────────────────────────
+   The optimizer's own stdout, in the same card as the chart and driven by the
+   same replay clock. A reader who does not trust a 3D scatter plot can watch
+   the numbers arrive instead: every line here is one evaluation, and the point
+   for that line appears on the canvas on the same tick. */
+.search-log { margin-top:14px; border:1px solid #D8E1EA; border-radius:10px; background:#0E1621; overflow:hidden; }
+.search-log-head {
+    display:flex; align-items:center; gap:8px; padding:7px 10px;
+    background:#16202D; border-bottom:1px solid #243244;
+    font:600 10.5px 'IBM Plex Mono', ui-monospace, monospace;
+    letter-spacing:.09em; text-transform:uppercase; color:#8FA6BF;
+}
+.search-log-head .log-spacer { flex:1; }
+.log-count { font-weight:500; letter-spacing:0; text-transform:none; color:#5A7591; }
+.log-btn {
+    border:1px solid #2E3F54; background:#1B2734; color:#9FB4CC; border-radius:5px;
+    padding:2px 8px; font:600 10px 'IBM Plex Mono', ui-monospace, monospace;
+    cursor:pointer; letter-spacing:.04em; text-transform:uppercase;
+}
+.log-btn:hover { border-color:#3182CE; color:#CFE4F8; background:#22344A; }
+.log-btn.on { border-color:#2F855A; background:#1C3D2C; color:#9AE6B4; }
+.search-log-body {
+    height:172px; overflow-y:auto; padding:8px 0;
+    font:11px/1.6 'IBM Plex Mono', ui-monospace, monospace;
+    scrollbar-width:thin; scrollbar-color:#3A4C63 #0E1621;
+}
+.search-log-body::-webkit-scrollbar { width:9px; }
+.search-log-body::-webkit-scrollbar-track { background:#0E1621; }
+.search-log-body::-webkit-scrollbar-thumb { background:#33455C; border-radius:5px; }
+.log-row {
+    display:grid; grid-template-columns:52px 46px 1fr; gap:10px;
+    padding:1px 10px; color:#B6C7DA; cursor:pointer; border-left:2px solid transparent;
+}
+.log-row:hover { background:#17222F; border-left-color:#3182CE; }
+.log-row.is-current { background:#1A2A3C; border-left-color:#63B3ED; }
+.log-row.is-pick { background:#1C3D2C; border-left-color:#48BB78; }
+.log-row .log-t { color:#5A7591; text-align:right; }
+.log-row .log-lvl { font-weight:600; }
+.log-row .log-msg { white-space:pre-wrap; word-break:break-word; }
+.log-lvl-info  { color:#63B3ED; }
+.log-lvl-seed  { color:#A0AEC0; }
+.log-lvl-gp    { color:#B794F4; }
+.log-lvl-acq   { color:#F6AD55; }
+.log-lvl-front { color:#68D391; }
+.log-lvl-pick  { color:#9AE6B4; }
+.log-lvl-warn  { color:#FC8181; }
+.log-msg .k { color:#E2E8F0; }         /* configuration key            */
+.log-msg .n { color:#F0F4F8; font-weight:600; }  /* a measured number  */
+.log-msg .d { color:#64798F; }         /* punctuation and units        */
+.log-msg .best { color:#68D391; font-weight:600; }
+.log-cursor { display:inline-block; width:7px; height:12px; background:#63B3ED; animation:logBlink 1.05s step-end infinite; vertical-align:-2px; }
+@keyframes logBlink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+.log-foot { padding:6px 10px; border-top:1px solid #243244; background:#131E29; color:#5A7591; font:10px 'IBM Plex Mono', ui-monospace, monospace; }
+.log-empty { padding:10px; color:#5A7591; }
 .rules-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
 .rules-table th { text-align: left; padding: 12px 8px; color: #718096; font-weight: 500; border-bottom: 1px solid #E2E8F0; }
 .rules-table td { padding: 12px 8px; border-bottom: 1px solid #EDF2F7; color: #2D3748; }
@@ -457,6 +579,14 @@ body::before {
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 5h8v14H3V5zm10 0h8v6h-8V5zm0 8h8v6h-8v-6z"/></svg>
             Workspace
         </li>
+        <li class="nav-item" onclick="sw('configs', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm13 0h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3z"/></svg>
+            Configurations
+        </li>
+        <li class="nav-item" id="nav-explain" onclick="openExplain(this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
+            How BOPIS chose
+        </li>
         <li class="nav-item" onclick="sw('cfg', this)">
             <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 C11.57,21.83,11.77,22,12,22h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.7z"/></svg>
             System Settings
@@ -479,6 +609,11 @@ body::before {
         <div class="page-header">
             <h1 class="page-title">Welcome, BOPIS-er! 👋</h1>
             <h2 class="page-subtitle">How can I optimize your prompts today?</h2>
+            <span class="instrument-pill" id="instrument-pill"
+                  title="Start `python -m bopis ui` for measured energy and BERTScore">
+                Energy: in-browser estimate (Mode C) &middot; BERTScore: unavailable
+            </span>
+            <div class="session-tally" id="session-tally"></div>
         </div>
 
         <div class="cards-grid">
@@ -636,6 +771,25 @@ body::before {
                     <span><i class="legend-dot" style="background:#B7791F; border-radius:2px"></i>Random search (square)</span>
                 </div>
                 <div class="card-subtext" style="margin-top:10px">Each point is an evaluated configuration. x* is the selected trade-off, not automatically the lowest-energy point.</div>
+
+                <!-- The search log. Same card as the chart on purpose: the
+                     replay clock drives both, so the line and the point for a
+                     given evaluation appear together. -->
+                <div class="search-log" id="search-log">
+                    <div class="search-log-head">
+                        <span>Search log</span>
+                        <span class="log-count" id="log-count"></span>
+                        <span class="log-spacer"></span>
+                        <button class="log-btn on" id="log-follow-btn" type="button" onclick="toggleLogFollow()"
+                                title="Keeps the newest line in view while a replay streams. Turns itself off if you scroll up to read back.">Follow</button>
+                        <button class="log-btn" type="button" onclick="copySearchLog()"
+                                title="Copies the whole log to the clipboard as plain text.">Copy</button>
+                    </div>
+                    <div class="search-log-body" id="search-log-body">
+                        <div class="log-empty">No run data loaded.</div>
+                    </div>
+                    <div class="log-foot" id="log-foot"></div>
+                </div>
             </div>
 
             <div class="app-card">
@@ -669,6 +823,50 @@ body::before {
     </div>
 
     <!-- ─ SETTINGS PANEL ────────── -->
+    <div id="panel-configs" class="panel">
+        <div class="page-header">
+            <h1 class="page-title">Configuration Space</h1>
+            <h2 class="page-subtitle">What BOPIS chooses from, what it ruled out and why, and what it picked.</h2>
+        </div>
+        <div class="app-card">
+            <div class="card-header">From every possible configuration to x*</div>
+            <div id="cfg-funnel" style="font-size:13px;">Profile unavailable &mdash; run <code>python -m bopis profile --model-aware --write-js bopis_profile.js</code>.</div>
+        </div>
+        <div class="app-card" style="margin-top:16px;">
+            <div class="card-header">Model &times; precision on this machine</div>
+            <p style="font-size:12px; color:#718096; margin-bottom:10px;">
+                Each cell counts the runtime settings (t, b, g, c) still possible for that model and precision.
+                A cell with none says why. Once a run is loaded, it also shows how many each search arm tried,
+                and marks <b>x*</b>.
+            </p>
+            <div id="cfg-matrix" style="overflow-x:auto; font-size:12.5px;"></div>
+        </div>
+        <div class="app-card" style="margin-top:16px;">
+            <div class="card-header">Every feasible configuration</div>
+            <div style="margin-bottom:10px; font-size:12.5px;">
+                Model <select id="cfg-filter-model" onchange="renderConfigList()"></select>
+                &nbsp; Show <select id="cfg-filter-status" onchange="renderConfigList()">
+                    <option value="all">all</option>
+                    <option value="bopis">tried by BOPIS</option>
+                    <option value="rs">tried by random search</option>
+                    <option value="front">on the Pareto front</option>
+                </select>
+                <span id="cfg-list-count" style="color:#718096; margin-left:8px;"></span>
+            </div>
+            <div id="cfg-list" style="overflow-x:auto; max-height:420px; overflow-y:auto; font-size:12.5px;"></div>
+        </div>
+    </div>
+
+    <div id="panel-explain" class="panel">
+        <div class="page-header">
+            <h1 class="page-title">How BOPIS chose this configuration</h1>
+            <h2 class="page-subtitle">Every step of the search, with the numbers it actually used. Nothing here is a black box.</h2>
+        </div>
+        <div class="app-card" id="explain-body" style="font-size:13px;">
+            Load a run first (Dashboard &rarr; Load run data), or run a study: this page is built from the run's own records.
+        </div>
+    </div>
+
     <div id="panel-cfg" class="panel">
         <div class="page-header">
             <h1 class="page-title">System Settings</h1>
@@ -694,7 +892,8 @@ body::before {
             <div class="app-card yellow-tint">
                 <div class="card-header">Feasible Configuration Space</div>
                 <div class="cfg-row"><span class="cfg-k">Model-aware feasible configs</span><span class="cfg-v" data-space="feasible">Profile unavailable</span></div>
-                <div class="cfg-row"><span class="cfg-k">Allowed precisions</span><span class="cfg-v" data-profile="precisions">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Models searched</span><span class="cfg-v" data-profile="models">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Precisions for GPU offload (g &gt; 0)</span><span class="cfg-v" data-profile="precisions">Profile unavailable</span></div>
                 <div class="cfg-row"><span class="cfg-k">Allowed GPU layers</span><span class="cfg-v" data-profile="layers">Profile unavailable</span></div>
                 <div class="cfg-row"><span class="cfg-k">Batch sizes</span><span class="cfg-v" data-profile="batches">Profile unavailable</span></div>
                 <div class="cfg-row"><span class="cfg-k">CPU threads</span><span class="cfg-v" data-profile="threads">Profile unavailable</span></div>
@@ -712,6 +911,17 @@ body::before {
                 <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">The laptop can compute, but cannot provide a valid GPU-joule claim. Use supported hardware or an external wattmeter for final energy evidence.</p>
             </div>
             
+            <div class="app-card" style="grid-column: 1 / -1;">
+                <div class="card-header">What each model needs (CPU-only)</div>
+                <p style="font-size:12px; color:#718096; margin-bottom:10px; line-height:1.5;">
+                    Memory = weights (parameters &times; bits per weight &divide; 8) + KV cache.
+                    The same arithmetic the HW-P0 guard applies before the search &mdash;
+                    deterministic, nothing trained. Configurations that do not fit are never
+                    offered to the optimizer, so the laptop is never pushed past what it can do.
+                </p>
+                <div id="requirements-table" style="overflow-x:auto; font-size:12.5px;">Profile unavailable</div>
+            </div>
+
             <div class="app-card">
                 <div class="card-header">Calibration Thresholds</div>
                 <div class="cfg-row"><span class="cfg-k">Q_min (Closed QA / extraction)</span><span class="cfg-v">0.82 F1</span></div>
@@ -749,10 +959,27 @@ body::before {
 
     <!-- Input Box (Global - only visible on Chat Tab) -->
     <div class="input-dock active" id="global-input">
-        <div class="input-wrapper">
-            <button class="btn-add">+</button>
-            <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" />
-            <button class="btn-send" onclick="doChat()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+        <div class="input-wrapper dock-stack">
+            <div class="dock-row">
+                <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" oninput="checkDollyArmed()" />
+                <button class="btn-send" onclick="doChat()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+            </div>
+            <div class="dock-row dock-tools">
+                <div class="cfg-picker">
+                    <button class="cfg-chip" id="cfg-chip" onclick="toggleConfigMenu(event)"
+                            title="The configuration answering your prompts. The options are the ones BOPIS selected.">
+                        <span id="cfg-chip-label">Configuration: as launched</span> <span style="opacity:.6;">▴</span>
+                    </button>
+                    <div class="cfg-menu" id="cfg-menu" role="menu"></div>
+                </div>
+                <button class="btn-dolly" id="dolly-btn" onclick="loadDollyPrompt()"
+                        title="Load a random Dolly 15k prompt with its human reference answer, so the reply can be BERTScored">Dolly prompt</button>
+                <select class="btn-dolly" id="dolly-recent" onchange="loadDollyPrompt(this.value); this.value='';"
+                        title="Reload an earlier Dolly prompt by its ID, to ask it again or compare configurations on it"
+                        style="display:none; max-width:120px;"></select>
+                <a class="dock-link" href="#" onclick="openExplain(); return false;"
+                   title="Step by step: the feasible space, the seeds, the Gaussian Process surrogate, Expected Improvement, the Pareto front and the selection rule">How BOPIS chose &#8599;</a>
+            </div>
         </div>
     </div>
 </main>
@@ -774,6 +1001,13 @@ let RUN_DATA = window.BOPIS_DATA || null;
 let REPLAY_LIMIT = null;     // null = draw every evaluation
 let REPLAY_TIMER = null;
 let ROTATE_FRAME = null;
+
+/* Search-log state, up here for the same reason: applyRunData() builds the log
+ * during page load, which is before any declaration further down has been
+ * evaluated. */
+let LOG_ROWS = [];        // built once per run, ascending by iteration
+let LOG_FOLLOW = true;    // autoscroll to the newest line
+let LOG_TOTAL = 0;
 
 function ingestRunData(text) {
     try {
@@ -822,6 +1056,10 @@ function applyRunData(data) {
     renderSelectionDetail(data);
     renderMethodComparison(data);
     renderSurrogateDetail(data);
+    // The log is rebuilt from the artifacts, then shown in full: the evidence
+    // is readable as text on arrival, without having to watch an animation.
+    buildSearchLog(data);
+    renderSearchLog(REPLAY_LIMIT);
     drawPareto3D();
     drawConvergence();
 }
@@ -1285,6 +1523,186 @@ function applyHardwareProfile() {
     if (timestamp) timestamp.textContent = `Live profile generated: ${profile.generated_utc}. Refresh with bopis profile --write-js.`;
     const note = document.getElementById('space-note');
     if (note) note.textContent = `Rules fired: ${(host.rules_fired || []).join(', ')}. Values are loaded from the generated profile, not embedded in this HTML.`;
+    set('models', (space.models_present || []).join(', ') || 'none fit right now');
+    renderRequirements(profile);
+}
+
+/* ── Configurations view ──────────────────────────────────────────────────
+ * The "selection" in Intelligent Configuration Selection, made visible: the
+ * feasible space from bopis_profile.js (hardware.feasible_space), and -- when
+ * a run is loaded -- what each search arm actually tried and what was picked.
+ * Nothing is computed here beyond counting; every set comes from Python.
+ */
+const CFG_KEY_RE = /^(?:([a-z0-9.\-]+)_)?t(\d+)_b(\d+)_(F32|F16|Q8_0|Q4_K_M)_g(All|\d+)_c(\d+)$/;
+
+function parseCfgKey(key) {
+    const m = CFG_KEY_RE.exec(String(key || ''));
+    if (!m) return null;
+    return { key, m: m[1] || 'qwen2.5-1.5b', t: +m[2], b: +m[3], p: m[4], g: m[5], c: +m[6] };
+}
+
+function runSets() {
+    const pareto = (RUN_DATA && RUN_DATA.pareto) || {};
+    const bopis = new Set((pareto.points || []).map(p => p.config));
+    const front = new Set((pareto.points || []).filter(p => p.on_front).map(p => p.config));
+    const rs = new Set((pareto.random_points || []).map(p => p.config));
+    const xstar = (RUN_DATA && RUN_DATA.selection && RUN_DATA.selection.config_key) || null;
+    const rsPick = (RUN_DATA && RUN_DATA.random_search_selection
+        && RUN_DATA.random_search_selection.config_key) || null;
+    return { bopis, front, rs, xstar, rsPick, loaded: Boolean(RUN_DATA && RUN_DATA.pareto) };
+}
+
+function renderConfigurations() {
+    const profile = window.BOPIS_PROFILE;
+    if (!profile || !profile.feasible) return;
+    const space = profile.configuration_space || {};
+    const feasible = profile.feasible.map(parseCfgKey).filter(Boolean);
+    const sets = runSets();
+    const byRule = space.rejected_by_rule || {};
+    const ruleText = {
+        'HW-P1': 'precision not allowed on this GPU (offload only)',
+        'HW-P2': 'precision not allowed on this GPU (offload only)',
+        'HW-P3': 'precision not allowed on this GPU (offload only)',
+        'HW-P0': 'does not fit in memory',
+        'HW-B0': 'KV cache too large for VRAM',
+        'ENERGY-SCOPE': 'outside what the energy instrument measures',
+        'DUPLICATE': 'same placement as g = All',
+        'NO-GGUF': 'model file not downloaded'
+    };
+
+    // Funnel: every stage is a count the reader can check against a file.
+    // Table H1's domain rules narrow b, g and c before any single configuration
+    // is built, so they leave no per-configuration rejection; their share is
+    // whatever the recorded rejections do not account for.
+    const host = profile.host_profile || {};
+    const domainCut = space.n_unconstrained - space.n_feasible - space.n_rejected;
+    const domainRules = (host.rules_fired || []).filter(r => !r.startsWith('HW-P')).join(', ');
+    const steps = [
+        [`${space.n_unconstrained}`, 'possible configurations (4 models × 4 t × 4 b × 3 precisions × 4 g × 3 c)'],
+        ...(domainCut > 0 ? [[`−${domainCut}`,
+            `Table H1 (${escapeHtml(domainRules)}): this machine allows b ∈ {${(host.permitted_batch_sizes || []).join(', ')}}, `
+            + `g ∈ {${(host.permitted_gpu_layers || []).map(g => g === -1 ? 'All' : g).join(', ')}}, `
+            + `c ∈ {${(host.permitted_cpu_threads || []).join(', ')}}`]] : []),
+        ...Object.entries(byRule).map(([rule, n]) => [`−${n}`, `${rule}: ${ruleText[rule] || rule}`]),
+        [`${space.n_feasible}`, `feasible on this machine${profile.cpu_only ? ' (CPU-only)' : ''} — the space BOPIS searches`]
+    ];
+    if (sets.loaded) {
+        steps.push([`${sets.bopis.size}`, 'measured by BOPIS (prior-weighted seeds, then constrained Expected Improvement)']);
+        steps.push([`${sets.front.size}`, 'on the Pareto front (no other tried configuration beats them on energy, speed and quality at once)']);
+        steps.push(['1', `x* = <code>${escapeHtml(sets.xstar || 'none')}</code> — lowest energy on the front that keeps QRR ≥ 98% and SRR ≥ 95%`]);
+    } else {
+        steps.push(['…', 'load a run (Dashboard → Load run data) to see what BOPIS tried and picked']);
+    }
+    document.getElementById('cfg-funnel').innerHTML = steps.map(([n, text]) => `
+        <div style="display:flex; gap:12px; padding:6px 0; border-bottom:1px solid #EDF2F7;">
+            <b style="min-width:64px; text-align:right; font-family:'IBM Plex Mono', monospace;">${n}</b>
+            <span>${text}</span>
+        </div>`).join('');
+
+    // Matrix.
+    const models = Object.keys(profile.models || {});
+    const precisions = ['F16', 'Q8_0', 'Q4_K_M'];
+    const reqs = profile.requirements || [];
+    const rejections = profile.rejections || [];
+    const cell = (model, precision) => {
+        const here = feasible.filter(c => c.m === model && c.p === precision);
+        const req = reqs.find(r => r.model === model && r.precision === precision);
+        const need = req ? `${Number(req.cpu_only_ram_gib).toFixed(1)} GiB` : '';
+        if (!here.length) {
+            const rule = rejections.find(r => {
+                const c = parseCfgKey(r.config);
+                return c && c.m === model && c.p === precision;
+            });
+            const why = rule ? (ruleText[rule.rule] || rule.rule) : 'not feasible';
+            return `<td style="background:#FFF5F5; color:#9B2C2C;">✗ ${escapeHtml(why)}<br><span style="color:#A0AEC0;">needs ${need}</span></td>`;
+        }
+        const keys = here.map(c => c.key);
+        const tried = keys.filter(k => sets.bopis.has(k)).length;
+        const triedRs = keys.filter(k => sets.rs.has(k)).length;
+        const star = keys.includes(sets.xstar) ? ' <b style="color:#2F855A;">★ x*</b>' : '';
+        const rsStar = keys.includes(sets.rsPick) ? ' <span style="color:#805AD5;">◆ RS pick</span>' : '';
+        const runInfo = sets.loaded
+            ? `<br><span style="color:#4A5568;">BOPIS tried ${tried} · RS tried ${triedRs}</span>` : '';
+        return `<td style="background:#F0FFF4;">✓ <b>${here.length}</b> settings${star}${rsStar}`
+            + `<br><span style="color:#A0AEC0;">needs ${need}</span>${runInfo}</td>`;
+    };
+    document.getElementById('cfg-matrix').innerHTML = `
+        <table style="width:100%; border-collapse:separate; border-spacing:4px;">
+            <thead><tr><th></th>${precisions.map(p => `<th>${p}</th>`).join('')}</tr></thead>
+            <tbody>${models.map(m => `<tr><th style="text-align:left;">${escapeHtml(profile.models[m].label)}</th>
+                ${precisions.map(p => cell(m, p)).join('')}</tr>`).join('')}</tbody>
+        </table>`;
+
+    const select = document.getElementById('cfg-filter-model');
+    if (!select.options.length) {
+        select.innerHTML = '<option value="">all</option>'
+            + models.map(m => `<option value="${m}">${escapeHtml(profile.models[m].label)}</option>`).join('');
+    }
+    renderConfigList();
+}
+
+function renderConfigList() {
+    const profile = window.BOPIS_PROFILE;
+    if (!profile || !profile.feasible) return;
+    const sets = runSets();
+    const model = document.getElementById('cfg-filter-model').value;
+    const status = document.getElementById('cfg-filter-status').value;
+    const rows = profile.feasible.map(parseCfgKey).filter(Boolean)
+        .filter(c => !model || c.m === model)
+        .filter(c => status === 'all'
+            || (status === 'bopis' && sets.bopis.has(c.key))
+            || (status === 'rs' && sets.rs.has(c.key))
+            || (status === 'front' && sets.front.has(c.key)));
+    document.getElementById('cfg-list-count').textContent = `${rows.length} configuration${rows.length === 1 ? '' : 's'}`;
+    const tag = c => [
+        c.key === sets.xstar ? '<b style="color:#2F855A;">★ x*</b>' : '',
+        c.key === sets.rsPick ? '<span style="color:#805AD5;">◆ RS pick</span>' : '',
+        sets.front.has(c.key) ? 'front' : '',
+        sets.bopis.has(c.key) ? 'BOPIS' : '',
+        sets.rs.has(c.key) ? 'RS' : ''
+    ].filter(Boolean).join(' · ');
+    document.getElementById('cfg-list').innerHTML = `
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="text-align:left; color:#4A5568; position:sticky; top:0; background:#fff;">
+                <th>model</th><th>precision</th><th>t (max tokens)</th><th>b (batch)</th><th>g (GPU layers)</th><th>c (threads)</th><th>in this run</th>
+            </tr></thead>
+            <tbody>${rows.map(c => `<tr style="border-top:1px solid #EDF2F7;">
+                <td>${escapeHtml(c.m)}</td><td><code>${c.p}</code></td><td>${c.t}</td><td>${c.b}</td>
+                <td>${c.g}</td><td>${c.c}</td><td>${tag(c)}</td></tr>`).join('')}</tbody>
+        </table>`;
+}
+
+/* The "can this machine run it?" table, from bopis_profile.js. Every number
+ * comes from hardware.requirements_table(); the page only formats it. */
+function renderRequirements(profile) {
+    const el = document.getElementById('requirements-table');
+    const rows = profile && profile.requirements;
+    if (!el || !rows || !rows.length) return;
+    const models = profile.models || {};
+    const verdict = row => {
+        if (row.cpu_only_verdict === 'fits') return '<span style="color:#2F855A;">fits now</span>';
+        if (row.cpu_only_verdict === 'free RAM') {
+            return `<span style="color:#B7791F;">close apps: free ${Number(row.shortfall_gib).toFixed(1)} GiB</span>`;
+        }
+        return '<span style="color:#C53030;">needs more RAM than installed</span>';
+    };
+    const body = rows.map(row => `
+        <tr style="${row.searched ? '' : 'color:#A0AEC0;'}">
+            <td>${escapeHtml((models[row.model] || {}).label || row.model)}</td>
+            <td><code>${escapeHtml(row.precision)}</code>${row.searched ? '' : ' (not searched)'}</td>
+            <td style="text-align:right;">${Number(row.weights_gib).toFixed(2)} GiB</td>
+            <td style="text-align:right;">${Number(row.cpu_only_ram_gib).toFixed(2)} GiB</td>
+            <td>${verdict(row)}</td>
+            <td>${row.full_gpu_fits ? 'yes' : 'no'}</td>
+        </tr>`).join('');
+    el.innerHTML = `
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="text-align:left; color:#4A5568;">
+                <th>Model</th><th>Precision</th><th style="text-align:right;">Weights</th>
+                <th style="text-align:right;">Needs</th><th>This machine</th><th>Whole model on GPU</th>
+            </tr></thead>
+            <tbody>${body}</tbody>
+        </table>`;
 }
 
 applyHardwareProfile();
@@ -1315,6 +1733,7 @@ function sw(name, btn) {
     // while the panel is display:none. They must be redrawn after the panel
     // becomes visible or they render at the fallback minimum width.
     if (name === 'tech') setTimeout(() => { drawPareto3D(); drawConvergence(); }, 100);
+    if (name === 'configs') renderConfigurations();
 }
 
 /* ── Workspace mode ────────────────────────────────────────────────────────
@@ -1359,6 +1778,275 @@ function positionDock() {
         '--dock-right', Math.max(20, Math.round(window.innerWidth - rect.right)) + 'px');
 }
 
+/* ── Search log ─────────────────────────────────────────────────────────────
+ * The optimizer's stdout, reconstructed from the run artifacts and replayed on
+ * the same clock as the chart. Every line is derived from a recorded value:
+ * the measurements come from pareto.points, the acquisition and predictive
+ * lines from surrogate.points (which stores the GP's mu, sigma and expected
+ * improvement for each BO iteration), and the closing diagnostics from
+ * surrogate.gp / surrogate.loo. Nothing here is invented except the elapsed
+ * column, which is interpolated from the run's total wall time and is labelled
+ * as such in the footer — per-evaluation timings were never recorded.
+ *
+ * Clicking a line scrubs the chart to that evaluation, so the log doubles as a
+ * timeline control for the Pareto view.
+ */
+function logNum(value, dp = 2) {
+    return Number.isFinite(Number(value)) ? Number(value).toFixed(dp) : '—';
+}
+
+function buildSearchLog(data) {
+    LOG_ROWS = [];
+    LOG_TOTAL = 0;
+    const points = (data?.pareto?.points || [])
+        .slice()
+        .sort((a, b) => (Number(a.iteration) || 0) - (Number(b.iteration) || 0));
+    if (!points.length) return;
+
+    const total = points.reduce((max, p) => Math.max(max, Number(p.iteration) || 0), 0);
+    LOG_TOTAL = total;
+    const meta = data.meta || {};
+    const nSeeds = Number(meta.n_seeds) || 0;
+    const wall = Number(meta.wall_seconds);
+    const width = String(total).length;
+
+    // Elapsed is interpolated, not measured. See the footer note.
+    const stamp = iter => Number.isFinite(wall) && total
+        ? `+${(wall * iter / total).toFixed(2)}s`
+        : `#${iter}`;
+    const push = (iter, lvl, msg, extra = {}) =>
+        LOG_ROWS.push({ iter, lvl, msg, t: stamp(iter), ...extra });
+    const pad = iter => String(iter).padStart(width, '0');
+
+    const surrogateByIter = new Map(
+        (data.surrogate?.points || []).map(s => [Number(s.iteration), s]));
+
+    push(0, 'info', `bopis ${escapeHtml(meta.bopis_version || '?')} · run <span class="k">`
+        + `${escapeHtml(meta.run || 'unnamed')}</span> <span class="d">·</span> backend=`
+        + `<span class="k">${escapeHtml(meta.backend || '?')}</span> <span class="d">·</span> seed=`
+        + `${escapeHtml(String(meta.seed ?? '?'))}`);
+    push(0, 'info', `budget ${total} evaluations <span class="d">=</span> ${nSeeds} prior-weighted seeds`
+        + ` <span class="d">+</span> ${Math.max(0, total - nSeeds)} Expected Improvement`);
+    if (meta.energy_scope && meta.energy_scope !== 'measured') {
+        push(0, 'warn', `energy is <span class="n">${escapeHtml(meta.energy_scope)}</span> via `
+            + `${escapeHtml(meta.energy_method || 'unknown method')} <span class="d">—</span> not wall-plug measured`);
+    }
+
+    // Running non-dominated set over the evaluations revealed so far. Computed
+    // here rather than read from on_front, because on_front is the *final*
+    // front: a line claiming "joined the front" must be true at that moment.
+    const dominates = (a, b) =>
+        a.energy_j <= b.energy_j && a.tokens_per_s >= b.tokens_per_s && a.quality_f1 >= b.quality_f1 &&
+        (a.energy_j < b.energy_j || a.tokens_per_s > b.tokens_per_s || a.quality_f1 > b.quality_f1);
+
+    const seen = [];
+    let bestEnergy = Infinity;
+    let gpAnnounced = false;
+
+    points.forEach((point, index) => {
+        const iter = Number(point.iteration) || 0;
+        const isSeed = point.source === 'seed' || (nSeeds && iter <= nSeeds);
+        const key = escapeHtml(point.config || point.label || 'configuration');
+
+        if (!isSeed && !gpAnnounced) {
+            gpAnnounced = true;
+            push(iter, 'gp', `seeding complete <span class="d">·</span> fitting GP on `
+                + `<span class="n">${seen.length}</span> observations <span class="d">→</span>`
+                + ` Expected Improvement now selects each trial`);
+        }
+
+        const surrogate = surrogateByIter.get(iter);
+        if (surrogate) {
+            push(iter, 'acq', `EI=<span class="n">${logNum(surrogate.expected_improvement, 3)}</span>`
+                + ` <span class="d">J ·</span> proposes <span class="k">${escapeHtml(surrogate.config || key)}</span>`
+                + ` <span class="d">·</span> predicts <span class="n">${logNum(surrogate.mu)}</span>`
+                + ` <span class="d">±</span> ${logNum(surrogate.sigma)} <span class="d">J</span>`);
+        }
+
+        const energy = Number(point.energy_j);
+        const improved = Number.isFinite(energy) && energy < bestEnergy;
+        push(iter, isSeed ? 'seed' : 'bo',
+            `${pad(iter)}/${total} <span class="k">${key}</span>`
+            + ` <span class="d">E=</span><span class="n">${logNum(energy)}</span><span class="d">J</span>`
+            + ` <span class="d">v=</span><span class="n">${logNum(point.tokens_per_s)}</span><span class="d">tok/s</span>`
+            + ` <span class="d">F1=</span><span class="n">${logNum(point.quality_f1, 4)}</span>`
+            + (improved ? ` <span class="best">new best</span>` : ''),
+            { pointIndex: index });
+        if (improved) bestEnergy = energy;
+
+        // One-step-ahead residual: the honest check on the surrogate, because
+        // mu was predicted before this measurement existed.
+        if (surrogate && Number.isFinite(Number(surrogate.mu)) && Number.isFinite(energy)) {
+            const residual = energy - Number(surrogate.mu);
+            const sigma = Number(surrogate.predictive_sigma ?? surrogate.sigma);
+            const z = Number.isFinite(sigma) && sigma > 0 ? Math.abs(residual) / sigma : NaN;
+            const verdict = !Number.isFinite(z) ? ''
+                : z <= 1 ? ' <span class="best">inside 1σ</span>'
+                : z <= 2 ? ' <span class="d">inside 2σ</span>'
+                : ' <span class="log-lvl-warn">outside 2σ</span>';
+            push(iter, 'gp', `residual <span class="n">${residual >= 0 ? '+' : ''}`
+                + `${logNum(residual)}</span><span class="d">J vs µ ·</span> `
+                + `${Number.isFinite(z) ? logNum(z) + 'σ' : 'σ unavailable'}${verdict}`);
+        }
+
+        const current = {
+            energy_j: energy, tokens_per_s: Number(point.tokens_per_s),
+            quality_f1: Number(point.quality_f1), iteration: iter
+        };
+        const beforeCount = seen.filter(p => !seen.some(q => dominates(q, p))).length;
+        seen.push(current);
+        const front = seen.filter(p => !seen.some(q => dominates(q, p)));
+        const isNonDominated = front.some(p => p.iteration === iter);
+        if (isNonDominated) {
+            const retired = beforeCount + 1 - front.length;
+            push(iter, 'front', `non-dominated <span class="d">·</span> front = `
+                + `<span class="n">${front.length}</span> configuration${front.length === 1 ? '' : 's'}`
+                + (retired > 0 ? ` <span class="d">(${retired} dominated and dropped)</span>` : ''));
+        }
+    });
+
+    // Closing diagnostics. These are whole-run values, so they belong at the
+    // end of the stream rather than beside any single evaluation.
+    const gp = data.surrogate?.gp || {};
+    const hyper = gp.hyperparameters || {};
+    const lengthScales = Array.isArray(hyper.length_scales) ? hyper.length_scales : [];
+    if (Number.isFinite(Number(gp.log_marginal_likelihood))) {
+        push(total, 'gp', `final fit n=<span class="n">${gp.n_observations ?? seen.length}</span>`
+            + ` <span class="d">·</span> ls=<span class="n">${lengthScales.map(v => logNum(v, 3)).join(', ') || '—'}</span>`
+            + ` <span class="d">·</span> signal var=<span class="n">${logNum(hyper.signal_variance, 3)}</span>`
+            + ` <span class="d">·</span> noise var=<span class="n">${logNum(hyper.noise_variance, 5)}</span>`
+            + ` <span class="d">·</span> lml=<span class="n">${logNum(gp.log_marginal_likelihood)}</span>`);
+    }
+    const loo = data.surrogate?.loo || {};
+    if (Number.isFinite(Number(loo.mae))) {
+        push(total, 'gp', `leave-one-out <span class="d">·</span> MAE=<span class="n">${logNum(loo.mae)}</span>`
+            + `<span class="d">J ·</span> R²=<span class="n">${logNum(loo.r_squared, 3)}</span>`
+            + ` <span class="d">·</span> UCR=<span class="n">${logNum(loo.ucr, 3)}</span>`
+            + ` <span class="d">(target ${logNum(loo.ucr_target, 2)})</span>`);
+    }
+
+    const selection = data.selection || {};
+    const thresholds = data.thresholds || {};
+    const srr = Number(selection.srr_percent), qrr = Number(selection.qrr_percent);
+    const srrFloor = Number(thresholds.srr), qrrFloor = Number(thresholds.qrr);
+    const flag = (value, floor) => Number.isFinite(value) && Number.isFinite(floor)
+        ? (value >= floor ? ' <span class="best">✓</span>' : ' <span class="log-lvl-warn">✗</span>') : '';
+    push(total, 'front', `search complete <span class="d">·</span> final front = `
+        + `<span class="n">${data.pareto?.n_front ?? '—'}</span> <span class="d">·</span> applying SRR ≥ `
+        + `${logNum(srrFloor, 0)}% and QRR ≥ ${logNum(qrrFloor, 0)}%, then argmax EIR`);
+    push(total, 'pick', `x* = <span class="k">${escapeHtml(selection.config_key || 'unavailable')}</span>`
+        + ` <span class="d">·</span> EIR <span class="n">${logNum(selection.eir_percent, 1)}%</span>`
+        + ` <span class="d">·</span> SRR <span class="n">${logNum(srr, 1)}%</span>${flag(srr, srrFloor)}`
+        + ` <span class="d">·</span> QRR <span class="n">${logNum(qrr, 1)}%</span>${flag(qrr, qrrFloor)}`
+        + ` <span class="d">·</span> ${escapeHtml(selection.status || 'status unknown')}`);
+}
+
+function renderSearchLog(upTo = null) {
+    const body = document.getElementById('search-log-body');
+    const count = document.getElementById('log-count');
+    const foot = document.getElementById('log-foot');
+    if (!body) return;
+
+    if (!LOG_ROWS.length) {
+        body.innerHTML = '<div class="log-empty">No run data loaded.</div>';
+        if (count) count.textContent = '';
+        if (foot) foot.textContent = '';
+        return;
+    }
+
+    // Rows are built in ascending iteration order, so everything up to `upTo`
+    // is a prefix — the array index is therefore also the LOG_ROWS index.
+    const visible = upTo === null ? LOG_ROWS : LOG_ROWS.filter(row => row.iter <= upTo);
+    const html = visible.map((row, index) => {
+        const classes = ['log-row'];
+        if (upTo !== null && row.iter === upTo && row.iter !== 0) classes.push('is-current');
+        if (row.lvl === 'pick') classes.push('is-pick');
+        return `<div class="${classes.join(' ')}" onclick="logRowClick(${index})"`
+            + (row.pointIndex === undefined ? '' : ' title="Click to scrub the chart to this evaluation"')
+            + `><span class="log-t">${row.t}</span>`
+            + `<span class="log-lvl log-lvl-${row.lvl}">${row.lvl}</span>`
+            + `<span class="log-msg">${row.msg}</span></div>`;
+    }).join('');
+    const cursor = upTo !== null && upTo < LOG_TOTAL
+        ? '<div class="log-row"><span class="log-t"></span><span class="log-lvl"></span>'
+          + '<span class="log-msg"><span class="log-cursor"></span></span></div>'
+        : '';
+    body.innerHTML = html + cursor;
+
+    if (count) {
+        count.textContent = upTo === null
+            ? `${visible.length} lines · ${LOG_TOTAL} evaluations`
+            : `evaluation ${upTo} / ${LOG_TOTAL} · ${visible.length} lines`;
+    }
+    if (foot) {
+        foot.textContent = 'Elapsed column is interpolated from the run’s total wall time; '
+            + 'per-evaluation timings were not recorded. Click any line to scrub the chart to that evaluation.';
+    }
+    if (LOG_FOLLOW) body.scrollTop = body.scrollHeight;
+    bindLogScroll();
+}
+
+/* Follow mode should yield to the reader: scrolling up to re-read a line turns
+ * it off, returning to the bottom turns it back on. */
+function bindLogScroll() {
+    const body = document.getElementById('search-log-body');
+    if (!body || body._logScrollBound) return;
+    body._logScrollBound = true;
+    body.addEventListener('scroll', () => {
+        const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 12;
+        if (LOG_FOLLOW !== atBottom) {
+            LOG_FOLLOW = atBottom;
+            document.getElementById('log-follow-btn')?.classList.toggle('on', LOG_FOLLOW);
+        }
+    });
+}
+
+function toggleLogFollow() {
+    LOG_FOLLOW = !LOG_FOLLOW;
+    document.getElementById('log-follow-btn')?.classList.toggle('on', LOG_FOLLOW);
+    if (LOG_FOLLOW) {
+        const body = document.getElementById('search-log-body');
+        if (body) body.scrollTop = body.scrollHeight;
+    }
+}
+
+function copySearchLog() {
+    const text = LOG_ROWS.map(row => {
+        const message = row.msg.replace(/<[^>]*>/g, '');
+        const plain = document.createElement('textarea');
+        plain.innerHTML = message;
+        return `${row.t.padStart(8)}  ${row.lvl.padEnd(5)}  ${plain.value}`;
+    }).join('\n');
+    navigator.clipboard?.writeText(text).then(
+        () => setReplayReadout('search log copied to clipboard'),
+        () => setReplayReadout('clipboard unavailable in this browser'));
+}
+
+/* Clicking a line scrubs the chart to that evaluation: the log becomes the
+ * timeline control, which is the whole point of pairing them in one card. */
+function logRowClick(index) {
+    const row = LOG_ROWS[index];
+    if (!row) return;
+    stopReplay(false);
+    if (!row.iter) { REPLAY_LIMIT = null; renderSearchLog(null); drawPareto3D(); drawConvergence(); return; }
+
+    REPLAY_LIMIT = row.iter;
+    setReplayReadout(`scrubbed to evaluation ${row.iter} / ${LOG_TOTAL}`);
+    renderSearchLog(row.iter);
+    drawPareto3D();
+    drawConvergence();
+
+    const point = row.pointIndex === undefined ? null
+        : (RUN_DATA?.pareto?.points || [])[row.pointIndex];
+    const output = document.getElementById('pareto-selection');
+    if (output && point) {
+        output.textContent = `Evaluation ${point.iteration} (${point.source || 'trial'}) · `
+            + `${point.label || point.config} · Energy ${logNum(point.energy_j)} J · `
+            + `Speed ${logNum(point.tokens_per_s)} tok/s · Quality (BERTScore F1) `
+            + `${logNum(point.quality_f1, 4)}`;
+    }
+}
+
 /* ── Live modelling: replay the search, and auto-rotate ────────────────────
  * REPLAY_LIMIT caps which evaluations the chart may draw. Animating it from 1
  * to N replays the optimization: the 10 prior-weighted seeds scatter, then
@@ -1382,6 +2070,7 @@ function stopReplay(restoreAll = true) {
     if (restoreAll) {
         REPLAY_LIMIT = null;
         setReplayReadout('showing all evaluations');
+        renderSearchLog(null);
         drawPareto3D(); drawConvergence();
     }
 }
@@ -1396,17 +2085,27 @@ function toggleReplay() {
     const nSeeds = Number(RUN_DATA?.meta?.n_seeds) || 0;
     const stepMs = Math.max(90, Math.round(6000 / total));   // ~6 s total
 
+    // The log starts at the banner rows (iteration 0) and streams from there,
+    // so the console fills in step with the canvas rather than being prefilled.
+    LOG_FOLLOW = true;
+    document.getElementById('log-follow-btn')?.classList.add('on');
+    renderSearchLog(0);
+
     REPLAY_TIMER = setInterval(() => {
         REPLAY_LIMIT += 1;
         const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'prior-weighted seed'
                                                          : 'Expected Improvement';
         setReplayReadout(`evaluation ${REPLAY_LIMIT} / ${total} · ${phase}`);
+        // Log and chart are advanced by the same tick: the line and the point
+        // for an evaluation are never out of step.
+        renderSearchLog(REPLAY_LIMIT);
         drawPareto3D(); drawConvergence();
         if (REPLAY_LIMIT >= total) {
             clearInterval(REPLAY_TIMER); REPLAY_TIMER = null;
             document.getElementById('replay-btn')?.classList.remove('on');
             setReplayReadout(`replay complete · ${total} evaluations · showing all`);
             REPLAY_LIMIT = null;
+            renderSearchLog(null);
             drawPareto3D(); drawConvergence();
         }
     }, stepMs);
@@ -1433,8 +2132,18 @@ function toggleAutoRotate() {
     ROTATE_FRAME = requestAnimationFrame(tick);
 }
 
-function sendPrompt(text) {
+/* Bring the chat into view for a new message without leaving the current
+ * layout. In workspace mode the chat is already on screen beside the
+ * dashboard, and calling sw('chat') there would exit workspace mode -- which
+ * is exactly the jump back to the single-panel chat that sending used to
+ * cause. */
+function showChat() {
+    if (document.body.classList.contains('workspace-mode')) return;
     sw('chat', document.querySelector('.nav-item:nth-child(1)'));
+}
+
+function sendPrompt(text) {
+    showChat();
     const inp = document.getElementById('ci');
     inp.value = text;
     doChat();
@@ -1447,6 +2156,461 @@ const CHATBOT_CONFIG = {
     maxTokens: 512,
     temperature: 0
 };
+
+/* ------------------------------------------------------------------------- *
+ * The instrument bridge: `python -m bopis ui`.
+ *
+ * A browser page cannot read a power sensor or run a transformer, so on its
+ * own this chat can only estimate energy and must report BERTScore as n/a.
+ * When the bridge is running, chat requests go through it instead: it brackets
+ * each one with the study's telemetry sampler (measured CPU package energy via
+ * RAPL when a hardware monitor is live, a per-process Mode C estimate
+ * otherwise) and scores replies to Dolly prompts against their references.
+ *
+ * Served by the bridge, the page talks to its own origin. Opened from file://,
+ * it tries the bridge's default port and falls back to llama-server directly.
+ * ------------------------------------------------------------------------- */
+const BRIDGE_BASE = location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8090';
+let BRIDGE = null;          // /api/status payload, or null when not running
+let DOLLY_PENDING = null;   // { text, reference, prompt_id, task_type }
+const SESSION = { replies: 0, joules: 0, tokens: 0, measured: 0, f1: [] };
+
+async function detectBridge() {
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/status`, { cache: 'no-store' });
+        BRIDGE = response.ok ? await response.json() : null;
+    } catch (_error) {
+        BRIDGE = null;
+    }
+    renderInstrumentPill();
+    renderDollyRecent();
+    DEPLOYED_KEY = (BRIDGE && BRIDGE.deployed) || null;
+    updateConfigChip();
+}
+
+function renderInstrumentPill() {
+    const pill = document.getElementById('instrument-pill');
+    const dolly = document.getElementById('dolly-btn');
+    if (!pill) return;
+    if (!BRIDGE) {
+        pill.className = 'instrument-pill';
+        pill.innerHTML = 'Energy: in-browser estimate (Mode C) &middot; BERTScore: unavailable '
+            + '&mdash; start <code>python -m bopis ui</code> for measured energy and quality';
+        if (dolly) dolly.style.display = 'none';
+        return;
+    }
+    const energy = BRIDGE.energy || {};
+    const quality = BRIDGE.quality || {};
+    const instrument = energy.instrument || {};
+    const energyText = energy.measured
+        ? `Energy: <b>measured</b> CPU package (RAPL, ${escapeHtml(instrument.sensor || 'package')}, `
+          + `idle ${Number(energy.p_cpu_idle_w || 0).toFixed(2)} W subtracted)`
+        : 'Energy: Mode C estimate from llama-server CPU time (no RAPL feed)';
+    const qualityText = quality.available
+        ? `BERTScore: ${escapeHtml(quality.model)} on Dolly prompts`
+        : 'BERTScore: torch/transformers not installed';
+    pill.className = 'instrument-pill' + (energy.measured ? ' measured' : '');
+    pill.innerHTML = `${energyText} &middot; ${qualityText}`;
+    pill.title = energy.measured
+        ? 'Excludes DRAM, display and the discrete GPU; valid as inference energy '
+          + 'when llama-server runs with --n-gpu-layers 0.'
+        : (energy.reason || '');
+    if (dolly) dolly.style.display = (BRIDGE.dolly && BRIDGE.dolly.n) ? '' : 'none';
+}
+
+/* Dolly prompts are identified by their row id (e.g. dolly-11150), so the same
+ * prompt can be loaded again -- to re-ask it, or to compare configurations on
+ * exactly the same input. Recent ids are kept in localStorage. */
+const DOLLY_RECENT_KEY = 'bopis.dolly.recent';
+
+function dollyRecent() {
+    try { return JSON.parse(localStorage.getItem(DOLLY_RECENT_KEY) || '[]'); } catch (_e) { return []; }
+}
+
+function rememberDolly(prompt) {
+    const entry = { id: prompt.prompt_id, task: prompt.task_type, head: prompt.instruction.slice(0, 48) };
+    const list = [entry, ...dollyRecent().filter(e => e.id !== entry.id)].slice(0, 15);
+    try { localStorage.setItem(DOLLY_RECENT_KEY, JSON.stringify(list)); } catch (_e) { /* private mode */ }
+    renderDollyRecent();
+}
+
+function renderDollyRecent() {
+    const select = document.getElementById('dolly-recent');
+    if (!select) return;
+    const list = dollyRecent();
+    select.style.display = (BRIDGE && list.length) ? '' : 'none';
+    select.innerHTML = '<option value="">↺ recent</option>' + list.map(e =>
+        `<option value="${escapeHtml(e.id)}">${escapeHtml(e.id)} · ${escapeHtml(e.head)}</option>`).join('');
+}
+
+async function loadDollyPrompt(promptId) {
+    if (!BRIDGE) return;
+    try {
+        const query = promptId ? `?id=${encodeURIComponent(promptId)}` : '';
+        const response = await fetch(`${BRIDGE_BASE}/api/dolly${query}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        DOLLY_PENDING = await response.json();
+        rememberDolly(DOLLY_PENDING);
+        const inp = document.getElementById('ci');
+        // The input is one line, so the study template's paragraph break is
+        // shown as a space. The model is sent the template's exact text.
+        DOLLY_PENDING.modelText = DOLLY_PENDING.text;
+        DOLLY_PENDING.text = DOLLY_PENDING.text.replace(/\s*\n+\s*/g, ' ').trim();
+        inp.value = DOLLY_PENDING.text;
+        inp.focus();
+        checkDollyArmed();
+    } catch (error) {
+        DOLLY_PENDING = null;
+        checkDollyArmed();
+    }
+}
+
+function checkDollyArmed() {
+    const btn = document.getElementById('dolly-btn');
+    const inp = document.getElementById('ci');
+    if (!btn || !inp) return;
+    const armed = DOLLY_PENDING && inp.value.trim() === DOLLY_PENDING.text.trim();
+    btn.classList.toggle('armed', Boolean(armed));
+    btn.textContent = armed ? `Dolly · ${DOLLY_PENDING.prompt_id} · ${DOLLY_PENDING.task_type}` : 'Dolly prompt';
+}
+
+function renderSessionTally() {
+    const tally = document.getElementById('session-tally');
+    if (!tally || !SESSION.replies) return;
+    // Tariff and unit conversion come from the generated profile, i.e. from
+    // bopis.metrics, never from a literal here.
+    const cfg = window.BOPIS_PROFILE && window.BOPIS_PROFILE.energy_estimate;
+    const php = cfg ? SESSION.joules / cfg.joules_per_kwh * cfg.tariff_php_per_kwh : null;
+    const perToken = SESSION.tokens ? SESSION.joules / SESSION.tokens : null;
+    const f1 = SESSION.f1.length
+        ? ` &middot; mean BERTScore F1 <b>${(SESSION.f1.reduce((a, b) => a + b, 0) / SESSION.f1.length).toFixed(3)}</b> (n=${SESSION.f1.length})`
+        : '';
+    const kind = SESSION.measured === SESSION.replies ? 'measured'
+        : (SESSION.measured ? `${SESSION.measured} measured / ${SESSION.replies - SESSION.measured} estimated` : 'estimated');
+    tally.innerHTML = `Session: <b>${SESSION.replies}</b> replies &middot; `
+        + `<b>${SESSION.joules.toFixed(1)} J</b> ${kind}`
+        + (perToken ? ` (${perToken.toFixed(2)} J/tok)` : '')
+        + (php === null ? '' : ` &middot; PHP ${php.toFixed(5)} (${(php * 1000).toFixed(2)} per 1k such replies)`)
+        + f1;
+}
+
+detectBridge();
+
+/* ── Configuration picker (the dock) ──────────────────────────────────────
+ * The options are the configurations BOPIS selected in the loaded run: x*,
+ * the rest of its Pareto front, the random-search pick and the unoptimized
+ * default. Choosing one really switches the model: the bridge launches that
+ * configuration as its own llama-server (/api/deploy) and routes the chat to
+ * it. Every option says what it trades, and links to how it was chosen.
+ */
+let DEPLOYED_KEY = null;
+
+function modelLabel(key) {
+    const models = (window.BOPIS_PROFILE && window.BOPIS_PROFILE.models) || {};
+    return (models[key] && models[key].label) || key;
+}
+
+function describeCfg(c) {
+    if (!c) return '';
+    const g = c.g === 'All' ? 'all layers on GPU' : (c.g === '0' || c.g === 0 ? 'CPU only' : `${c.g} layers on GPU`);
+    return `${modelLabel(c.m).replace('-Instruct', '')} · ${c.p} · up to ${c.t} tokens · batch ${c.b} · ${c.c} threads · ${g}`;
+}
+
+/* Ratios against the Stage 0 reference -- the same EIR/SRR/QRR the selection
+ * rule uses, from the same stored values. */
+function ratiosFor(point) {
+    const ref = (RUN_DATA && RUN_DATA.reference_point) || {};
+    const e = Number(point.energy_j), s = Number(point.tokens_per_s), q = Number(point.quality_f1);
+    return {
+        eir: ref.energy_j ? (1 - e / ref.energy_j) * 100 : NaN,
+        srr: ref.tokens_per_s ? (s / ref.tokens_per_s) * 100 : NaN,
+        qrr: ref.quality_f1 ? (q / ref.quality_f1) * 100 : NaN
+    };
+}
+
+function configOptions() {
+    if (!RUN_DATA || !RUN_DATA.pareto) return [];
+    const points = RUN_DATA.pareto.points || [];
+    const rsPoints = RUN_DATA.pareto.random_points || [];
+    const find = key => points.find(p => p.config === key) || rsPoints.find(p => p.config === key);
+    const xstar = RUN_DATA.selection && RUN_DATA.selection.config_key;
+    const rsPick = RUN_DATA.random_search_selection && RUN_DATA.random_search_selection.config_key;
+    const def = (RUN_DATA.search && RUN_DATA.search.default_config)
+        || (RUN_DATA.default_config && RUN_DATA.default_config.key);
+    const options = [];
+    const add = (key, title, tag, note) => {
+        if (!key || options.some(o => o.key === key)) return;
+        options.push({ key, cfg: parseCfgKey(key), title, tag, note, point: find(key) });
+    };
+    add(xstar, 'BOPIS x*', 'Recommended', 'lowest energy on the Pareto front that keeps quality ≥ 98% and speed ≥ 95% of the default');
+    points.filter(p => p.on_front && p.config !== xstar)
+        .sort((a, b) => a.energy_j - b.energy_j)
+        .slice(0, 5)
+        .forEach(p => {
+            const r = ratiosFor(p);
+            const qFloor = (RUN_DATA.thresholds || {}).qrr ?? 98;
+            const sFloor = (RUN_DATA.thresholds || {}).srr ?? 95;
+            const failed = [
+                r.qrr < qFloor ? `quality ${r.qrr.toFixed(0)}% < ${qFloor}%` : '',
+                r.srr < sFloor ? `speed ${r.srr.toFixed(0)}% < ${sFloor}%` : ''
+            ].filter(Boolean);
+            add(p.config, 'Pareto alternative', failed.length ? 'Below a floor' : 'Meets floors',
+                failed.length ? `not eligible as x*: ${failed.join(', ')} of the default`
+                              : 'also on the front and meets the floors, but saves less energy than x*');
+        });
+    add(rsPick, 'Random search pick', 'Baseline', `what random search found with the same budget (${(RUN_DATA.random_search_selection || {}).status || ''})`);
+    add(def, 'Unoptimized default', 'Reference', 'what a user who optimized nothing would run; every ratio above is relative to it');
+    // The default is measured in Stage 0, outside the search, so its numbers
+    // live in reference_point rather than among the searched points.
+    const defOption = options.find(o => o.key === def);
+    if (defOption && !defOption.point && RUN_DATA.reference_point) defOption.point = RUN_DATA.reference_point;
+    return options;
+}
+
+function optionAvailability(option) {
+    if (!BRIDGE) return 'start python -m bopis ui to switch configurations';
+    if (!(BRIDGE.compare && BRIDGE.compare.available)) return 'start bopis ui with --llama-binary to switch configurations';
+    const c = option.cfg;
+    if (!c) return 'unreadable configuration';
+    if (!(BRIDGE.compare.ggufs || []).includes(`${c.m}:${c.p}`)) return `model file for ${c.m} ${c.p} not in models\\`;
+    return null;
+}
+
+function renderConfigMenu() {
+    const menu = document.getElementById('cfg-menu');
+    if (!menu) return;
+    const options = configOptions();
+    if (!options.length) {
+        menu.innerHTML = `<div class="cfg-head">Configuration</div>
+            <div class="cfg-item disabled"><div><div class="t">No run loaded</div>
+            <div class="s">The options come from a BOPIS run. Load one (Dashboard → Load run data) or run a study.</div></div></div>`;
+        return;
+    }
+    const item = option => {
+        const unavailable = optionAvailability(option);
+        const p = option.point || {};
+        const r = ratiosFor(p);
+        const stats = option.point
+            ? `${Number(p.energy_j).toFixed(1)} J · ${Number(p.tokens_per_s).toFixed(1)} tok/s · F1 ${Number(p.quality_f1).toFixed(3)}`
+              + (Number.isFinite(r.eir) ? ` — energy ${r.eir >= 0 ? '−' : '+'}${Math.abs(r.eir).toFixed(0)}%, quality ${r.qrr.toFixed(0)}% of default` : '')
+            : '';
+        return `<div class="cfg-item ${DEPLOYED_KEY === option.key ? 'active' : ''} ${unavailable ? 'disabled' : ''}"
+                    role="menuitem" onclick="${unavailable ? '' : `chooseConfig('${option.key}')`}"
+                    title="${escapeHtml(unavailable || option.note)}">
+                <div style="min-width:0;">
+                    <div class="t">${escapeHtml(option.title)}<span class="tag ${option.tag === 'Recommended' ? '' : 'alt'}">${escapeHtml(option.tag)}</span></div>
+                    <div class="s">${escapeHtml(describeCfg(option.cfg))}</div>
+                    <div class="s">${escapeHtml(stats)}</div>
+                    <div class="s" style="color:#7F95A6;">${escapeHtml(unavailable || option.note)}</div>
+                </div>
+                <a class="why" href="#" onclick="event.stopPropagation(); openExplain(null, '${option.key}'); return false;">why? ↗</a>
+            </div>`;
+    };
+    menu.innerHTML = `
+        <div class="cfg-head">Configuration — selected by BOPIS for this machine</div>
+        ${options.map(item).join('')}
+        <div class="cfg-item ${DEPLOYED_KEY ? '' : 'active'}" onclick="chooseConfig(null)">
+            <div><div class="t">As launched</div><div class="s">the llama-server the chat was started with (not chosen by BOPIS)</div></div>
+        </div>
+        <div class="cfg-foot">Measured on ${RUN_DATA.pareto.points.length} of ${(RUN_DATA.space || {}).n_feasible} feasible configurations.
+            <a href="#" onclick="openExplain(); return false;">How BOPIS chose these ↗</a> ·
+            <a href="#" onclick="document.getElementById('cfg-menu').classList.remove('open'); sw('configs', [...document.querySelectorAll('.nav-item')].find(n => n.innerText.includes('Configurations'))); return false;">All configurations ↗</a></div>`;
+}
+
+function toggleConfigMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('cfg-menu');
+    renderConfigMenu();
+    menu.classList.toggle('open');
+}
+document.addEventListener('click', event => {
+    const menu = document.getElementById('cfg-menu');
+    if (menu && !menu.contains(event.target)) menu.classList.remove('open');
+});
+
+function updateConfigChip() {
+    const label = document.getElementById('cfg-chip-label');
+    if (!label) return;
+    const option = configOptions().find(o => o.key === DEPLOYED_KEY);
+    label.textContent = DEPLOYED_KEY
+        ? `${option ? option.title : 'Configuration'}: ${describeCfg(parseCfgKey(DEPLOYED_KEY)).split(' · ').slice(0, 2).join(' · ')}`
+        : 'Configuration: as launched';
+}
+
+async function chooseConfig(key) {
+    const chip = document.getElementById('cfg-chip');
+    document.getElementById('cfg-menu').classList.remove('open');
+    if (key === DEPLOYED_KEY) return;
+    chip.classList.add('busy');
+    document.getElementById('cfg-chip-label').textContent = key ? `Loading ${describeCfg(parseCfgKey(key)).split(' · ').slice(0, 2).join(' · ')}…` : 'Switching back…';
+    const note = document.createElement('div');
+    note.className = 'msg';
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/deploy`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config: key })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        DEPLOYED_KEY = result.deployed;
+        const option = configOptions().find(o => o.key === DEPLOYED_KEY);
+        note.innerHTML = `<div class="ref-note" style="border-left-color:#2F855A;">Now answering with
+            <b>${escapeHtml(option ? option.title : 'the launched server')}</b>${DEPLOYED_KEY ? ` — ${escapeHtml(describeCfg(parseCfgKey(DEPLOYED_KEY)))}
+            (loaded in ${Number(result.load_seconds).toFixed(1)} s)` : ''}.</div>`;
+    } catch (error) {
+        note.innerHTML = `<div class="ref-note" style="border-left-color:#C53030;">Could not switch configuration: ${escapeHtml(error.message)}</div>`;
+    } finally {
+        chip.classList.remove('busy');
+        updateConfigChip();
+        document.getElementById('chat-area').appendChild(note);
+        scrollToBottom();
+    }
+}
+
+/* ── How BOPIS chose: the white-box page ──────────────────────────────────
+ * Built entirely from the loaded run: the feasible space, the prior-weighted
+ * seeds, every surrogate prediction and acquisition value, the Pareto front
+ * and the selection rule. Plain-language explanations sit beside the numbers.
+ */
+function openExplain(btn, focusKey) {
+    document.getElementById('cfg-menu')?.classList.remove('open');
+    sw('explain', btn || document.getElementById('nav-explain'));
+    renderExplain(focusKey);
+}
+
+function renderExplain(focusKey) {
+    const body = document.getElementById('explain-body');
+    if (!body || !RUN_DATA || !RUN_DATA.pareto) return;
+    const num = (v, dp = 2) => Number.isFinite(Number(v)) ? Number(v).toFixed(dp) : '—';
+    const search = RUN_DATA.search || {};
+    const steps = search.steps || (RUN_DATA.pareto.points || []).map(p => ({ ...p }));
+    const floors = search.floors || {};
+    const xstar = RUN_DATA.selection && RUN_DATA.selection.config_key;
+    const rsPick = RUN_DATA.random_search_selection && RUN_DATA.random_search_selection.config_key;
+    const space = RUN_DATA.space || {};
+    const seeds = steps.filter(s => s.source === 'seed');
+    const guided = steps.filter(s => s.source !== 'seed');
+    const front = (RUN_DATA.pareto.points || []).filter(p => p.on_front).sort((a, b) => a.energy_j - b.energy_j);
+    const ref = RUN_DATA.reference_point || {};
+    const gp = (RUN_DATA.surrogate || {}).gp || {};
+    const loo = (RUN_DATA.surrogate || {}).loo || {};
+    const constrained = search.acquisition === 'cei';
+    const prior = RUN_DATA.task_prior || {};
+    const priorText = prior.dataset_prior
+        ? Object.entries(prior.dataset_prior).map(([k, v]) => `${k} ${(v * 100).toFixed(0)}%`).join(' · ') : '';
+    const cfgCell = key => `<code>${escapeHtml(key)}</code>${key === xstar ? ' <b style="color:#2F855A;">★ x*</b>' : ''}${key === focusKey && key !== xstar ? ' <b style="color:#2B6CB0;">◀</b>' : ''}`;
+
+    body.innerHTML = `
+        <div class="plain"><b>The question BOPIS answers:</b> on <i>this</i> machine, which combination of model,
+            precision and runtime settings uses the least energy while keeping answer quality at least
+            ${num(RUN_DATA.thresholds?.qrr, 0)}% and speed at least ${num(RUN_DATA.thresholds?.srr, 0)}% of an unoptimized default?
+            Its answer was <code>${escapeHtml(xstar || 'none')}</code> —
+            ${escapeHtml(describeCfg(parseCfgKey(xstar)))} (status: <b>${escapeHtml((RUN_DATA.selection || {}).status || '')}</b>).
+            Measuring every option would take ${space.n_feasible} evaluations; BOPIS used ${steps.length}.</div>
+
+        <div class="explain-step">
+            <h3>1 · Rule out what this machine cannot run</h3>
+            <p>Of ${space.n_unconstrained} possible configurations, ${space.n_feasible} fit this hardware. The rest fail the
+               Table H1 limits or the memory check (model weights + KV cache must fit in RAM, or in VRAM for GPU layers).
+               This step is deterministic arithmetic, so the laptop is never asked to run what it cannot.
+               <a href="#" onclick="sw('configs', [...document.querySelectorAll('.nav-item')].find(n => n.innerText.includes('Configurations'))); return false;">See every configuration and why →</a></p>
+        </div>
+
+        <div class="explain-step">
+            <h3>2 · Seeds: ${seeds.length} configurations drawn using the task prior</h3>
+            <p>With no measurements yet, there is nothing to learn from, so BOPIS starts by measuring ${seeds.length}
+               configurations at random — but not uniformly: precisions are drawn from the task-informed prior
+               P(precision | task) (Table T1), weighted by the Dolly task mix${priorText ? `: <b>${escapeHtml(priorText)}</b>` : ''}.
+               Quality-sensitive tasks lean toward F16; tolerant ones toward Q4_K_M.</p>
+            <div style="max-height:260px; overflow:auto;"><table class="explain-table">
+                <thead><tr><th>#</th><th>Configuration</th><th>Energy (J)</th><th>Speed (tok/s)</th><th>F1</th></tr></thead>
+                <tbody>${seeds.map(s => `<tr class="${s.config === focusKey ? 'hl' : ''}"><td>${s.iteration}</td><td>${cfgCell(s.config)}</td>
+                    <td>${num(s.energy_j, 1)}</td><td>${num(s.tokens_per_s, 1)}</td><td>${num(s.quality_f1, 3)}</td></tr>`).join('')}</tbody>
+            </table></div>
+        </div>
+
+        <div class="explain-step">
+            <h3>3 · The surrogate: a Gaussian Process that predicts energy</h3>
+            <div class="plain">A <b>surrogate model</b> is a cheap stand-in for the expensive thing (actually running the model).
+                The <b>Gaussian Process</b> looks at every configuration measured so far and predicts, for every one
+                <i>not</i> yet measured, two numbers: its expected energy <b>μ</b> and how unsure it is, <b>σ</b>.
+                Configurations similar to measured ones get confident predictions; unfamiliar ones get a large σ.
+                Similarity is judged on six dimensions: model size, precision (bits per weight), max tokens, batch,
+                GPU-layer fraction and threads.${constrained ? ' Two more GPs predict quality and speed the same way.' : ''}</div>
+            <p style="margin-top:8px;">${(() => {
+                const h = gp.hyperparameters || {};
+                const ls = h.length_scales || [];
+                return h.signal_variance != null
+                    ? `Fitted by maximizing the marginal likelihood on the ${gp.n_observations} measurements:
+                       signal variance σ<sub>f</sub>² = ${num(h.signal_variance, 3)}, noise σ<sub>n</sub>² = ${num(h.noise_variance, 4)},
+                       length scale${ls.length > 1 ? 's' : ''} ℓ = ${ls.map(v => num(v, 2)).join(', ')}
+                       (a short ℓ means energy changes quickly along that dimension).`
+                    : '';
+            })()}
+               Checked by leave-one-out (hide one point, predict it from the rest): R² ${num(loo.r_squared, 2)},
+               mean error ${num(loo.npe_percent, 1)}%, ${num((loo.ucr || 0) * 100, 0)}% of points inside the 95% band.</p>
+        </div>
+
+        <div class="explain-step">
+            <h3>4 · Choosing what to measure next: ${constrained ? 'constrained ' : ''}Expected Improvement</h3>
+            <div class="plain"><b>Expected Improvement (EI)</b> scores each unmeasured configuration by how much lower than the
+                best energy so far it is <i>likely</i> to be, counting both a low μ (probably good) and a high σ
+                (might be surprisingly good). That balance is what lets BOPIS explore without wasting evaluations.
+                ${constrained ? `EI is multiplied by <b>P(meets floors)</b> — the probability, from the quality and speed GPs, that the
+                configuration keeps F1 ≥ ${num(floors.quality_f1, 3)} and speed ≥ ${num(floors.tokens_per_s, 1)} tok/s — so the
+                search does not spend its budget on tiny models the selection rule would reject anyway.` : ''}
+                Each row below is one decision: what the surrogate predicted <i>before</i> measuring, then what was measured.</div>
+            <div style="max-height:360px; overflow:auto; margin-top:8px;"><table class="explain-table">
+                <thead><tr><th>#</th><th>Proposed configuration</th><th>Predicted μ ± σ (J)</th><th>EI</th>
+                    ${constrained ? '<th>P(meets floors)</th>' : ''}<th>Measured (J)</th><th>F1</th><th>Error</th></tr></thead>
+                <tbody>${guided.map(s => {
+                    const err = (s.mu != null && s.sigma) ? (s.energy_j - s.mu) / s.sigma : NaN;
+                    return `<tr class="${s.config === focusKey || s.config === xstar ? 'hl' : ''}"><td>${s.iteration}</td><td>${cfgCell(s.config)}</td>
+                        <td>${num(s.mu, 1)} ± ${num(s.sigma, 1)}</td><td>${num(s.expected_improvement, 3)}</td>
+                        ${constrained ? `<td>${Number.isFinite(Number(s.p_feasible)) ? (s.p_feasible * 100).toFixed(0) + '%' : '—'}</td>` : ''}
+                        <td>${num(s.energy_j, 1)}</td><td>${num(s.quality_f1, 3)}</td>
+                        <td>${Number.isFinite(err) ? `${err >= 0 ? '+' : ''}${err.toFixed(1)}σ` : '—'}</td></tr>`;
+                }).join('')}</tbody>
+            </table></div>
+            <p style="margin-top:6px;"><a href="#" onclick="sw('tech', document.querySelector('.nav-item:nth-child(2)')); return false;">▶ Watch this search replay on the Pareto chart, with its log →</a></p>
+        </div>
+
+        <div class="explain-step">
+            <h3>5 · The Pareto front, and the selection rule</h3>
+            <p>A configuration is on the <b>Pareto front</b> if no other measured configuration beats it on energy, speed
+               <i>and</i> quality at once — every front member is a defensible trade-off. The rule then picks the front
+               member with the <b>largest energy saving</b> among those keeping QRR ≥ ${num(RUN_DATA.thresholds?.qrr, 0)}% and
+               SRR ≥ ${num(RUN_DATA.thresholds?.srr, 0)}% versus the default (${num(ref.energy_j, 1)} J,
+               ${num(ref.tokens_per_s, 1)} tok/s, F1 ${num(ref.quality_f1, 3)}).</p>
+            <table class="explain-table">
+                <thead><tr><th>Front member</th><th>Energy</th><th>Speed</th><th>F1</th><th>EIR (saving)</th><th>SRR</th><th>QRR</th><th>Passes floors</th></tr></thead>
+                <tbody>${front.map(p => {
+                    const r = ratiosFor(p);
+                    const ok = r.qrr >= (RUN_DATA.thresholds?.qrr ?? 98) && r.srr >= (RUN_DATA.thresholds?.srr ?? 95);
+                    return `<tr class="${p.config === xstar || p.config === focusKey ? 'hl' : ''}"><td>${cfgCell(p.config)}</td>
+                        <td>${num(p.energy_j, 1)} J</td><td>${num(p.tokens_per_s, 1)}</td><td>${num(p.quality_f1, 3)}</td>
+                        <td>${num(r.eir, 1)}%</td><td>${num(r.srr, 0)}%</td><td>${num(r.qrr, 1)}%</td><td>${ok ? '✓' : '✗'}</td></tr>`;
+                }).join('')}</tbody>
+            </table>
+        </div>
+
+        <div class="explain-step">
+            <h3>6 · Why not just search at random?</h3>
+            <p>Random search got the same ${steps.length} evaluations and the same selection rule. Its pick:
+               <code>${escapeHtml(rsPick || 'none')}</code> (status <b>${escapeHtml((RUN_DATA.random_search_selection || {}).status || '')}</b>,
+               QRR ${num((RUN_DATA.random_search_selection || {}).qrr_percent, 1)}%). BOPIS's: status
+               <b>${escapeHtml((RUN_DATA.selection || {}).status || '')}</b>, QRR ${num((RUN_DATA.selection || {}).qrr_percent, 1)}%.
+               The difference is the surrogate and the acquisition function — steps 3 and 4.</p>
+        </div>
+
+        <p style="font-size:12px; color:#718096;">Run <code>${escapeHtml((RUN_DATA.meta || {}).run || '')}</code> ·
+            backend <b>${escapeHtml((RUN_DATA.meta || {}).backend || '')}</b>${(RUN_DATA.meta || {}).backend === 'sim'
+            ? ' — simulator: these numbers demonstrate the method, they are not measurements' : ''}.</p>`;
+    if (focusKey) {
+        const row = body.querySelector('tr.hl');
+        if (row) row.scrollIntoView({ block: 'center' });
+    }
+}
 
 function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, character => ({
@@ -1708,9 +2872,16 @@ async function doChat() {
     const inp = document.getElementById('ci');
     const txt = inp.value.trim();
     if (!txt) return;
-    
-    sw('chat', document.querySelector('.nav-item:nth-child(1)')); 
-    
+
+    showChat();
+
+    // A Dolly reference applies only to the Dolly prompt it came with. If the
+    // text was edited, the reference no longer answers it and is dropped.
+    const reference = (DOLLY_PENDING && DOLLY_PENDING.text.trim() === txt)
+        ? DOLLY_PENDING : null;
+    DOLLY_PENDING = null;
+    checkDollyArmed();
+
     const area = document.getElementById('chat-area');
 
     // The user's turn, right-aligned.
@@ -1726,14 +2897,21 @@ async function doChat() {
 
     // Stage 1 runs on submit, before the request goes out, so the panel can see
     // the detected category alongside the answer it produced.
-    const prediction = classifyPromptBest(txt, '');
+    const prediction = reference
+        ? classifyPromptBest(reference.instruction, reference.context)
+        : classifyPromptBest(txt, '');
     const badge = document.createElement('div');
     badge.className = 'msg';
     badge.innerHTML = `<div class="stage1-wrap">${taskBadgeHtml(prediction)}</div>`;
     area.appendChild(badge);
     scrollToBottom();
 
-    chatHistory.push({ role: 'user', content: txt });
+    const userContent = reference ? reference.modelText : txt;
+    // A Dolly prompt is sent as a fresh single turn, the way the study sends
+    // it, so earlier conversation cannot shift the reply being scored.
+    const history = reference ? [] : chatHistory;
+    history.push({ role: 'user', content: userContent });
+    if (reference) chatHistory.push({ role: 'user', content: userContent });
 
     // The assistant's turn starts as a typing indicator in its final position,
     // so the bubble does not jump when the reply lands.
@@ -1751,22 +2929,31 @@ async function doChat() {
     const wallStart = performance.now();
 
     try {
-        const response = await fetch(CHATBOT_CONFIG.endpoint, {
+        const requestBody = JSON.stringify({
+            model: CHATBOT_CONFIG.model,
+            messages: [
+                { role: 'system', content: 'You are BOPIS, a concise and helpful local assistant. Answer only the user request. Do not invent a conversation, roleplay other users, or continue with User/Assistant transcript labels.' },
+                ...history
+            ],
+            max_tokens: CHATBOT_CONFIG.maxTokens,
+            stream: false,
+            temperature: CHATBOT_CONFIG.temperature
+        });
+        // Through the bridge when it is up (measured energy), else direct.
+        const viaBridge = Boolean(BRIDGE);
+        const response = await fetch(
+            viaBridge ? `${BRIDGE_BASE}/api/chat` : CHATBOT_CONFIG.endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: CHATBOT_CONFIG.model,
-                messages: [
-                    { role: 'system', content: 'You are BOPIS, a concise and helpful local assistant. Answer only the user request. Do not invent a conversation, roleplay other users, or continue with User/Assistant transcript labels.' },
-                    ...chatHistory
-                ],
-                max_tokens: CHATBOT_CONFIG.maxTokens,
-                stream: false,
-                temperature: CHATBOT_CONFIG.temperature
-            })
+            body: requestBody
         });
-        if (!response.ok) throw new Error(`llama.cpp returned HTTP ${response.status}`);
-        const data = await response.json();
+        if (!response.ok) {
+            let detail = `HTTP ${response.status}`;
+            try { detail = (await response.json()).error || detail; } catch (_e) { /* not JSON */ }
+            throw new Error(viaBridge ? detail : `llama.cpp returned ${detail}`);
+        }
+        const envelope = await response.json();
+        const data = viaBridge ? envelope.completion : envelope;
         const reply = data.choices?.[0]?.message?.content || data.content;
         if (!reply) throw new Error('The chatbot returned an empty response');
         chatHistory.push({ role: 'assistant', content: reply });
@@ -1780,7 +2967,19 @@ async function doChat() {
             : 'n/a';
         const latency = totalSeconds > 0 ? totalSeconds.toFixed(2) : 'n/a';
         const wallSeconds = (performance.now() - wallStart) / 1000;
-        const energy = estimateEnergy(totalSeconds || wallSeconds, generatedTokens);
+        const energy = viaBridge
+            ? bridgeEnergy(envelope.energy, generatedTokens)
+            : estimateEnergy(totalSeconds || wallSeconds, generatedTokens);
+
+        const scoreId = `q-${Date.now()}`;
+        const qualityHtml = reference
+            ? `<span id="${scoreId}" class="q-pending">BERTScore scoring against the Dolly reference&hellip;</span>`
+            : `<span title="BERTScore compares a reply against a human reference answer; free chat has none. Use the Dolly prompt button for a scorable prompt.">BERTScore <b>n/a</b> (free chat has no reference &mdash; use <i>Dolly prompt</i>)</span>`;
+        const compareId = `cmp-${Date.now()}`;
+        const referenceHtml = reference
+            ? `<details class="ref-note"><summary>Dolly reference (${escapeHtml(reference.prompt_id)}, ${escapeHtml(reference.task_type)})</summary>${renderMarkdown(reference.reference)}</details>`
+              + dollyActionsHtml(reference.prompt_id, compareId)
+            : '';
 
         pending.innerHTML = `
             <div class="turn assistant">
@@ -1793,10 +2992,20 @@ async function doChat() {
                         <span>Decode <b>${decodeSpeed}</b> tok/s</span>
                         <span>Latency <b>${latency}</b> s</span>
                         ${energy.html}
-                        <span>BERTScore <b>n/a</b> (needs a reference answer)</span>
+                        ${qualityHtml}
                     </div>
+                    ${referenceHtml}
                 </div>
             </div>`;
+
+        SESSION.replies += 1;
+        if (Number.isFinite(energy.joules)) SESSION.joules += energy.joules;
+        if (energy.measured) SESSION.measured += 1;
+        SESSION.tokens += generatedTokens;
+        renderSessionTally();
+        scrollToBottom();
+
+        if (reference) scoreReply(scoreId, reply, reference.reference);
     } catch (error) {
         chatHistory.pop();
         pending.innerHTML = `
@@ -1880,9 +3089,150 @@ function estimateEnergy(seconds, generatedTokens) {
     };
 }
 
+/* Energy for one reply as reported by the bridge. Measured (RAPL, green) and
+ * estimated (Mode C, amber) are never rendered the same way. The measured band
+ * is the monitor's refresh-bin resolution at the window edges; it does not
+ * cover RAPL's own error. */
+function bridgeEnergy(energy, generatedTokens) {
+    if (!energy || !Number.isFinite(Number(energy.energy_j))) {
+        return { html: '<span>Energy <b>unavailable</b></span>' };
+    }
+    const joules = Number(energy.energy_j);
+    const php = Number(energy.cost_php || 0);
+    const perToken = generatedTokens > 0 ? joules / generatedTokens : null;
+    const low = Number(energy.energy_low_j), high = Number(energy.energy_high_j);
+    const band = Number.isFinite(low) && Number.isFinite(high)
+        ? ` <span title="resolution band">[${low.toFixed(1)}&ndash;${high.toFixed(1)}]</span>` : '';
+    const detail = energy.measured
+        ? `Measured CPU package energy (Intel RAPL via hardware monitor) over `
+          + `${Number(energy.duration_s).toFixed(2)} s, mean package power `
+          + `${Number(energy.cpu_power_mean_w || 0).toFixed(2)} W, idle `
+          + `${Number(energy.p_cpu_idle_w || 0).toFixed(2)} W subtracted. ${energy.caveat}`
+        : `Mode C estimate from llama-server's CPU time `
+          + `(${Number(energy.process_cpu_percent || 0).toFixed(0)}% of the CPU, `
+          + `${energy.cpu_attribution}). ${energy.caveat}`;
+    return {
+        joules, php, measured: Boolean(energy.measured),
+        html: `<span class="${energy.measured ? 'meas' : 'est'}" title="${escapeHtml(detail)}">`
+            + `${energy.measured ? '' : '~'}Energy <b>${joules.toFixed(1)} J</b>${band}`
+            + (perToken ? ` (<b>${perToken.toFixed(2)}</b> J/tok)` : '')
+            + ` &middot; <b>PHP ${(php * 1000).toFixed(3)}</b>/1k replies`
+            + ` &middot; <b>${energy.measured ? 'measured (RAPL)' : 'estimated (Mode C)'}</b></span>`
+    };
+}
+
+/* The three conditions of the study's comparison, from the loaded run. */
+function comparisonConfigs() {
+    if (!RUN_DATA) return null;
+    const configs = {
+        unoptimized: RUN_DATA.default_config && RUN_DATA.default_config.key,
+        random_search: RUN_DATA.random_search_selection && RUN_DATA.random_search_selection.config_key,
+        bopis: RUN_DATA.selection && RUN_DATA.selection.config_key
+    };
+    return Object.values(configs).every(Boolean) ? configs : null;
+}
+
+function dollyActionsHtml(promptId, compareId) {
+    const canCompare = BRIDGE && BRIDGE.compare && BRIDGE.compare.available && comparisonConfigs();
+    const why = !BRIDGE || !(BRIDGE.compare && BRIDGE.compare.available)
+        ? 'Start bopis ui with --llama-binary to enable the comparison'
+        : 'Load a run first (Dashboard → Load run data): the comparison uses its default, random-search pick and x*';
+    return `
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-dolly" onclick="loadDollyPrompt('${escapeHtml(promptId)}')"
+                title="Load this exact Dolly prompt into the input again">↺ Ask again</button>
+            <button class="btn-dolly" ${canCompare ? '' : 'disabled'} title="${canCompare ? '' : escapeHtml(why)}"
+                onclick="compareOnPrompt('${escapeHtml(promptId)}', '${compareId}', this)">
+                ⚖ Compare default · random search · BOPIS on this prompt</button>
+        </div>
+        <div id="${compareId}"></div>`;
+}
+
+const CONDITION_LABEL = { unoptimized: 'Unoptimized default', random_search: 'Random search pick', bopis: 'BOPIS x*' };
+
+async function compareOnPrompt(promptId, targetId, button) {
+    const target = document.getElementById(targetId);
+    const configs = comparisonConfigs();
+    if (!target || !configs) return;
+    button.disabled = true;
+    target.innerHTML = `<div class="ref-note">Running the same prompt under three configurations —
+        each one loads its own model, so this takes a minute or two&hellip;</div>`;
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/compare`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt_id: promptId, configs })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        const num = (v, dp) => Number.isFinite(Number(v)) ? Number(v).toFixed(dp) : 'n/a';
+        const rows = result.rows.map(row => {
+            if (row.error) {
+                return `<tr><td>${CONDITION_LABEL[row.condition] || escapeHtml(row.condition)}</td>
+                    <td><code>${escapeHtml(row.config)}</code></td><td colspan="4" style="color:#C53030;">${escapeHtml(row.error)}</td></tr>`;
+            }
+            const e = row.energy || {};
+            const q = row.quality || {};
+            return `<tr>
+                <td>${CONDITION_LABEL[row.condition] || escapeHtml(row.condition)}</td>
+                <td><code>${escapeHtml(row.config)}</code></td>
+                <td class="${e.measured ? 'meas' : 'est'}">${e.measured ? '' : '~'}${num(e.energy_j, 1)} J</td>
+                <td>${num(row.tokens_per_s, 1)} tok/s</td>
+                <td>${num(q.quality_f1, 3)}</td>
+                <td><details><summary>${num(row.n_generated_tokens, 0)} tok</summary>${renderMarkdown(row.text || '')}</details></td>
+            </tr>`;
+        }).join('');
+        target.innerHTML = `
+            <div class="ref-note" style="border-left-color:#805AD5;">
+                <b>Same Dolly prompt, three configurations</b>
+                <table class="metrics" style="width:100%; border-collapse:collapse; display:table; margin-top:6px;">
+                    <thead><tr style="text-align:left;"><th>Condition</th><th>Configuration</th><th>Energy</th>
+                        <th>Speed</th><th>BERTScore F1</th><th>Answer</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <div style="color:#718096; margin-top:4px;">${escapeHtml(result.protocol)}</div>
+            </div>`;
+    } catch (error) {
+        target.innerHTML = `<div class="ref-note" style="border-left-color:#C53030;">Comparison failed: ${escapeHtml(error.message)}</div>`;
+    } finally {
+        button.disabled = false;
+    }
+}
+
+async function scoreReply(elementId, candidate, referenceText) {
+    const el = document.getElementById(elementId);
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/score`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ candidate, reference: referenceText })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        SESSION.f1.push(Number(result.quality_f1));
+        renderSessionTally();
+        if (!el) return;
+        el.className = 'q-ok';
+        el.title = `BERTScore ${result.model}, ${result.baseline_rescaled ? 'baseline-rescaled' : 'raw'}; `
+            + `scored after the energy window closed, in ${Number(result.seconds).toFixed(1)} s. `
+            + 'Chat uses a system prompt the study does not, so this is indicative, not a Table B.5 value.';
+        el.innerHTML = `BERTScore F1 <b>${Number(result.quality_f1).toFixed(3)}</b>`
+            + ` (P ${Number(result.quality_precision).toFixed(3)} / R ${Number(result.quality_recall).toFixed(3)}`
+            + `${result.baseline_rescaled ? ', rescaled' : ''})`;
+    } catch (error) {
+        if (!el) return;
+        el.className = '';
+        el.innerHTML = `BERTScore <b>failed</b>: ${escapeHtml(error.message)}`;
+    }
+}
+
 function scrollToBottom() {
-    const mainArea = document.querySelector('.main-area');
-    mainArea.scrollTo({ top: mainArea.scrollHeight, behavior: 'smooth' });
+    // In workspace mode each column owns its scrollbar, so it is the chat
+    // panel that has to scroll, not the (non-scrolling) grid around it.
+    const scroller = document.body.classList.contains('workspace-mode')
+        ? document.getElementById('panel-chat')
+        : document.querySelector('.main-area');
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
 }
 
 function showHardwareNote() {
@@ -1890,7 +3240,7 @@ function showHardwareNote() {
     if (status) {
         status.innerHTML = '<strong>Profile loaded.</strong> This snapshot is from the latest hardware check; run <code>py -3 -m bopis profile --model-aware</code> to refresh it.';
     }
-    sw('chat', document.querySelector('.nav-item:nth-child(1)'));
+    showChat();
 }
 
 function recalibrateHardware() {

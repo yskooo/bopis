@@ -1,5 +1,5 @@
 window.BOPIS_TASK_RULES = {
-  "generated_utc": "2026-09-17T20:21:20.505799+00:00",
+  "generated_utc": "2026-09-24T20:33:57.901671+00:00",
   "confidence_margin": 0.15,
   "fallback_task": "general_qa",
   "gate_penalty": 0.35,
@@ -71,50 +71,42 @@ window.BOPIS_TASK_RULES = {
   },
   "priors": {
     "open_qa": {
-      "F32": 0.15,
-      "F16": 0.45,
+      "F16": 0.6,
       "Q8_0": 0.2,
       "Q4_K_M": 0.2
     },
     "closed_qa": {
-      "F32": 0.35,
-      "F16": 0.45,
+      "F16": 0.8,
       "Q8_0": 0.15,
       "Q4_K_M": 0.05
     },
     "summarization": {
-      "F32": 0.15,
-      "F16": 0.4,
+      "F16": 0.55,
       "Q8_0": 0.225,
       "Q4_K_M": 0.225
     },
     "classification": {
-      "F32": 0.1,
-      "F16": 0.35,
+      "F16": 0.45,
       "Q8_0": 0.275,
       "Q4_K_M": 0.275
     },
     "creative_writing": {
-      "F32": 0.15,
-      "F16": 0.45,
+      "F16": 0.6,
       "Q8_0": 0.2,
       "Q4_K_M": 0.2
     },
     "brainstorming": {
-      "F32": 0.1,
-      "F16": 0.35,
+      "F16": 0.45,
       "Q8_0": 0.275,
       "Q4_K_M": 0.275
     },
     "information_extraction": {
-      "F32": 0.35,
-      "F16": 0.45,
+      "F16": 0.8,
       "Q8_0": 0.15,
       "Q4_K_M": 0.05
     },
     "general_qa": {
-      "F32": 0.2,
-      "F16": 0.45,
+      "F16": 0.65,
       "Q8_0": 0.21,
       "Q4_K_M": 0.14
     }

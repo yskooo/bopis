@@ -6,11 +6,13 @@ Five documents, in the order you probably want them.
 
 | # | Document | Read it when |
 | :--- | :--- | :--- |
+| 0 | **[DEMO_RUNBOOK.md](DEMO_RUNBOOK.md)** | You are demonstrating **today**. Paste-ready commands, a 7-beat script with the words to say, the six questions you will be asked, and what to do when it breaks mid-demo. Short on purpose. |
 | 1 | **[MANUSCRIPT_REVISION_PLAN.md](MANUSCRIPT_REVISION_PLAN.md)** | You are planning what to change in the revised manuscript. Every finding mapped to the section it affects, with draft wording and the decisions the team must make. **Start here.** |
 | 2 | **[STATUS_AND_ACTION_ITEMS.md](STATUS_AND_ACTION_ITEMS.md)** | You want to know what the tool actually does today, what is verified, and what is still open. Includes the small-model feasibility table and the device benchmark. |
 | 3 | **[UI_GUIDE.md](UI_GUIDE.md)** | You are about to demonstrate the tool. Panel-by-panel walkthrough, a 60-second demo path, and a "what to say / what not to say" list. |
 | 4 | **[CHATBOT_INTEGRATION.md](CHATBOT_INTEGRATION.md)** | You are wiring the chatbot, choosing a model, or running the classifiers. |
 | 5 | **[ENERGY_ESTIMATOR_AND_ML_BRIEF.md](ENERGY_ESTIMATOR_AND_ML_BRIEF.md)** | You need the energy-estimator defence, the cancellation proof, or the 2025/2026 energy literature. |
+| 6 | **[ML_ELEMENTS.md](ML_ELEMENTS.md)** | You need the five elements of the machine learning — data, task, model, learning algorithm, evaluation — for both learned components, with worked examples, measured figures and references. Written for the adviser/panel. |
 
 Reference material:
 
@@ -48,15 +50,26 @@ Reference material:
 
 ## Running it
 
+Just the server, which is all the chat panel needs:
+
+```powershell
+.\tools\cpu\llama-server.exe --model .\models\qwen2.5-1.5b-instruct-q4_k_m.gguf --host 127.0.0.1 --port 8080 --ctx-size 2048 --n-gpu-layers 0 --threads 4 --parallel 1
+```
+
+Port 8080 is hardcoded in `bopis.html`; change it and the chat panel cannot
+reach the server. Or the one-command launcher, which also refreshes the
+generated data and waits for `/health` before opening the browser:
+
 ```powershell
 # one command: refresh generated data, start llama-server, open the UI
-.\demo.ps1 -LlamaBinary .\tools\vulkan\llama-server.exe `
+.\demo.ps1 -LlamaBinary .\tools\cpu\llama-server.exe `
            -Model Q4_K_M=.\models\qwen2.5-1.5b-instruct-q4_k_m.gguf `
            -GpuLayers 0 -Threads 4 -MaxTokens 256
 ```
 
 `-GpuLayers 0` is deliberate: offloading to this host's discrete GPU is 3.5x
-slower than CPU-only (STATUS_AND_ACTION_ITEMS §4a).
+slower than CPU-only (STATUS_AND_ACTION_ITEMS §4a). `tools\cpu\` and
+`tools\vulkan\` both work; the CPU build is the faster one on this host.
 
 Neither the inference binaries (`tools/`) nor the model weights (`models/`) are
 committed — they are large and reproducible. Fetch them per

@@ -19,6 +19,8 @@ because "why is this blank?" is the first question a panellist asks.
    **`~estimated (Mode C)`** energy.
 5. On the right, click **▶ Replay search**. Narrate it: *"the first ten are
    prior-weighted random seeds; after that Expected Improvement closes in."*
+   Then point at the **search log** below the chart, which streams the same run
+   as text: what the surrogate predicted, what was measured, and the error.
 6. Point at **x\* and why it was chosen** — the status, the two threshold checks,
    and the selection rule.
 7. Finish on **BOPIS vs. Random Search** — equal budget, same selection rule.
@@ -28,14 +30,41 @@ estimate, and the run on screen is `sim` until a real study has been run.
 
 ## 1. Start it
 
+The server on its own — this is all the chat panel needs:
+
 ```powershell
-.\demo.ps1 -LlamaBinary .\tools\vulkan\llama-server.exe `
+.\tools\cpu\llama-server.exe --model .\models\qwen2.5-1.5b-instruct-q4_k_m.gguf --host 127.0.0.1 --port 8080 --ctx-size 2048 --n-gpu-layers 0 --threads 4 --parallel 1
+```
+
+Then, for measured energy and BERTScore in the chat, the instrument bridge
+(start LibreHardwareMonitor as administrator with *Remote Web Server → Run*
+first, see [ENERGY_MODES.md](ENERGY_MODES.md#mode-d-cpu-package-energy-via-rapl)):
+
+```powershell
+python -m bopis ui          # then open http://127.0.0.1:8090/
+```
+
+It calibrates idle package power for 30 s. Leave the machine alone while it
+does. Without a hardware monitor it still runs, and reports a per-process
+Mode C estimate instead. Without the bridge, `bopis.html` opened as a file
+talks to llama-server directly and falls back to the in-browser estimate.
+
+Port 8080 is hardcoded in `bopis.html`'s `CHATBOT_CONFIG`. Or the launcher,
+which also refreshes the generated files and waits for `/health`:
+
+```powershell
+.\demo.ps1 -LlamaBinary .\tools\cpu\llama-server.exe `
            -Model Q4_K_M=.\models\qwen2.5-1.5b-instruct-q4_k_m.gguf `
            -GpuLayers 0 -Threads 4 -MaxTokens 256
 ```
 
 `GpuLayers 0` is deliberate. Offloading to the MX330 is **3.5x slower** than
-CPU-only — see `STATUS_AND_ACTION_ITEMS.md` §4a.
+CPU-only — see `STATUS_AND_ACTION_ITEMS.md` §4a. Both `tools\cpu\` and
+`tools\vulkan\` are installed; the CPU build is faster on this host.
+
+For the demo sequence and the words to say, see
+[DEMO_RUNBOOK.md](DEMO_RUNBOOK.md) — this guide is the reference, that one is
+the script.
 
 The launcher refreshes three generated files, then starts the server and waits
 for `/health` before opening the browser:
@@ -104,9 +133,140 @@ Prompt 98 tok   Generated 8 tok   Decode 8.72 tok/s   Latency 1.77 s
 BERTScore n/a (needs a reference answer)
 ```
 
-Prompt/generated/decode/latency come straight from llama.cpp's `timings`. The
-energy figure is computed in-browser and the BERTScore field is intentionally
-`n/a` — both explained in §4.
+Prompt/generated/decode/latency come straight from llama.cpp's `timings`.
+
+With `bopis ui` running, the strip reads instead:
+
+```
+Energy 41.3 J [38.9–43.7] (1.62 J/tok) · PHP 0.165/1k replies · measured (RAPL)
+BERTScore F1 0.412 (P 0.398 / R 0.427, rescaled)
+```
+
+(These numbers illustrate the format only.)
+
+- **Green `measured (RAPL)`** is CPU package energy, net of idle, over the
+  request window. The bracket is the monitor's refresh-bin resolution. **Amber
+  `estimated (Mode C)`** means no hardware monitor was reachable. The two are
+  never rendered alike.
+- **BERTScore** appears only for a **Dolly prompt** (the button left of the
+  input). That prompt is sent as a fresh single turn with the study's own
+  template, and after the energy window closes the reply is scored against
+  Dolly's human reference. The reference is shown under the reply. Editing the
+  loaded prompt drops the reference, because it no longer answers the edited
+  text. Free chat still says `n/a`: there is nothing to compare against.
+- The header shows which instruments are live, and a **session tally**: total
+  joules, J/token, PHP, and mean F1.
+
+In **Workspace**, sending a message now keeps you in Workspace. Earlier, send
+called the chat tab's switch, which exited the split view.
+
+### 2.4 Same prompt again, and the three-way comparison
+
+Every Dolly prompt has a fixed ID (e.g. `dolly-07308`), shown on the Dolly
+button once loaded. Under each Dolly reply there are two buttons:
+
+- **↺ Ask again** loads that exact prompt back into the input. The dock's
+  **↺ recent** list does the same for the last 15 Dolly prompts.
+- **⚖ Compare default · random search · BOPIS** runs that same prompt under
+  the three configurations from the loaded run: the unoptimized default, the
+  random-search pick, and `x*`. Each one starts its own llama-server with that
+  configuration (model, precision, threads, batch, GPU layers) on port 8081,
+  measures the answer, and then all three are BERTScored against the same Dolly
+  reference. The result is a table: energy, speed, F1, and the answer itself.
+
+This is the study's Stage 3 comparison on **one** prompt, using the study
+protocol (`/completion`, study template, `n_predict = t`, no system prompt). It
+is an illustration. The reported comparison is still the run's 500-prompt
+validation. It takes a minute or two, because each configuration loads its own
+model. It needs `bopis ui --llama-binary ...` (demo.ps1 passes it) and the model
+files in `models\`.
+
+**Random search is automated too.** Both search arms are algorithms in the tool.
+Random search tries 30 configurations at random (the baseline). BOPIS chooses
+its 30 with the surrogate model. Same budget, same selection rule. Neither is a
+person choosing.
+
+### 2.5 The configuration picker (in the input bar)
+
+Under the prompt box, the **Configuration** chip works like a model picker.
+Its options are the configurations BOPIS selected in the loaded run:
+
+| Option | What it is |
+| :--- | :--- |
+| **BOPIS x\*** (Recommended) | the pick: lowest energy on the Pareto front that keeps quality ≥ 98% and speed ≥ 95% of the default |
+| **Pareto alternatives** | the rest of the front, each labelled *Meets floors* or *Below a floor*, with which floor it fails |
+| **Random search pick** | what the baseline found with the same budget |
+| **Unoptimized default** | the reference every ratio is relative to |
+| **As launched** | the llama-server the chat was started with |
+
+Each option shows its settings in words (e.g. *Qwen2.5-1.5B · Q8_0 · up to 1024
+tokens · batch 2 · 4 threads*) and its energy, speed, F1 and savings versus the
+default. **Choosing one really switches the model.** The bridge launches that
+configuration as its own llama-server (port 8083) and the chat answers with it.
+Replies are also capped at that configuration's `t`. A chat note confirms the
+switch and the load time. Options whose model file is not in `models\` are
+greyed out with the reason.
+
+Every option has a **why? ↗** link, and the input bar has **How BOPIS chose ↗**.
+Both open the page below.
+
+### 2.6 How BOPIS chose (the white-box page)
+
+This is a new sidebar page. It walks through the search that produced `x*`,
+using the run's own numbers:
+
+1. **Rule out what this machine cannot run**: the feasible-space count, linked
+   to the Configurations tab.
+2. **Seeds**: the 10 configurations drawn using the task prior, with that prior
+   (P(precision) from Table T1 and the Dolly task mix) and their measurements.
+3. **The surrogate**: what a Gaussian Process is, in plain words; its fitted
+   hyperparameters (signal variance, noise, length scale); its leave-one-out
+   check.
+4. **Expected Improvement**: what EI means, the quality and speed floors, and a
+   table of every guided step. Each row shows what the GP predicted (μ ± σ)
+   *before* measuring, the EI, P(meets floors), what was actually measured, and
+   the error in σ units.
+5. **The Pareto front and the selection rule**: every front member with its
+   EIR, SRR and QRR, and whether it passes the floors. That shows exactly why
+   `x*` won.
+6. **Why not random search**: the baseline's pick and status under the same
+   budget and rule.
+
+Opened from an option's **why?**, that configuration's rows are highlighted.
+A link at step 4 goes to the Pareto replay on the Dashboard.
+
+## 2b. Configurations: what BOPIS chooses from
+
+The **Configurations** tab makes the "selection" in Intelligent Configuration
+Selection visible:
+
+- **The funnel**: 2304 possible configurations. Minus Table H1's limits for this
+  machine (batch, GPU layers, threads). Minus each rejection rule, with its
+  count (doesn't fit in memory, precision not allowed on this GPU, and so on).
+  That leaves the feasible space BOPIS searches. Then the 30 it measured, the
+  Pareto front, and `x*`.
+- **Model × precision grid**: for each model and precision, how many runtime
+  settings are still possible and how much memory it needs, or why it was ruled
+  out. With a run loaded, it also shows how many each search arm tried, and
+  marks ★ `x*` and ◆ the random-search pick.
+- **The full list**: every feasible configuration, filterable by model, and by
+  whether BOPIS or random search tried it or it is on the front.
+
+Every number comes from `bopis_profile.js` (`hardware.feasible_space`) and the
+loaded run; the page only counts.
+
+## 2c. Starting LibreHardwareMonitor automatically
+
+```powershell
+.\tools\start-hwmon.ps1 -Install     # or: .\demo.ps1 ... -StartHwmon
+```
+
+This installs it with winget if needed and writes its settings: web server on
+port 8085, no authentication, start in the tray, and a **250 ms** refresh
+instead of 1 s (so every energy figure's ± range is about 4× narrower). Then it
+starts it as administrator and waits until the CPU Package sensor answers. The
+one Windows admin prompt cannot be avoided: RAPL is read through a kernel
+driver, so no tool (CLI or not) reads it without admin rights.
 
 ---
 
@@ -249,6 +409,50 @@ button again to stop early and restore the full view.
 **↻ Auto-rotate** spins the trade-off surface slowly so all three objectives can
 be read from any angle. It pauses while you drag, so it never fights you.
 
+#### The search log — the same run as text
+
+Below the chart, in the same card, is the optimizer's log. It exists because a
+3D scatter plot is not evidence to everyone: some panellists want the numbers.
+On load it shows the whole run (90 lines for a 30-evaluation study); during a
+replay it streams, driven by the **same tick** as the chart, so the line and the
+point for an evaluation always appear together.
+
+Four line types per Bayesian-optimization trial:
+
+```
++5.42s  acq    EI=0.067 J · proposes t128_b2_Q8_0_g14_c2 · predicts 98.34 ± 15.65 J
++5.42s  bo     16/30 t128_b2_Q8_0_g14_c2 E=91.39J v=21.22tok/s F1=0.8206
++5.42s  gp     residual -6.96J vs µ · 0.44σ inside 1σ
++5.42s  front  non-dominated · front = 7 configurations
+```
+
+- **`acq`** — the acquisition step: the expected improvement, the configuration
+  it proposes, and the surrogate's prediction **with its uncertainty**. Read
+  from `surrogate.points[].expected_improvement / mu / sigma`.
+- **`bo`** / **`seed`** — the measurement. `seed` for the prior-weighted seeds,
+  `bo` once Expected Improvement is driving.
+- **`gp`** — the one-step-ahead residual: measured minus predicted, in units of
+  the GP's own sigma. This is the honest calibration check, because `mu` was
+  predicted *before* this measurement existed. `inside 1σ` means the surrogate's
+  stated confidence was justified.
+- **`front`** — the running non-dominated count. Deliberately **recomputed on
+  the evaluations revealed so far**, not read from `on_front` (which is the
+  *final* front), so a line claiming "non-dominated" is true at that moment. You
+  can watch configurations get dominated and dropped. It converges to
+  `pareto.n_front`.
+
+Two caveats the footer states in the UI itself: the elapsed column is
+**interpolated** from the run's total wall time — per-evaluation timings were
+never recorded — and the closing `gp final fit` / `leave-one-out` lines are
+whole-run values, which is why they appear at the end rather than beside any
+single evaluation.
+
+**Click any line to scrub the chart to that evaluation.** The log doubles as a
+timeline control, which is useful when a panellist asks "go back to the one
+where it found the big improvement". **Follow** autoscrolls and switches itself
+off if you scroll up to re-read. **Copy** puts the whole log on the clipboard as
+plain text, which is the fastest way to get it into an appendix.
+
 Click any point to inspect it. The readout names which arm it came from:
 
 ```
@@ -387,10 +591,21 @@ So: **quality is measurable on Dolly, never on free chat.** If you want a qualit
 number in a live demo, run a Dolly prompt through the study path and show the
 dashboard, not the chat box.
 
-### 4.1a OPEN GAP — BERTScore is implemented but never invoked
+### 4.1a CLOSED 2026-09-24 — BERTScore now runs inside real studies
 
-Found 2026-09-18 and **not yet fixed**. Know about this before anyone asks how
-quality was computed on a real run.
+`bopis run --backend llama-server` now BERTScores every generation against its
+Dolly reference after each batch. That happens after llama-server is stopped,
+so it never overlaps an energy window. So `quality_f1`, QRR and the Pareto
+colour scale are real on a real run, and selection of `x*` uses them. The
+generations are saved to `raw/generations.jsonl` with their references and
+scores. `--quality none` turns it off. Without torch/transformers, `auto`
+prints a loud *QUALITY: UNSCORED* banner rather than proceeding silently. The
+scorer loads (and on first use downloads roberta-large, ~1.4 GB) **before** the
+study starts.
+
+The history below is kept for the record.
+
+Found 2026-09-18.
 
 `bopis/quality/bertscore.py` is a complete, working BERTScore implementation, and
 `bopis.quality.get_scorer()` is the documented way in. **Nothing in the codebase
@@ -459,7 +674,7 @@ Routes to a real number:
 
 | Route | Gives | Cost |
 | :--- | :--- | :--- |
-| **RAPL** (`MSR_PKG_ENERGY_STATUS`) | Measured CPU joules — and since `g = 0`, that is nearly all of it | Admin kernel driver; breaks the stdlib-only policy |
+| **RAPL** (`MSR_PKG_ENERGY_STATUS`) | Measured CPU joules — and since `g = 0`, that is nearly all of it | **Now implemented** as Mode D: LibreHardwareMonitor/OHM loads the driver, BOPIS reads its web feed with stdlib `urllib`. `--energy-mode cpu-rapl`, `bopis ui` |
 | A GPU exposing NVML power | Measured GPU joules | Different machine |
 | External wall meter | Whole-system joules | ~PHP 1–2k |
 | Mode C (current) | **Relative** comparison only | Free |

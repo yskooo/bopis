@@ -2,11 +2,9 @@
 
 **As of:** 2026-09-18
 **Branch:** `aaron-g2-changelog`
-**Scope:** what changed in this working session, what is verified, what is still
-open, and the framing for the "is this a machine learning thesis?" question.
+**Scope:** what changed in this working session, what is verified, what is still open, and the framing for the "is this a machine learning thesis?" question.
 
-Every number in this document was produced by running the code in this repo on
-this laptop, not estimated. Commands are given so each one can be reproduced.
+Every number in this document was produced by running the code in this repo on this laptop, not estimated. Commands are given so each one can be reproduced.
 
 ---
 
@@ -23,7 +21,7 @@ this laptop, not estimated. Commands are given so each one can be reproduced.
 | Task classification, supervised/trained | **New this session** | `bopis/classify_trained.py`, **69.7%** held-out |
 | llama.cpp backend | Coded and unit-tested, **never executed** | `backends/llama_server.py` |
 | Real energy measurement | **None.** Mode C estimate only | MX330 exposes no power telemetry |
-| Full test suite | **467 tests, OK, 243 s** | `python -m unittest discover -s tests -t .` |
+| Full test suite | **517 tests, OK, 491 s** (re-verified 2026-09-22) | `python -m unittest discover -s tests -t .` |
 
 ### The one framing point to be clear about
 
@@ -495,7 +493,7 @@ Ordered by whether they block a demonstration.
 ## 8. Reproducing the numbers in this document
 
 ```powershell
-# full test suite -> 467 tests, OK
+# full test suite -> 517 tests, OK, ~491 s (was 467 before the ML additions)
 python -m unittest discover -s tests -t .
 
 # rule-based classifier vs Dolly's labels -> 49.7 / 64.3 / 67.5
