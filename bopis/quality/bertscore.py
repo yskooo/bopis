@@ -13,9 +13,21 @@ There is no standard-library implementation of one, and hand-rolling a
 BERT forward pass would no longer be canonical BERTScore -- so the honest
 resolution is a stdlib measurement core plus one declared *evaluation*
 dependency (amendment A-6). This module therefore imports ``transformers`` and
-``torch``, and nothing in the measurement path imports this module: scoring is a
-separate offline stage that reads generated text from a run's CSV logs and
-writes quality scores back.
+``torch``.
+
+No module on the measurement path imports this one. The scorer is built outside
+it and injected: :func:`bopis.cli._build_scorer` constructs it and warms it up
+(``scorer.score(["warm-up"], ["warm-up"])``) before the run begins, so neither the
+import nor the model load is charged to a measurement window, and ``StudyRunner``
+receives it as a plain ``scorer=`` argument.
+
+Scoring itself is **not** a separate offline stage reading CSV logs. It runs
+inline, in ``StudyRunner._score_quality``, immediately after each batch of
+generations (``runner.py:211``) and after the energy window for that batch has
+already closed -- so the forward pass is never billed to inference. That
+sequencing, rather than a separate process, is what keeps quality scoring out of
+the energy measurement.
+
 
 Baseline rescaling
 ------------------
@@ -88,7 +100,19 @@ class BertScoreScorer:
         if self._backend is not None:
             return
 
-        import torch  # noqa: F401  (third-party: see module docstring)
+        try:
+            import torch  # noqa: F401  (third-party: see module docstring)
+        except ImportError as exc:
+            # `get_scorer` already probes for torch, so this only fires if the
+            # environment changed between construction and the first score.
+            # Reported as RuntimeError so the UI's dependency branch catches it
+            # rather than surfacing a bare ModuleNotFoundError as a 500.
+            raise RuntimeError(
+                "BERTScore requires torch, which the measurement core "
+                "deliberately does not install. Run:\n"
+                "    python -m pip install transformers torch\n"
+                f"(underlying import error: {exc})"
+            ) from exc
 
         self._torch = torch
         if self.device is None:
@@ -250,8 +274,10 @@ class BertScoreScorer:
             "device": self.device,
             "dependency_note": (
                 "Requires transformers and torch. This is the only BOPIS module "
-                "that imports third-party packages; it runs as a separate "
-                "offline scoring stage outside the measurement path."
+                "that imports third-party packages. It is built outside the "
+                "measurement path and injected, and scores each batch inline "
+                "after that batch's energy window has closed, so the forward "
+                "pass is never charged to inference."
             ),
         }
 

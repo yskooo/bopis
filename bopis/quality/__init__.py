@@ -16,7 +16,36 @@ Standard library only.
 from __future__ import annotations
 
 import dataclasses
-from typing import Dict, List, Optional, Protocol, Sequence
+import importlib.util
+from typing import Dict, List, Optional, Protocol, Sequence, Tuple
+
+#: Third-party packages each scorer needs before it can produce a number. The
+#: modules that use them import lazily, so the import guard in :func:`get_scorer`
+#: cannot see a missing dependency on its own -- ``bopis.quality.bertscore``
+#: imports torch inside ``_ensure_loaded``, at first scoring, not at import.
+#: Probing with ``find_spec`` closes that gap while still never loading torch:
+#: asking whether scoring is possible must not cost a multi-second import.
+SCORER_REQUIREMENTS: Dict[str, Tuple[str, ...]] = {
+    "bertscore": ("torch", "transformers"),
+}
+
+
+def missing_dependencies(name: str) -> List[str]:
+    """The packages *name*'s scorer needs that are not importable, in order.
+
+    Returns an empty list when the scorer can run. Used by :func:`get_scorer` to
+    fail with instructions at construction time, and by callers that want to
+    report readiness without building a scorer.
+    """
+    missing: List[str] = []
+    for module in SCORER_REQUIREMENTS.get(name, ()):
+        try:
+            found = importlib.util.find_spec(module) is not None
+        except (ImportError, ValueError):
+            found = False
+        if not found:
+            missing.append(module)
+    return missing
 
 
 @dataclasses.dataclass
@@ -56,10 +85,16 @@ def get_scorer(name: str = "bertscore", **kwargs) -> Scorer:
 
     Raises :class:`RuntimeError` with actionable instructions when the requested
     scorer's dependencies are missing, rather than failing with a bare
-    ``ImportError`` several frames deep.
+    ``ImportError`` several frames deep -- or, worse, constructing successfully
+    and only failing at the first :meth:`Scorer.score` call, where no caller is
+    left to catch it usefully. :func:`missing_dependencies` is checked first for
+    exactly that reason.
     """
     if name == "bertscore":
         try:
+            missing = missing_dependencies(name)
+            if missing:
+                raise ImportError(f"no module named {', '.join(missing)}")
             from bopis.quality.bertscore import BertScoreScorer
         except ImportError as exc:
             raise RuntimeError(
@@ -72,4 +107,10 @@ def get_scorer(name: str = "bertscore", **kwargs) -> Scorer:
     raise ValueError(f"unknown scorer: {name!r}")
 
 
-__all__ = ["QualityScore", "Scorer", "get_scorer"]
+__all__ = [
+    "SCORER_REQUIREMENTS",
+    "QualityScore",
+    "Scorer",
+    "get_scorer",
+    "missing_dependencies",
+]

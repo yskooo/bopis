@@ -67,8 +67,12 @@ hypervolume, Friedman and Nemenyi, NVML via `ctypes`, `/proc` and `kernel32`
 telemetry, and all CSV I/O.
 
 The single exception is `bopis/quality/bertscore.py`, which needs a transformer
-forward pass and therefore imports `transformers` and `torch`. It runs as a
-separate offline scoring stage; the measurement path never loads it.
+forward pass and therefore imports `transformers` and `torch`. Nothing on the
+measurement path imports it: the scorer is constructed by `bopis.cli`, warmed up
+before the run, and injected into `StudyRunner` as a plain argument. Scoring then
+happens inline, immediately after each batch of generations and after that
+batch's energy window has closed, so the forward pass is never billed to
+inference.
 
 This is enforced mechanically, not by intention — `tests/test_provenance.py`
 parses every module's imports *and* re-imports the whole core with
@@ -90,8 +94,25 @@ python -m bopis --help
 For the quality-scoring stage only:
 
 ```bash
-python -m pip install transformers torch bert-score
+python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+python -m pip install transformers bert-score
+python -m pip install "transformers<5"
 ```
+
+Three commands, and the order matters. A single `--index-url
+https://download.pytorch.org/whl/cpu` replaces PyPI entirely, so `transformers`
+and `bert-score` come back `No matching distribution found` if they are in the
+same command.
+
+**`transformers<5` is not optional.** `bert-score` 0.3.13 declares `transformers`
+with no upper bound, so an unpinned resolve installs 5.x, which removed a
+tokenizer internal the package calls. The failure surfaces as
+`AttributeError: RobertaTokenizer has no attribute build_inputs_with_special_tokens`
+from inside `bert_score/utils.py` on the first scoring call — not as a version
+conflict — and every `POST /api/score` returns HTTP 500. Because the backend
+*constructs* successfully under 5.x, the module's `transformers` fallback (guarded
+by `except ImportError` around construction) never engages. Verified working set:
+`torch 2.14.0+cpu`, `transformers 4.57.6`, `bert-score 0.3.13`.
 
 ## Start here: `profile`
 

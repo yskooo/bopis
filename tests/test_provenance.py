@@ -280,5 +280,101 @@ class TestDashboardHasNoHardcodedMetrics(unittest.TestCase):
         self.assertIn("isFinite", body)
 
 
+class TestIntegratedUiHasNoHardcodedThresholds(unittest.TestCase):
+    """``bopis.html`` must derive the calibration floors, not restate them.
+
+    The guard above only reads ``dashboard/index.html``, which is how the System
+    Settings card came to carry four invented ``Q_min`` values and a literal
+    iteration count: nothing was checking the integrated UI. ``Q_min(task)`` is
+    ``metrics.q_min`` of that task's unoptimized mean F1 and ``S_min`` is p10 of
+    the unoptimized default's speed -- both per-run, per-machine quantities the
+    page cannot recompute, so it may only display them or show a dash.
+    """
+
+    CARD = "Calibration Thresholds"
+
+    def setUp(self) -> None:
+        self.path = os.path.join(REPO_ROOT, "bopis.html")
+        if not os.path.exists(self.path):
+            self.skipTest("bopis.html not present")
+        with open(self.path, "r", encoding="utf-8") as handle:
+            self.source = handle.read()
+        start = self.source.find(self.CARD)
+        self.assertNotEqual(start, -1, f"{self.CARD} card not found in bopis.html")
+        # The card runs to the next card header, which is where its markup ends.
+        end = self.source.find("card-header", start + len(self.CARD))
+        self.card = self.source[start : end if end != -1 else len(self.source)]
+
+    def test_card_states_no_literal_quality_floor(self) -> None:
+        for match in re.finditer(r"\d+\.\d+\s*F1", self.card):
+            self.fail(
+                f"the {self.CARD} card hardcodes a quality floor "
+                f"({match.group(0)!r}); Q_min is derived per run from "
+                f"bopis.metrics.q_min and must be interpolated"
+            )
+
+    def test_card_reads_the_generated_payload(self) -> None:
+        for attribute in ("data-qmin", "data-smin", "data-iterations"):
+            self.assertIn(
+                attribute,
+                self.card,
+                f"the {self.CARD} card has no {attribute} placeholder, so nothing "
+                f"can populate it from the run payload",
+            )
+        self.assertIn("q_min_by_task", self.source)
+        self.assertIn("renderThresholds", self.source)
+
+    def test_card_defaults_to_a_dash(self) -> None:
+        """No run loaded must render an em dash, never a plausible number."""
+        self.assertGreaterEqual(
+            self.card.count("&mdash;"), 6, "every threshold row needs a dash default"
+        )
+
+
+class TestIntegratedUiExplainsAMissingReference(unittest.TestCase):
+    """A dropped BERTScore reference must be named, not misattributed.
+
+    BERTScore is reference-based, so a free-typed turn legitimately has no F1.
+    A loaded Dolly prompt that the user then edited is a different case: the
+    reference existed and was discarded because it no longer answers the edited
+    text. Both branches used to render the same "free chat has no reference"
+    badge, which told someone who had clicked *Dolly prompt* that they had not.
+    """
+
+    def setUp(self) -> None:
+        self.path = os.path.join(REPO_ROOT, "bopis.html")
+        if not os.path.exists(self.path):
+            self.skipTest("bopis.html not present")
+        with open(self.path, "r", encoding="utf-8") as handle:
+            self.source = handle.read()
+
+    def test_all_three_states_are_distinguished(self) -> None:
+        self.assertIn(
+            "edited",
+            self.source,
+            "bopis.html has no branch for a loaded-but-edited Dolly prompt, so "
+            "the drop cannot be explained separately from free chat",
+        )
+        self.assertIn("q-dropped", self.source)
+        # The free-chat wording must survive for the case it is actually true for.
+        self.assertIn("free chat has no reference", self.source)
+
+    def test_reference_is_not_scored_after_an_edit(self) -> None:
+        """The reference must still be withheld when the text was edited.
+
+        Guards the fix against being "solved" by keeping the stale reference,
+        which would report a real F1 for a question the reference does not
+        answer and quietly corrupt the session mean.
+        """
+        body = re.sub(r"/\*.*?\*/", "", self.source, flags=re.S)
+        self.assertIn(
+            "loaded.text.trim() === txt",
+            body,
+            "the exact-match gate on the Dolly reference is gone; it is the only "
+            "thing preventing a stale reference from being scored",
+        )
+        self.assertIn("const edited = (loaded && !reference) ? loaded : null;", body)
+
+
 if __name__ == "__main__":
     unittest.main()

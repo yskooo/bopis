@@ -227,6 +227,15 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
             "qrr": metrics.QRR_THRESHOLD,
             "npe": metrics.NPE_RELIABILITY_THRESHOLD,
             "ucr_target": metrics.UCR_TARGET,
+            # Run-derived, not constants, and the UI cannot recompute them: it
+            # never sees the per-prompt F1s these come from. S_min is p10 of the
+            # unoptimized default's speed; Q_min(task) is `qrr` percent of that
+            # task category's unoptimized mean F1 (metrics.q_min). The runner
+            # computes both and writes them to the manifest -- without them here
+            # the thresholds block carries no per-task quality floor at all, and
+            # a reader is left with whatever numbers the page invents.
+            "s_min": summary.get("s_min"),
+            "q_min_by_task": summary.get("q_min_by_task"),
         },
         "labels": {
             "conditions": schemas.CONDITION_LABELS,

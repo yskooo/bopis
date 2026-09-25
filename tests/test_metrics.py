@@ -331,5 +331,73 @@ class TestJoulesPerToken(unittest.TestCase):
         self.assertIsNone(joules_per_token(100.0, 0))
 
 
+class TestOutputLengthParity(unittest.TestCase):
+    """QRR's length-bias cancellation is only valid if lengths match."""
+
+    def test_length_retention_ratio(self) -> None:
+        self.assertAlmostEqual(
+            metrics.length_retention_ratio(100.0, 98.0), 98.0, places=12
+        )
+
+    def test_zero_default_is_zero(self) -> None:
+        self.assertEqual(metrics.length_retention_ratio(0.0, 50.0), 0.0)
+
+    def test_balanced_when_means_match(self) -> None:
+        parity = metrics.output_length_parity(
+            {
+                "unoptimized": [100.0, 110.0, 90.0],
+                "bopis": [101.0, 109.0, 90.0],
+            }
+        )
+        self.assertTrue(parity.balanced)
+        self.assertAlmostEqual(parity.deviation_percent, 0.0, places=9)
+        payload = parity.as_dict()
+        self.assertTrue(payload["balanced"])
+        self.assertIn("cancels in QRR", payload["interpretation"])
+
+    def test_unbalanced_when_optimized_is_shorter(self) -> None:
+        # The confound this block exists to catch: the optimizer picked a
+        # configuration that answers more briefly, so BERTScore's length bias
+        # does not cancel and QRR partly measures brevity.
+        parity = metrics.output_length_parity(
+            {
+                "unoptimized": [100.0, 110.0, 90.0],
+                "bopis": [60.0, 70.0, 50.0],
+            }
+        )
+        self.assertFalse(parity.balanced)
+        self.assertAlmostEqual(parity.length_retention_percent, 60.0, places=9)
+        self.assertIn("does NOT cancel", parity.as_dict()["interpretation"])
+
+    def test_tolerance_boundary_is_inclusive(self) -> None:
+        inside = metrics.output_length_parity(
+            {"unoptimized": [100.0], "bopis": [96.0]}
+        )
+        outside = metrics.output_length_parity(
+            {"unoptimized": [100.0], "bopis": [94.0]}
+        )
+        self.assertTrue(inside.balanced)
+        self.assertFalse(outside.balanced)
+
+    def test_reports_spread_and_counts(self) -> None:
+        parity = metrics.output_length_parity(
+            {"unoptimized": [10.0, 20.0, 30.0], "bopis": [10.0, 20.0, 30.0]}
+        )
+        self.assertEqual(parity.n_by_condition["bopis"], 3)
+        self.assertAlmostEqual(parity.sd_by_condition["bopis"], 10.0, places=9)
+
+    def test_missing_condition_is_unbalanced_not_a_crash(self) -> None:
+        parity = metrics.output_length_parity({"unoptimized": [100.0, 100.0]})
+        self.assertFalse(parity.balanced)
+        self.assertEqual(parity.n_by_condition.get("bopis", 0), 0)
+
+    def test_friedman_passes_through(self) -> None:
+        friedman = {"chi_square": 0.5, "p_value": 0.779, "significant": False}
+        parity = metrics.output_length_parity(
+            {"unoptimized": [100.0], "bopis": [100.0]}, friedman=friedman
+        )
+        self.assertEqual(parity.as_dict()["friedman"], friedman)
+
+
 if __name__ == "__main__":
     unittest.main()

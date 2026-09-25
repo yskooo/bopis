@@ -34,6 +34,12 @@ QRR_THRESHOLD = 98.0
 NPE_RELIABILITY_THRESHOLD = 10.0  # NPE < 10% treated as reliable
 UCR_TARGET = 0.95
 
+#: Tolerance for treating generated-output length as unchanged between the
+#: unoptimized and optimized conditions. BERTScore is length-sensitive, so a
+#: length shift large enough to matter is a confound on QRR; 5% is well inside
+#: the run-to-run spread of greedy decoding on a fixed prompt set.
+LENGTH_PARITY_TOLERANCE_PERCENT = 5.0
+
 #: Residential electricity tariff in PHP per kWh, used for the amortization
 #: card. Overridable; only ever presented as an illustrative figure.
 DEFAULT_TARIFF_PHP_PER_KWH = 14.35
@@ -146,6 +152,132 @@ def quality_retention_ratio(default_f1: float, optimized_f1: float) -> float:
     if not default_f1:
         return 0.0
     return 100.0 * optimized_f1 / default_f1
+
+
+# --------------------------------------------------------------------------- #
+# Output-length parity
+# --------------------------------------------------------------------------- #
+
+
+def length_retention_ratio(default_tokens: float, optimized_tokens: float) -> float:
+    """Mean generated tokens, optimized relative to unoptimized, x 100%.
+
+    Not a Chapter 3 metric. It exists because QRR's validity rests on an
+    assumption the manuscript never states: that BERTScore's length bias
+    cancels in the ratio. It only cancels if both conditions generate
+    comparable lengths. This is that assumption, measured.
+    """
+    if not default_tokens:
+        return 0.0
+    return 100.0 * optimized_tokens / default_tokens
+
+
+@dataclasses.dataclass(frozen=True)
+class OutputLengthParity:
+    """Whether generated-output length is stable across the study conditions.
+
+    BERTScore F1 is length-sensitive. Recall is maximised over the reference
+    tokens while precision is averaged over *every* candidate token, so a brief
+    answer is scored more favourably than an equivalent verbose one -- on this
+    dataset, badly enough that a wrong two-word answer can outscore a correct
+    full sentence.
+
+    QRR is a ratio of two means taken over identical prompts against identical
+    references, so that bias cancels between the conditions and the *comparative*
+    retention claim survives even though absolute F1 is soft. The cancellation
+    has one precondition, though: the two conditions must generate comparable
+    lengths. If the optimizer selects a configuration that answers more briefly,
+    the bias does not cancel, and QRR would be partly reporting brevity as
+    quality retention.
+
+    Decoding is greedy (``temperature=0.0``), so quantization, offload and
+    thread count should not change content. Model size can, and the search
+    includes it. So this is checked rather than assumed.
+
+    Attributes:
+        tokens_by_condition: Mean generated tokens per condition.
+        sd_by_condition: Standard deviation of generated tokens per condition.
+        n_by_condition: Prompt count per condition, for context on the spread.
+        length_retention_percent: Optimized mean as a percentage of unoptimized.
+        deviation_percent: Absolute relative departure from parity.
+        friedman: Friedman test across conditions on length, or ``None`` when
+            the blocks are incomplete. A non-significant result is direct
+            evidence that length does not differ by condition.
+        balanced: Whether length parity holds within tolerance.
+        tolerance_percent: The tolerance applied, for reporting.
+    """
+
+    tokens_by_condition: Dict[str, float]
+    sd_by_condition: Dict[str, float]
+    n_by_condition: Dict[str, int]
+    length_retention_percent: float
+    deviation_percent: float
+    friedman: Optional[Dict[str, object]]
+    balanced: bool
+    tolerance_percent: float = LENGTH_PARITY_TOLERANCE_PERCENT
+
+    def as_dict(self) -> Dict[str, object]:
+        return {
+            "tokens_by_condition": dict(self.tokens_by_condition),
+            "sd_by_condition": dict(self.sd_by_condition),
+            "n_by_condition": dict(self.n_by_condition),
+            "length_retention_percent": self.length_retention_percent,
+            "deviation_percent": self.deviation_percent,
+            "friedman": self.friedman,
+            "balanced": self.balanced,
+            "tolerance_percent": self.tolerance_percent,
+            "interpretation": (
+                "Length parity holds within tolerance, so BERTScore's length "
+                "bias applies equally to both conditions and cancels in QRR. "
+                "The quality-retention claim is comparative and is unaffected."
+                if self.balanced
+                else "Generated length differs by more than the tolerance "
+                "between conditions. BERTScore's length bias therefore does NOT "
+                "cancel in QRR, and part of the reported quality retention may "
+                "reflect brevity rather than quality. Report this alongside "
+                "QRR and do not treat QRR alone as evidence of retention."
+            ),
+        }
+
+
+def output_length_parity(
+    tokens_by_condition: Dict[str, Sequence[float]],
+    default_condition: str = "unoptimized",
+    optimized_condition: str = "bopis",
+    friedman: Optional[Dict[str, object]] = None,
+    tolerance_percent: float = LENGTH_PARITY_TOLERANCE_PERCENT,
+) -> OutputLengthParity:
+    """Build :class:`OutputLengthParity` from per-condition token counts."""
+    means: Dict[str, float] = {}
+    sds: Dict[str, float] = {}
+    counts: Dict[str, int] = {}
+    for condition, values in tokens_by_condition.items():
+        data = [float(v) for v in values]
+        counts[condition] = len(data)
+        if not data:
+            continue
+        mean = sum(data) / len(data)
+        means[condition] = mean
+        if len(data) > 1:
+            variance = sum((v - mean) ** 2 for v in data) / (len(data) - 1)
+            sds[condition] = math.sqrt(variance)
+        else:
+            sds[condition] = 0.0
+
+    default_mean = means.get(default_condition, 0.0)
+    optimized_mean = means.get(optimized_condition, 0.0)
+    retention = length_retention_ratio(default_mean, optimized_mean)
+    deviation = abs(100.0 - retention)
+    return OutputLengthParity(
+        tokens_by_condition=means,
+        sd_by_condition=sds,
+        n_by_condition=counts,
+        length_retention_percent=retention,
+        deviation_percent=deviation,
+        friedman=friedman,
+        balanced=bool(counts.get(default_condition)) and deviation <= tolerance_percent,
+        tolerance_percent=tolerance_percent,
+    )
 
 
 def success_indicators(

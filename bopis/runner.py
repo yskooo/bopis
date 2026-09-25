@@ -838,6 +838,40 @@ class Study:
             quality_optimized=bopis_objectives.quality_f1,
         )
         payload["success_indicators"] = indicators.as_dict()
+
+        # -- Output-length parity --------------------------------------- #
+        # QRR's validity rests on BERTScore's length bias cancelling between
+        # conditions, which holds only if both generate comparable lengths. The
+        # token counts are already on every measurement, so this costs nothing
+        # to compute and turns an unstated assumption into a reported number.
+        tokens_by_condition = {
+            condition: [
+                float(m.n_generated_tokens)
+                for m in validation.get(condition, [])
+                if m.n_generated_tokens
+            ]
+            for condition in schemas.CONDITIONS
+        }
+        length_blocks = list(
+            zip(
+                *(
+                    [float(m.n_generated_tokens) for m in validation.get(c, [])]
+                    for c in schemas.CONDITIONS
+                )
+            )
+        )
+        length_counts = {len(b) for b in length_blocks}
+        length_friedman: Optional[Dict[str, object]] = None
+        if len(length_counts) == 1 and length_counts != {0}:
+            length_friedman = stats.friedman(
+                length_blocks,
+                condition_names=list(schemas.CONDITIONS),
+                higher_is_better=False,
+            ).as_dict()
+        payload["output_length_parity"] = metrics.output_length_parity(
+            tokens_by_condition,
+            friedman=length_friedman,
+        ).as_dict()
         payload["random_search_indicators"] = metrics.success_indicators(
             energy_default=default_objectives.energy_j,
             energy_optimized=rs_objectives.energy_j,

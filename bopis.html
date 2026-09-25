@@ -189,6 +189,7 @@ body {
 .metrics .meas { color: #2F855A; }
 .metrics .q-pending { color: #718096; font-style: italic; }
 .metrics .q-ok { color: #2B6CB0; }
+.metrics .q-dropped { color: #B7791F; }
 .ref-note {
     margin-top: 8px; font-size: 11.5px; color: #4A5568;
     background: #F7FAFC; border-left: 3px solid #90CDF4; padding: 6px 8px;
@@ -924,13 +925,13 @@ body::before {
 
             <div class="app-card">
                 <div class="card-header">Calibration Thresholds</div>
-                <div class="cfg-row"><span class="cfg-k">Q_min (Closed QA / extraction)</span><span class="cfg-v">0.82 F1</span></div>
-                <div class="cfg-row"><span class="cfg-k">Q_min (Summarization / Open QA)</span><span class="cfg-v">0.78 F1</span></div>
-                <div class="cfg-row"><span class="cfg-k">Q_min (Classification)</span><span class="cfg-v">0.78 F1</span></div>
-                <div class="cfg-row"><span class="cfg-k">Q_min (Creative / Brainstorming)</span><span class="cfg-v">0.72 F1</span></div>
-                <div class="cfg-row"><span class="cfg-k">S_min (Minimum speed floor)</span><span class="cfg-v">derived from p10</span></div>
-                <div class="cfg-row"><span class="cfg-k">BO iterations completed</span><span class="cfg-v">34</span></div>
-                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Thresholds are determined automatically. To update them, re-run calibration.</p>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Closed QA / extraction)</span><span class="cfg-v" data-qmin="closed_qa,information_extraction">&mdash;</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Summarization / Open QA)</span><span class="cfg-v" data-qmin="summarization,open_qa,general_qa">&mdash;</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Classification)</span><span class="cfg-v" data-qmin="classification">&mdash;</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Creative / Brainstorming)</span><span class="cfg-v" data-qmin="creative_writing,brainstorming">&mdash;</span></div>
+                <div class="cfg-row"><span class="cfg-k">S_min (Minimum speed floor)</span><span class="cfg-v" data-smin>&mdash;</span></div>
+                <div class="cfg-row"><span class="cfg-k">BO iterations completed</span><span class="cfg-v" data-iterations>&mdash;</span></div>
+                <p id="threshold-note" style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Load a run to read the thresholds it was selected under. They are derived from that run's own unoptimized baseline, so they differ per run and per machine.</p>
             </div>
 
             <div class="app-card">
@@ -1053,6 +1054,7 @@ function applyRunData(data) {
     }
     const calibrationStatus = document.getElementById('calibration-status');
     if (calibrationStatus) calibrationStatus.textContent = `${data.meta?.n_total_iterations ?? '—'} configurations evaluated`;
+    renderThresholds(data);
     renderSelectionDetail(data);
     renderMethodComparison(data);
     renderSurrogateDetail(data);
@@ -1062,6 +1064,57 @@ function applyRunData(data) {
     renderSearchLog(REPLAY_LIMIT);
     drawPareto3D();
     drawConvergence();
+}
+
+/* ── Calibration thresholds ─────────────────────────────────────────────────
+ * The floors x* was selected under, read from the loaded run rather than
+ * restated here. `S_min` is p10 of the unoptimized default's speed and
+ * `Q_min(task)` is the QRR percentage of that task category's unoptimized mean
+ * F1 (bopis.metrics.q_min, computed in bopis.runner). Both are per-run and
+ * per-machine quantities derived from per-prompt F1s the page never sees, so
+ * there is nothing here to recompute -- only to display, or to leave as a dash.
+ */
+const DASH = '—';
+
+function renderThresholds(data) {
+    const thresholds = (data && data.thresholds) || {};
+    const byTask = thresholds.q_min_by_task || {};
+
+    document.querySelectorAll('[data-qmin]').forEach(element => {
+        const values = element.getAttribute('data-qmin').split(',')
+            .map(task => byTask[task])
+            .filter(value => Number.isFinite(value));
+        if (!values.length) {
+            element.textContent = DASH;
+            return;
+        }
+        const lo = Math.min(...values);
+        const hi = Math.max(...values);
+        element.textContent = (lo === hi ? lo.toFixed(3) : `${lo.toFixed(3)}–${hi.toFixed(3)}`) + ' F1';
+    });
+
+    const sMin = document.querySelector('[data-smin]');
+    if (sMin) {
+        const value = Number(thresholds.s_min);
+        sMin.textContent = Number.isFinite(value) ? `${value.toFixed(2)} tok/s` : DASH;
+    }
+
+    const iterations = document.querySelector('[data-iterations]');
+    if (iterations) {
+        const value = data && data.meta && data.meta.n_total_iterations;
+        iterations.textContent = Number.isFinite(Number(value)) ? String(value) : DASH;
+    }
+
+    const note = document.getElementById('threshold-note');
+    if (note) {
+        const qrr = Number(thresholds.qrr);
+        note.textContent = Object.keys(byTask).length
+            ? `Q_min is ${Number.isFinite(qrr) ? qrr : DASH}% of each task category's unoptimized mean F1, `
+              + `and S_min is p10 of the unoptimized default's speed -- both from this run, `
+              + `so they differ per run and per machine.`
+            : `Load a run to read the thresholds it was selected under. They are derived `
+              + `from that run's own unoptimized baseline, so they differ per run and per machine.`;
+    }
 }
 
 /* ── Live refresh ───────────────────────────────────────────────────────────
@@ -2876,9 +2929,15 @@ async function doChat() {
     showChat();
 
     // A Dolly reference applies only to the Dolly prompt it came with. If the
-    // text was edited, the reference no longer answers it and is dropped.
-    const reference = (DOLLY_PENDING && DOLLY_PENDING.text.trim() === txt)
-        ? DOLLY_PENDING : null;
+    // text was edited, the reference no longer answers it and is dropped -- but
+    // dropping it silently reported "free chat has no reference", which is a
+    // different and wrong explanation when the user did click Dolly. The three
+    // states are kept apart so the badge can name the one that happened.
+    const loaded = DOLLY_PENDING;
+    const reference = (loaded && loaded.text.trim() === txt) ? loaded : null;
+    // A prompt that was loaded and then edited: the reference was real, and was
+    // discarded for a reason worth showing.
+    const edited = (loaded && !reference) ? loaded : null;
     DOLLY_PENDING = null;
     checkDollyArmed();
 
@@ -2974,12 +3033,22 @@ async function doChat() {
         const scoreId = `q-${Date.now()}`;
         const qualityHtml = reference
             ? `<span id="${scoreId}" class="q-pending">BERTScore scoring against the Dolly reference&hellip;</span>`
-            : `<span title="BERTScore compares a reply against a human reference answer; free chat has none. Use the Dolly prompt button for a scorable prompt.">BERTScore <b>n/a</b> (free chat has no reference &mdash; use <i>Dolly prompt</i>)</span>`;
+            : edited
+              // Not the same situation as free chat: a reference existed and was
+              // deliberately discarded, so naming the prompt tells the user how
+              // to get a score back instead of implying they never asked for one.
+              ? `<span class="q-dropped" title="BERTScore needs the reference answer that matched the original prompt. That answer does not answer the edited text, so scoring it would measure the edit rather than the reply. Reload the prompt to score against it.">BERTScore <b>n/a</b> &mdash; prompt edited, so the reference for <i>${escapeHtml(edited.prompt_id)}</i> no longer answers it. Reload it to score.</span>`
+              : `<span title="BERTScore compares a reply against a human reference answer; free chat has none. Use the Dolly prompt button for a scorable prompt.">BERTScore <b>n/a</b> (free chat has no reference &mdash; use <i>Dolly prompt</i>)</span>`;
         const compareId = `cmp-${Date.now()}`;
+        // Shown for a scored turn only. For the edited case the reference is
+        // not the answer to what was asked, so displaying it beside the reply
+        // would invite exactly the comparison this branch exists to prevent.
         const referenceHtml = reference
             ? `<details class="ref-note"><summary>Dolly reference (${escapeHtml(reference.prompt_id)}, ${escapeHtml(reference.task_type)})</summary>${renderMarkdown(reference.reference)}</details>`
               + dollyActionsHtml(reference.prompt_id, compareId)
-            : '';
+            : edited
+              ? `<div class="ref-note">Reference dropped &mdash; <b>${escapeHtml(edited.prompt_id)}</b> (${escapeHtml(edited.task_type)}): ${escapeHtml(edited.text)}</div>`
+              : '';
 
         pending.innerHTML = `
             <div class="turn assistant">

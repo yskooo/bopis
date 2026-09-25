@@ -733,3 +733,48 @@ about 0.75, and LOO NPE rose to about 36%, with either acquisition. The GP
 models raw joules across a 15× range of model sizes. Modelling log-energy is the
 candidate fix. Until then, report the B.11 surrogate-reliability figures as
 measured, and do not claim the pre-A-40 R².
+---
+
+### A-43 - BERTScore F1 is length-biased on short references; treat QRR as primary
+
+**Where:** Statistical Treatment, BERTScore F1; Threats to Validity.
+
+**Add:** "BERTScore F1 is length-sensitive: precision is averaged over every
+candidate token while recall is maximised over the reference tokens, so a verbose
+answer is penalised for tokens the short reference does not contain. Absolute F1
+is therefore not a quality scale and is reported as a within-study relative
+measure only. QRR is the primary quality metric because it is a ratio of means
+taken over the same prompts against the same references, so the bias applies to
+both conditions and substantially cancels. The brevity of the deployed system
+prompt is noted as a possible partial confound on any length-related finding."
+
+**Why:** Measured with the study's own scorer (`roberta-large`, layer 17,
+baseline-rescaled per A-38) against the real Dolly `response` `"William
+Shakespeare"` for a `closed_qa` row:
+
+| candidate | rescaled | unrescaled |
+|---|---|---|
+| correct, terse - `William Shakespeare` | 1.000 | 1.000 |
+| correct, reworded - `It was written by William Shakespeare, the English playwright.` | 0.273 | 0.877 |
+| wrong author - `Charles Dickens` | 0.511 | 0.918 |
+| empty | -4.925 | - |
+
+A wrong answer outscores a correct one in **both** modes, so this is not an
+artefact of rescaling. A-38 addresses the narrow high band (unrelated proper nouns
+reach 0.918 raw) but not the length sensitivity, which is a distinct failure mode
+and was previously unstated.
+
+**Consequence for the study:** the absolute F1 values in the results (unoptimized
+0.8101, BOPIS 0.7963) must not be read as absolute quality, and the `QRR >= 98%`
+criterion in A-38/A-30 remains the defensible statement because it compares like
+with like. Note also that `bopis.html` instructs the model to be "concise and
+helpful" and `docs/CHATBOT_INTEGRATION.md` asks for a concise assistant, so any
+observed terseness is partly an artefact of the harness rather than of the
+selected configuration.
+
+**Related defect found while measuring this:** `runner.py` scores an empty
+candidate as `0.0` and justifies it as "the rescaled random-pair level". Measured,
+an empty candidate rescales to `-4.925`. The choice is defensible on different
+grounds - `0.0` is the retention-neutral point, so empties neither inflate nor
+deflate QRR - but the stated justification is factually wrong and must be
+corrected.

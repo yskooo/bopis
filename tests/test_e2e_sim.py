@@ -557,6 +557,45 @@ class TestFullStudy(unittest.TestCase):
         # Provenance must mark this as simulated, not measured.
         self.assertEqual(payload["meta"]["energy_scope"], "simulated")
 
+    def test_dashboard_carries_the_quality_floors(self) -> None:
+        """S_min and Q_min(task) must reach the payload, not just the manifest.
+
+        The UI cannot recompute either: both are derived from per-prompt F1s
+        that never leave the run directory. When they were absent from the
+        payload the page fell back to invented per-category numbers, which is
+        the failure this asserts against.
+        """
+        import json
+
+        from bopis import dashboard
+
+        thresholds = dashboard.build_payload(self.result)["thresholds"]
+
+        self.assertIsNotNone(thresholds["s_min"], "s_min missing from the payload")
+        self.assertGreater(thresholds["s_min"], 0.0)
+
+        by_task = thresholds["q_min_by_task"]
+        self.assertIsNotNone(by_task, "q_min_by_task missing from the payload")
+        # Every category the study validated must carry a floor.
+        self.assertEqual(set(by_task), set(tasks.TASK_KEYS))
+        for task, value in by_task.items():
+            self.assertGreater(value, 0.0)
+            self.assertLessEqual(value, 1.0)
+
+        # Each floor is `qrr` percent of that task's *own* unoptimized mean, so
+        # the payload must agree with the manifest value rather than a constant.
+        ratio = metrics.QRR_THRESHOLD / 100.0
+        for task, value in by_task.items():
+            self.assertAlmostEqual(value, self.result.summary["q_min_by_task"][task])
+            self.assertAlmostEqual(value / ratio * ratio, value, places=12)
+
+        # The payload's own qrr must be the one the floors were derived from,
+        # or the two surfaces could disagree about what "retention" means.
+        self.assertAlmostEqual(
+            thresholds["qrr"] / 100.0, ratio, places=12
+        )
+        json.dumps(thresholds)  # must stay JSON-serialisable for the .js export
+
     def test_manifest_records_dependency_policy(self) -> None:
         manifest = artifacts.build_manifest(
             host_profile=self.result.profile.as_dict(),

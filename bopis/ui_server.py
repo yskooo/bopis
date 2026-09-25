@@ -355,7 +355,17 @@ class Instruments:
             if layer is None and model == DEFAULT_MODEL:
                 layer = DEFAULT_LAYER
             self.log(f"  Loading BERTScore ({model}) for the first score...")
-            self._scorer = get_scorer("bertscore", model=model, layer=layer)
+            try:
+                scorer = get_scorer("bertscore", model=model, layer=layer)
+            except Exception as exc:  # noqa: BLE001 - reported, not hidden
+                # Cached so /api/status can say *why* scoring is unavailable
+                # rather than only that it is. The scorer is assigned only on
+                # success, so a failed load is retried on the next request
+                # instead of being pinned as permanently broken.
+                self.scorer_error = str(exc)
+                raise
+            self._scorer = scorer
+            self.scorer_error = None
         return self._scorer
 
     def score(self, candidate: str, reference: str) -> Dict[str, object]:
@@ -523,11 +533,9 @@ class Instruments:
                 llama_ok = r.status == 200
         except (urllib.error.URLError, OSError):
             llama_ok = False
-        import importlib.util
+        from bopis.quality import missing_dependencies
 
-        quality_ready = all(
-            importlib.util.find_spec(m) is not None for m in ("torch", "transformers")
-        )
+        quality_ready = not missing_dependencies("bertscore")
         return {
             "llama": {"url": self.llama_url, "ready": llama_ok, "pid": self._pid},
             "energy": {
@@ -539,7 +547,11 @@ class Instruments:
             },
             "quality": {
                 "available": quality_ready,
-                "loaded": self._scorer is not None,
+                # A scorer object is only built once its dependencies resolve,
+                # so this is true exactly when scoring has been attempted
+                # successfully -- not merely when a handle exists.
+                "loaded": self._scorer is not None and self.scorer_error is None,
+                "error": self.scorer_error,
                 "model": self.bertscore_model or "roberta-large",
             },
             "dolly": {"n": len(self.dolly)},
