@@ -8,6 +8,8 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Landing / hero-fx styles live at the end of this stylesheet. */
 body { 
     font-family: 'IBM Plex Sans', sans-serif; 
     background-color: #E8F0F8;
@@ -95,6 +97,7 @@ body {
 }
 .panel { display: none; flex-direction: column; gap: 24px; padding-bottom: 100px; }
 .panel.active { display: flex; }
+#panel-chat { position: relative; }
 
 .page-header { margin-bottom: 16px; }
 .page-title { margin-bottom: 8px; font-size: 32px; font-weight: 700; color: #2B6CB0; }
@@ -119,13 +122,11 @@ body {
 .tag.blue { background: #BEE3F8; color: #2C5282; }
 
 /* ─ CHAT ────────── */
-.chat-container { display: flex; flex-direction: column; gap: 18px; margin-top: 10px; padding-bottom: 60px; }
+.chat-container { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 18px; margin-top: 10px; padding-bottom: 60px; }
 .msg { display: flex; flex-direction: column; gap: 8px; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Conversation turns. The user is right-aligned, the assistant left-aligned,
-   following the convention set by ChatGPT/Claude so the reading order is
-   immediately obvious. `.turn` owns the alignment, `.bubble` owns the skin. */
+
 .turn { display: flex; width: 100%; gap: 10px; align-items: flex-start; }
 .turn.user { justify-content: flex-end; }
 .turn.assistant { justify-content: flex-start; }
@@ -148,8 +149,7 @@ body {
     word-wrap: break-word;
     overflow-wrap: anywhere;
 }
-/* User bubble: filled and right-aligned, with the corner nearest the avatar
-   squared off so the tail points at the sender. */
+
 .bubble.user {
     background: #3182CE; color: #fff; font-weight: 500;
     border-bottom-right-radius: 5px;
@@ -183,9 +183,7 @@ body {
 }
 .metrics b { color: #2D3748; font-weight: 650; }
 .metrics .est { color: #B7791F; }
-/* Measured energy (RAPL) is green, estimated (Mode C) stays amber: the colour
-   is the first thing a reader sees, so it carries the measured/estimated
-   distinction rather than relying on the label alone. */
+
 .metrics .meas { color: #2F855A; }
 .metrics .q-pending { color: #718096; font-style: italic; }
 .metrics .q-ok { color: #2B6CB0; }
@@ -468,13 +466,60 @@ body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr
 .detail-d { font-size: 13px; color: #4A5568; line-height: 1.5; }
 .formula-box { background: #F7FAFC; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #2D3748; margin-top: 6px; border: 1px dashed #CBD5E0;}
 
+/* ─ CHAT HERO ──────────────────────────────────────────────────────────────
+   Header row for the chat landing view: greeting on the left, a single
+   compact hardware indicator top-right instead of a full status card, so the
+   first screen reads as a product, not an instrument panel. Text and the
+   input dock are visible and usable immediately — the entrance moment lives
+   entirely in the hero-fx graphic layer behind them, never in a gate that
+   blocks the interface itself. */
+.chat-hero { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 36px; margin-bottom: 8px; }
+.hw-widget {
+    position: relative; margin-left: auto; flex: none;
+    display: inline-flex; align-items: center; gap: 7px;
+    background: #FFFFFF; border: 1px solid #E4E9EE; border-radius: 999px;
+    padding: 7px 14px; font: 600 12px 'IBM Plex Sans', sans-serif; color: #2D3B45;
+    cursor: pointer; box-shadow: 0 2px 10px rgba(16,34,49,.05);
+    transition: box-shadow .18s ease, border-color .18s ease;
+}
+.hw-widget:hover { border-color: #A9D9D6; box-shadow: 0 4px 16px rgba(16,34,49,.09); }
+.hw-widget-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #2BA37C; flex: none;
+    box-shadow: 0 0 0 3px rgba(43,163,124,.16);
+    animation: hwPulse 2.4s infinite ease-in-out;
+}
+@keyframes hwPulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+.hw-widget-chevron { color: #97A6AE; font-size: 10px; transition: transform .18s ease; }
+.hw-widget-panel.open + .hw-widget-chevron,
+.hw-widget.open .hw-widget-chevron { transform: rotate(180deg); }
+.hw-widget-panel {
+    display: none; position: absolute; top: 40px; right: 0; z-index: 30;
+    width: 270px; background: #FFFFFF; border: 1px solid #E4E9EE; border-radius: 12px;
+    padding: 12px 14px; box-shadow: 0 14px 34px rgba(16,34,49,.14);
+}
+.hw-widget-panel.open { display: block; animation: hwDrop .16s ease; }
+@keyframes hwDrop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.hw-widget-row {
+    display: flex; justify-content: space-between; gap: 10px; padding: 5px 0;
+    border-bottom: 1px solid #F1F4F6; font-size: 11.5px;
+}
+.hw-widget-row:last-of-type { border-bottom: none; }
+.hw-widget-row span { color: #8697A0; }
+.hw-widget-row strong { color: #2D3B45; font-weight: 600; text-align: right; overflow-wrap: anywhere; max-width: 170px; }
+.hw-widget-note { font-size: 11px; color: #8697A0; margin-top: 8px; padding-top: 8px; border-top: 1px solid #F1F4F6; line-height: 1.5; }
+@media (max-width: 720px) {
+    .chat-page-header { padding-right: 0; }
+    .hw-widget { position: static; margin-top: 14px; }
+    .hw-widget-panel { left: 0; right: auto; }
+}
+
 /* ── RESEARCH INSTRUMENT THEME ───────────────────────── */
 :root {
     --ink: #102231;
     --ink-soft: #1A3447;
-    --paper: #F5F8F6;
+    --paper: #FFFFFF;
     --paper-bright: #FFFFFF;
-    --line: #D7E2E1;
+    --line: #E4E9EE;
     --muted: #6B7F86;
     --cyan: #0C8C9B;
     --cyan-soft: #DDF3F2;
@@ -487,15 +532,6 @@ body {
     font-family: 'IBM Plex Sans', sans-serif;
     background: var(--paper);
     color: var(--ink);
-}
-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    opacity: .42;
-    background-image: linear-gradient(rgba(12,140,155,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(12,140,155,.045) 1px, transparent 1px);
-    background-size: 28px 28px;
 }
 .sidebar {
     width: 248px;
@@ -553,9 +589,67 @@ body::before {
     .hardware-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+
+:root { --ease-out: cubic-bezier(0.16, 1, 0.3, 1); }
+.main-area { z-index: 1; }
+
+#hero-fx { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; margin: 0; border: 0;
+    z-index: 0; overflow: hidden; pointer-events: none; }
+#hero-fx-black { position: absolute; inset: 0; background: #000000; opacity: 1;
+    transition: opacity 2.6s cubic-bezier(.45, 0, .15, 1); }
+#hero-fx.fx-lit #hero-fx-black { opacity: 0; }
+#hero-canvas { position: absolute; top: 0; left: 0; display: block; }
+#hero-canvas.mini { position: static; width: 44px; height: 44px; }
+.chat-hero { align-items: center; }
+.hw-widget-panel { top: 52px; }
+.chat-brand { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.brand-slot { width: 44px; height: 44px; flex: none; display: block; }
+.brand-title { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink);
+    opacity: 0; transform: translateX(-8px);
+    transition: opacity .8s var(--ease-out) .7s, transform .8s var(--ease-out) .7s; }
+body.chatting .brand-title { opacity: 1; transform: none; }
+.chat-hero .session-tally { margin: 0 0 0 14px; align-self: center; }
+#hero-fx.fx-dismissed #hero-fx-black { opacity: 0; transition-duration: .6s; }
+
+.landing-title { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px; padding: 0 24px; text-align: center;
+    pointer-events: none;
+    transition: opacity .8s var(--ease-out), transform .8s var(--ease-out), visibility 0s linear .8s; }
+.landing-title h1 { font-size: clamp(34px, 5.4vw, 68px); font-weight: 600; letter-spacing: -0.035em;
+    line-height: 1.05; color: #FFFFFF; text-shadow: 0 2px 28px rgba(0,0,0,.7);
+    transition: color .6s ease 1s, text-shadow .6s ease 1s; }
+.landing-title p { font-size: clamp(15px, 1.7vw, 20px); font-weight: 400; color: #DCE8EE;
+    text-shadow: 0 1px 18px rgba(0,0,0,.7);
+    transition: color .6s ease 1s, text-shadow .6s ease 1s; }
+body.hero-lit .landing-title h1 { color: var(--ink); text-shadow: 0 2px 30px rgba(255,255,255,.95); }
+body.hero-lit .landing-title p { color: #3E5560; text-shadow: 0 1px 20px rgba(255,255,255,.95); }
+body.chatting .landing-title { opacity: 0; transform: translateY(-20px); visibility: hidden; }
+
+.sidebar { transition: opacity .9s var(--ease-out); }
+body.landing .sidebar { opacity: 0; pointer-events: none; }
+
+.input-dock { transition: left .9s var(--ease-out), right .9s var(--ease-out); }
+body.landing .input-dock { left: 0; right: 0; }
+.input-wrapper { transition: box-shadow .35s var(--ease-out), border-color .35s var(--ease-out); }
+.input-wrapper:focus-within { border-color: #0C8C9B;
+    box-shadow: 0 0 0 4px rgba(0,229,255,.18), 0 14px 38px rgba(16,34,49,.16); }
+
+.chat-container { opacity: 0; transform: translateY(24px);
+    transition: opacity .9s var(--ease-out) .12s, transform .9s var(--ease-out) .12s; }
+body.chatting .chat-container { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    #hero-fx-black, #hero-canvas, .landing-title, .landing-title h1, .landing-title p,
+    .sidebar, .input-dock, .chat-container, .brand-title { transition: none !important; }
+}
 </style>
 </head>
-<body>
+<body class="landing">
+
+<div id="hero-fx" aria-hidden="true">
+    <div id="hero-fx-black"></div>
+    <canvas id="hero-canvas"></canvas>
+</div>
 
 <nav class="sidebar">
     <div class="user-profile">
@@ -605,43 +699,31 @@ body::before {
 <main class="main-area">
     <!-- ─ CHAT PANEL ────────── -->
     <div id="panel-chat" class="panel active">
-        
-        <div class="page-header">
-            <h1 class="page-title">Welcome, BOPIS-er! 👋</h1>
-            <h2 class="page-subtitle">How can I optimize your prompts today?</h2>
-            <span class="instrument-pill" id="instrument-pill"
-                  title="Start `python -m bopis ui` for measured energy and BERTScore">
-                Energy: in-browser estimate (Mode C) &middot; BERTScore: unavailable
-            </span>
-            <div class="session-tally" id="session-tally"></div>
+        <div class="landing-title" id="landing-title">
+            <h1>Welcome, BOPIS-er. </h1>
+            <p>How can I optimize your prompts today?</p>
         </div>
 
-        <div class="cards-grid">
-            <div class="app-card yellow-tint">
-                <div class="card-header">Hardware Status</div>
-                <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                    <span class="hw-pill"><div class="hw-dot"></div>GPU detected</span>
-                    <span class="hw-pill"><div class="hw-dot"></div>CPU profiled</span>
-                    <span class="hw-pill"><div class="hw-dot"></div>RAM checked</span>
-                </div>
-                <p id="runtime-status" style="margin-top:12px; font-size:12px; color:#4A5568"><strong>Live chatbot ready.</strong> llama.cpp endpoint connected.</p>
-                <div class="hardware-summary" aria-label="Live hardware summary">
-                    <div><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong></div>
-                    <div><span>RAM</span><strong data-summary="ram">Profile unavailable</strong></div>
-                    <div><span>GPU / VRAM</span><strong data-summary="gpu">Profile unavailable</strong></div>
-                    <div><span>Feasible space</span><strong data-summary="space">Profile unavailable</strong></div>
-                    <div><span>Energy</span><strong data-summary="energy">Profile unavailable</strong></div>
-                </div>
+        <div class="chat-hero">
+            <div class="chat-brand" id="chat-brand">
+                <span class="brand-slot" id="brand-slot"></span>
+                <span class="brand-title">Welcome, BOPIS-er.</span>
             </div>
-            <div class="app-card" style="cursor:pointer;" onclick="sendPrompt('Summarize the key findings from this climate policy report.')">
-                <div class="card-header">Suggested Task</div>
-                <h3 style="font-size:16px; color:#2D3748; margin-bottom:8px">Summarize a document</h3>
-                <p style="font-size:12px; color:#718096">Optimized with INT8 for efficiency</p>
-            </div>
-            <div class="app-card" style="cursor:pointer;" onclick="sendPrompt('What is the capital of France?')">
-                <div class="card-header">Suggested Task</div>
-                <h3 style="font-size:16px; color:#2D3748; margin-bottom:8px">Run a factual query</h3>
-                <p style="font-size:12px; color:#718096">Optimized with FP16 for precision</p>
+            <div class="session-tally" id="session-tally"></div>
+
+            <button class="hw-widget" id="hw-widget" type="button" onclick="toggleHwWidget()"
+                    title="Hardware status — click for detail">
+                <span class="hw-widget-dot"></span>
+                <span class="hw-widget-label">Hardware ready</span>
+                <span class="hw-widget-chevron">▾</span>
+            </button>
+            <div class="hw-widget-panel" id="hw-widget-panel">
+                <div class="hw-widget-row"><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong></div>
+                <div class="hw-widget-row"><span>RAM</span><strong data-summary="ram">Profile unavailable</strong></div>
+                <div class="hw-widget-row"><span>GPU / VRAM</span><strong data-summary="gpu">Profile unavailable</strong></div>
+                <div class="hw-widget-row"><span>Feasible space</span><strong data-summary="space">Profile unavailable</strong></div>
+                <div class="hw-widget-row"><span>Energy</span><strong data-summary="energy">Profile unavailable</strong></div>
+                <p id="runtime-status" class="hw-widget-note"><strong>Live chatbot ready.</strong> llama.cpp endpoint connected.</p>
             </div>
         </div>
 
@@ -961,7 +1043,7 @@ body::before {
     <div class="input-dock active" id="global-input">
         <div class="input-wrapper dock-stack">
             <div class="dock-row">
-                <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" oninput="checkDollyArmed()" />
+                <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" oninput="checkDollyArmed()" onfocus="window.__dismissHeroFx && window.__dismissHeroFx()" onclick="window.__dismissHeroFx && window.__dismissHeroFx()" />
                 <button class="btn-send" onclick="doChat()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
             </div>
             <div class="dock-row dock-tools">
@@ -1705,10 +1787,25 @@ function renderRequirements(profile) {
         </table>`;
 }
 
+function toggleHwWidget() {
+    document.getElementById('hw-widget-panel')?.classList.toggle('open');
+    document.getElementById('hw-widget')?.classList.toggle('open');
+}
+document.addEventListener('click', event => {
+    const widget = document.getElementById('hw-widget');
+    const panel = document.getElementById('hw-widget-panel');
+    if (!widget || !panel) return;
+    if (!widget.contains(event.target) && !panel.contains(event.target)) {
+        panel.classList.remove('open');
+        widget.classList.remove('open');
+    }
+});
+
 applyHardwareProfile();
 if (RUN_DATA) applyRunData(RUN_DATA);
 
 function sw(name, btn) {
+    if (window.__dismissHeroFx) window.__dismissHeroFx();
     // Handle tab switching
     document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
     if(btn) btn.classList.add('active');
@@ -1734,6 +1831,7 @@ function sw(name, btn) {
     // becomes visible or they render at the fallback minimum width.
     if (name === 'tech') setTimeout(() => { drawPareto3D(); drawConvergence(); }, 100);
     if (name === 'configs') renderConfigurations();
+    if (name === 'chat') setTimeout(() => { window.__resizeHeroFx && window.__resizeHeroFx(); }, 100);
 }
 
 /* ── Workspace mode ────────────────────────────────────────────────────────
@@ -1744,6 +1842,7 @@ function sw(name, btn) {
  * state intact when toggling.
  */
 function enterWorkspace(btn) {
+    if (window.__dismissHeroFx) window.__dismissHeroFx();
     document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
     if (btn) btn.classList.add('active');
 
@@ -1756,7 +1855,7 @@ function enterWorkspace(btn) {
     positionDock();
     // Both canvases were last sized for a full-width panel; the columns are
     // narrower, so they need a redraw once the grid has laid out.
-    setTimeout(() => { bindParetoControls(); drawPareto3D(); drawConvergence(); }, 120);
+    setTimeout(() => { bindParetoControls(); drawPareto3D(); drawConvergence(); window.__resizeHeroFx && window.__resizeHeroFx(); }, 120);
 }
 
 function exitWorkspace() {
@@ -2869,6 +2968,7 @@ function taskBadgeHtml(prediction) {
 }
 
 async function doChat() {
+    if (window.__dismissHeroFx) window.__dismissHeroFx();
     const inp = document.getElementById('ci');
     const txt = inp.value.trim();
     if (!txt) return;
@@ -3582,6 +3682,216 @@ function resetParetoView() {
 
 window.addEventListener('resize', () => { positionDock(); bindParetoControls(); drawPareto3D(); drawConvergence(); });
 setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
+</script>
+
+<!-- Hero FX: full-viewport interactive spiral (Canvas 2D + requestAnimationFrame).
+     On first input focus / send, the same canvas glides down to the header slot and
+     becomes the small rotating BOPIS galaxy beside "Welcome, BOPIS-er." -->
+<script>
+(function () {
+  try {
+    const heroFx = document.getElementById('hero-fx');
+    const canvas = document.getElementById('hero-canvas');
+    const slotEl = document.getElementById('brand-slot');
+    if (!heroFx || !canvas) throw new Error('hero-fx markup missing');
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const TAU = Math.PI * 2;
+    let w = 0, h = 0, raf = null, dismissed = false, paused = false, angle = 0;
+    let mode = 'full', morph = null;               // full -> morph -> mini
+    let last = performance.now();
+
+    function fit(cw, ch) {
+      w = cw; h = ch;
+      canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr);
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function size() { if (mode === 'full') fit(window.innerWidth, window.innerHeight); }
+    size();
+    window.addEventListener('resize', size);
+
+    // Cyan #00E5FF core -> deep navy #001133 rim.
+    const STOPS = [[0,229,255],[0,150,230],[0,64,150],[0,17,51]];
+    function ramp(t) {
+      const pos = Math.max(0, Math.min(0.999, t)) * (STOPS.length - 1);
+      const i = Math.floor(pos), f = pos - i, a = STOPS[i], b = STOPS[i + 1];
+      return 'rgb(' + a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(',') + ')';
+    }
+
+    const ARMS = 3, DOTS = 130, TURNS = 3.2, ROT = 0.17;   // ROT = rad/s
+    const SPRING = 0.075, DAMP = 0.86, TRAIL = 6, MINI = 0.4, DUR = 1.25;
+    const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    const dots = [];
+    for (let arm = 0; arm < ARMS; arm++) {
+      for (let i = 0; i < DOTS; i++) {
+        const t = i / (DOTS - 1);
+        dots.push({ arm: (arm / ARMS) * TAU, t, color: ramp(t), x: 0, y: 0, vx: 0, vy: 0,
+                    ix: 0, iy: 0, ox: 0, oy: 0, seeded: false, trail: [] });
+      }
+    }
+
+    const mouse = { x: 0, y: 0, sx: 0, sy: 0, px: 0, py: 0, speed: 0, active: false, seeded: false };
+    function onMove(e) {
+      mouse.x = e.clientX; mouse.y = e.clientY;
+      if (!mouse.seeded) { mouse.sx = mouse.px = mouse.x; mouse.sy = mouse.py = mouse.y; mouse.seeded = true; }
+      mouse.active = true;
+    }
+    function onLeave() { mouse.active = false; }
+    window.addEventListener('pointermove', onMove, { passive: true });
+    document.documentElement.addEventListener('mouseleave', onLeave);
+
+    function toMini() {                             // hand the canvas over to the header slot
+      mode = 'mini';
+      const s = (slotEl && Math.round(slotEl.getBoundingClientRect().width)) || 44;
+      canvas.classList.add('mini');
+      if (slotEl) slotEl.appendChild(canvas);
+      fit(s, s);
+      heroFx.remove();
+    }
+
+    function step(t, dt) {
+      angle += ROT * dt / 60;
+      let cx = 0, cy = 0, maxR = 0, sizeMul = 1, e = 0;
+      if (mode === 'full') { cx = w / 2; cy = h / 2; maxR = Math.min(w, h) * 0.52; }
+      if (mode === 'morph') {
+        const p = Math.min(1, (t - morph.t0) / DUR);
+        e = ease(p);
+        if (p >= 1) { toMini(); }
+        else {
+          const r = slotEl.getBoundingClientRect();
+          const tx = r.left + r.width / 2, ty = r.top + r.height / 2, tR = Math.max(6, r.width / 2 - 2);
+          cx = morph.cx0 + (tx - morph.cx0) * e; cy = morph.cy0 + (ty - morph.cy0) * e;
+          maxR = morph.R0 + (tR - morph.R0) * e; sizeMul = 1 + (MINI - 1) * e;
+        }
+      }
+      if (mode === 'mini') { cx = cy = w / 2; maxR = w / 2 - 2; sizeMul = MINI; e = 1; }
+      const physics = mode === 'full';
+      const breathe = 1 + 0.03 * Math.sin(t * 1.3);
+
+      if (physics && mouse.active) {
+        const k = 1 - Math.pow(0.8, dt);
+        mouse.sx += (mouse.x - mouse.sx) * k; mouse.sy += (mouse.y - mouse.sy) * k;
+        const sp = Math.hypot(mouse.sx - mouse.px, mouse.sy - mouse.py) / dt;
+        mouse.speed += (sp - mouse.speed) * 0.2;
+        mouse.px = mouse.sx; mouse.py = mouse.sy;
+      } else { mouse.speed *= 0.9; }
+      const R = Math.max(140, Math.min(window.innerWidth, window.innerHeight) * 0.17), R2 = R * R;
+      const boost = 2.4 + Math.min(mouse.speed, 30) * 0.12;
+      const damp = Math.pow(DAMP, dt);
+      ctx.clearRect(0, 0, w, h);
+
+      for (let n = 0; n < dots.length; n++) {
+        const d = dots[n];
+        const phase = t * 2.0 - d.t * 9;
+        const r = d.t * maxR * breathe * (1 + 0.018 * Math.sin(phase));
+        const th = d.arm + angle + d.t * TURNS * TAU;
+        const ix = cx + Math.cos(th) * r, iy = cy + Math.sin(th) * r;
+        d.ix = ix; d.iy = iy;
+        if (!d.seeded) { d.x = ix; d.y = iy; d.seeded = true; }
+
+        let push = 0;
+        if (physics) {
+          if (mouse.active) {
+            const dx = d.x - mouse.sx, dy = d.y - mouse.sy, d2 = dx * dx + dy * dy;
+            if (d2 < R2 && d2 > 0.01) {
+              const dist = Math.sqrt(d2), ux = dx / dist, uy = dy / dist;
+              const f = (1 - dist / R) * (1 - dist / R) * boost;
+              d.vx += (ux - uy * 0.35) * f * dt;    // repulsion plus a slight swirl
+              d.vy += (uy + ux * 0.35) * f * dt;
+            }
+          }
+          d.vx += (ix - d.x) * SPRING * dt; d.vy += (iy - d.y) * SPRING * dt;
+          d.vx *= damp; d.vy *= damp;
+          d.x += d.vx * dt; d.y += d.vy * dt;
+          push = Math.min(1, Math.max(0, Math.hypot(d.x - ix, d.y - iy) - 3) / 45);
+        } else {                                    // morph / mini: follow the ideal spiral, decay leftover push
+          const k = mode === 'morph' ? 1 - e : 0;
+          d.x = ix + d.ox * k; d.y = iy + d.oy * k; d.vx = d.vy = 0;
+        }
+
+        const odd = n & 1;                          // thin the field as it shrinks to logo size
+        const am = odd ? (mode === 'full' ? 1 : mode === 'morph' ? 1 - e : 0) : 1;
+        const tr = d.trail;
+        if (push > 0.06) { tr.push(d.x, d.y); if (tr.length > TRAIL * 2) { tr.shift(); tr.shift(); } }
+        else if (tr.length) { tr.shift(); tr.shift(); }
+        if (am <= 0.01) continue;
+
+        const size = Math.max(0.5, (0.9 + d.t * 2.6) * (1 + 0.22 * Math.sin(phase)) * (1 + push * 0.5) * sizeMul);
+        const alpha = (0.55 + d.t * 0.4) * am;
+        ctx.fillStyle = d.color;
+        const cnt = tr.length / 2;
+        for (let k = 0; k < cnt - 1; k++) {         // fading trail behind displaced dots
+          const a = (k + 1) / cnt;
+          ctx.globalAlpha = alpha * 0.35 * a;
+          ctx.beginPath(); ctx.arc(tr[2 * k], tr[2 * k + 1], size * (0.35 + 0.5 * a), 0, TAU); ctx.fill();
+        }
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        if (push > 0.12) {
+          ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(Math.atan2(d.vy, d.vx));
+          ctx.ellipse(0, 0, size * (1 + push * 3.2), size * (1 + push * 0.4), 0, 0, TAU);
+          ctx.fill(); ctx.restore();
+        } else {
+          ctx.arc(d.x, d.y, size, 0, TAU); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function frame(ts) {
+      raf = requestAnimationFrame(frame);
+      const dt = Math.min(2.5, Math.max(0.2, (ts - last) / 16.667));
+      last = ts;
+      if (paused) return;
+      if (mode === 'mini' && canvas.offsetParent === null) return;   // header hidden (other tab)
+      step(ts / 1000, dt);
+    }
+
+    function setLit() {
+      if (dismissed) return;
+      heroFx.classList.add('fx-lit');
+      document.body.classList.add('hero-lit');
+    }
+
+    function dismiss() {
+      if (dismissed) return;
+      dismissed = true;
+      document.body.classList.remove('landing');
+      document.body.classList.add('chatting', 'hero-lit');
+      heroFx.classList.add('fx-lit', 'fx-dismissed');
+      window.removeEventListener('resize', size);
+      window.removeEventListener('pointermove', onMove);
+      document.documentElement.removeEventListener('mouseleave', onLeave);
+      for (const d of dots) { d.ox = d.x - d.ix; d.oy = d.y - d.iy; d.trail.length = 0; }
+      const r = slotEl && slotEl.getBoundingClientRect();
+      const now = performance.now() / 1000;
+      if (!r || r.width === 0 || reduceMotion) {    // no visible header (or reduced motion): land instantly
+        mode = 'mini'; toMini(); step(now, 1);
+      } else {
+        mode = 'morph';
+        morph = { t0: now, cx0: w / 2, cy0: h / 2 };
+      }
+      if (mode === 'morph') morph.R0 = Math.min(w, h) * 0.52;
+    }
+    window.__dismissHeroFx = dismiss;
+
+    document.addEventListener('visibilitychange', function () {
+      paused = document.hidden; last = performance.now();
+    });
+
+    step(performance.now() / 1000, 1);              // first frame immediately, never blank
+    if (reduceMotion) { setLit(); return; }
+    raf = requestAnimationFrame(frame);
+    setTimeout(setLit, 700);                        // brief black, then slow cross-fade to white
+  } catch (err) {
+    console.error('hero-fx failed, falling back to plain chat:', err);
+    document.body.classList.remove('landing');
+    document.body.classList.add('chatting', 'hero-lit');
+    const fx = document.getElementById('hero-fx'); if (fx) fx.remove();
+  }
+})();
 </script>
 </body>
 </html>
