@@ -37,12 +37,13 @@ body {
     padding: 0 8px;
 }
 .avatar {
-    width: 36px; height: 36px;
+    width: 40px; height: 40px;
     border-radius: 50%;
     background: #EDF2F7;
     display: flex; align-items: center; justify-content: center;
     font-weight: 600; color: #2B6CB0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    flex: none;
 }
 .user-name { font-weight: 600; font-size: 15px; color: #2D3748; }
 
@@ -122,7 +123,7 @@ body {
 .tag.blue { background: #BEE3F8; color: #2C5282; }
 
 /* ─ CHAT ────────── */
-.chat-container { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 18px; margin-top: 10px; padding-bottom: 60px; }
+.chat-container { position: relative; z-index: 0; display: flex; flex-direction: column; gap: 18px; margin-top: 10px; padding-bottom: 60px; }
 .msg { display: flex; flex-direction: column; gap: 8px; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -381,6 +382,12 @@ body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr
 .live-pill.on { background:#E6FFFA; color:#234E52; }
 .live-dot { width:7px; height:7px; border-radius:50%; background:#A0AEC0; }
 .live-pill.on .live-dot { background:#38A169; animation: livePulse 1.6s infinite ease-in-out; }
+.mode-toggle { display:inline-flex; border:1px solid #CBD5E0; border-radius:12px; overflow:hidden; font-size:11px; font-weight:600; }
+.mode-toggle button { border:0; background:#fff; color:#4A5568; padding:3px 10px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+.mode-toggle button.on { background:#E6FFFA; color:#234E52; }
+.mode-toggle button.on .live-dot { background:#38A169; animation: livePulse 1.6s infinite ease-in-out; }
+.live-progress { height:6px; background:#EDF2F7; border-radius:3px; overflow:hidden; margin:8px 0 4px; }
+.live-progress > div { height:100%; background:#319795; transition: width .4s; }
 @keyframes livePulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.8); } }
 
 .pareto-legend { display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:12px; color:#718096; font-size:11px; }
@@ -473,7 +480,7 @@ body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr
    input dock are visible and usable immediately — the entrance moment lives
    entirely in the hero-fx graphic layer behind them, never in a gate that
    blocks the interface itself. */
-.chat-hero { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 36px; margin-bottom: 8px; }
+.chat-hero { position: relative; z-index: 40; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 36px; margin-bottom: 8px; }
 .hw-widget {
     position: relative; margin-left: auto; flex: none;
     display: inline-flex; align-items: center; gap: 7px;
@@ -493,7 +500,7 @@ body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr
 .hw-widget-panel.open + .hw-widget-chevron,
 .hw-widget.open .hw-widget-chevron { transform: rotate(180deg); }
 .hw-widget-panel {
-    display: none; position: absolute; top: 40px; right: 0; z-index: 30;
+    display: none; position: absolute; top: 40px; right: 0; z-index: 50;
     width: 270px; background: #FFFFFF; border: 1px solid #E4E9EE; border-radius: 12px;
     padding: 12px 14px; box-shadow: 0 14px 34px rgba(16,34,49,.14);
 }
@@ -540,6 +547,9 @@ body {
     padding: 28px 16px 20px;
 }
 .avatar { background: #DDF3F2; color: var(--cyan); box-shadow: none; }
+.sidebar-brand-slot { width: 40px; height: 40px; flex: none; display: block; border-radius: 50%; overflow: hidden;
+    background: radial-gradient(circle, rgba(0,229,255,.18) 0%, transparent 72%); }
+#sidebar-canvas { display: block; width: 40px; height: 40px; }
 .user-name, .nav-item.active, .nav-item:hover { color: #F2FAF9; }
 .nav-item { color: #A9C1C7; border-radius: 5px; letter-spacing: .01em; }
 .nav-item:hover { background: rgba(255,255,255,.08); }
@@ -653,10 +663,12 @@ body.chatting .chat-container { opacity: 1; transform: none; }
 
 <nav class="sidebar">
     <div class="user-profile">
-        <div class="avatar">B</div>
+        <span class="sidebar-brand-slot" id="sidebar-brand-slot" aria-hidden="true">
+            <canvas id="sidebar-canvas"></canvas>
+        </span>
         <div style="display:flex; flex-direction:column">
-            <span class="user-name">BOPIS System</span>
-            <span style="font-size:11px; color:#718096">Local LLM Optimizer</span>
+            <span class="user-name">BOPIS</span>
+            <!-- <span style="font-size:11px; color:#718096">Local LLM Optimizer</span> -->
         </div>
     </div>
     
@@ -754,14 +766,33 @@ body.chatting .chat-container { opacity: 1; transform: none; }
             <div class="card-header">
                 <span>Run evidence</span>
                 <span style="display:inline-flex; gap:8px; align-items:center;">
-                    <span class="live-pill" id="live-pill" onclick="toggleLiveRefresh()"
-                          title="Re-reads dashboard_data.js every 4 s and redraws when the run advances. Leave it on while a study is running.">
-                        <span class="live-dot"></span><span id="live-label">Live: off</span>
+                    <span id="live-label" style="font-size:11px; color:#4A5568;"></span>
+                    <span class="mode-toggle" role="group" aria-label="Run data source">
+                        <button id="mode-live" onclick="setDataMode('live')"
+                                title="Follow the newest run in runs\ as it happens: progress while it searches, the full dashboard the moment it finishes."><span class="live-dot"></span>Live</button>
+                        <button id="mode-manual" onclick="setDataMode('manual')"
+                                title="Keep the run you loaded; nothing changes until you load another.">Manual</button>
                     </span>
-                    <button class="btn-action" onclick="document.getElementById('run-file-input').click()">Load run data</button>
+                    <select id="run-select" class="btn-action" onchange="chooseRun(this.value)" title="Pick a run from the runs folder"></select>
+                    <button class="btn-action" id="study-btn" onclick="toggleStudyPanel()">&#9654; Run a study</button>
                 </span>
             </div>
             <input type="file" id="run-file-input" accept=".js,.json" style="display:none">
+            <div id="study-panel" class="note info" style="display:none; margin-bottom:10px;">
+                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                    <label>Study
+                        <select id="study-preset" onchange="presetDefaults(this.value)">
+                            <option value="sim">Quick: simulated energy (about a minute)</option>
+                            <option value="real">Real: llama-server on this laptop (slow)</option>
+                        </select></label>
+                    <label>Evaluations <input id="study-iterations" type="number" min="4" max="60" value="30" style="width:56px"></label>
+                    <label>Proxy prompts <input id="study-proxy" type="number" min="8" max="100" value="20" style="width:56px"></label>
+                    <button class="btn-action" onclick="startStudy()">Start</button>
+                    <button class="btn-action" onclick="stopStudy()">Stop</button>
+                </div>
+                <div id="study-note" style="margin-top:6px; color:#4A5568;">Starts <code>python -m bopis run</code> in the background.
+                    Live mode then streams each evaluation into the chart and the search log as it is measured.</div>
+            </div>
             <div id="dashboard-status" class="note info">Loading generated run data...</div>
         </div>
 
@@ -842,6 +873,16 @@ body.chatting .chat-container { opacity: 1; transform: none; }
                             <input type="checkbox" id="show-random" onchange="drawPareto3D()" style="margin:0">
                             Show random search
                         </label>
+                        <label class="pareto-control-button" style="cursor:pointer; display:inline-flex; gap:6px; align-items:center;"
+                               title="Label every point with its evaluation number and configuration">
+                            <input type="checkbox" id="show-labels" onchange="drawPareto3D()" style="margin:0">
+                            Labels
+                        </label>
+                        <label class="pareto-control-button" style="cursor:pointer; display:inline-flex; gap:6px; align-items:center;"
+                               title="Plot your scored chat replies (Dolly prompts) as pink diamonds">
+                            <input type="checkbox" id="show-chat" checked onchange="drawPareto3D()" style="margin:0">
+                            My chat prompts
+                        </label>
                         <button class="pareto-control-button" type="button" onclick="resetParetoView()">Reset view</button>
                     </div>
                 </div>
@@ -851,7 +892,12 @@ body.chatting .chat-container { opacity: 1; transform: none; }
                     <span><i class="legend-dot" style="background:#A0DA39"></i>Higher quality</span>
                     <span><i class="legend-dot" style="background:#E53E3E"></i>Default reference</span>
                     <span><i class="legend-dot" style="background:#B7791F; border-radius:2px"></i>Random search (square)</span>
+                    <span><i class="legend-dot" style="background:#fff; border:2px solid #D53F8C; transform:rotate(45deg); border-radius:1px"></i>Your chat prompt (diamond)</span>
                 </div>
+                <details class="run-prompts" id="run-prompts" style="margin-top:10px; font-size:12px;">
+                    <summary style="cursor:pointer; font-weight:600; color:#2D3748;">Prompts this run measured on</summary>
+                    <div id="run-prompts-body" style="margin-top:6px; color:#4A5568;">No run loaded.</div>
+                </details>
                 <div class="card-subtext" style="margin-top:10px">Each point is an evaluated configuration. x* is the selected trade-off, not automatically the lowest-energy point.</div>
 
                 <!-- The search log. Same card as the chart on purpose: the
@@ -1144,6 +1190,9 @@ function applyRunData(data) {
     renderSearchLog(REPLAY_LIMIT);
     drawPareto3D();
     drawConvergence();
+    loadRunPrompts(data.meta?.run);
+    const select = document.getElementById('run-select');
+    if (select && data.meta?.run) select.value = data.meta.run;
 }
 
 /* ── Live refresh ───────────────────────────────────────────────────────────
@@ -1186,7 +1235,7 @@ function reloadRunData() {
         if (label) {
             const n = (fresh.pareto?.points || []).length;
             const total = fresh.meta?.n_total_iterations ?? '?';
-            label.textContent = `Live: ${n}/${total} evals`;
+            label.textContent = `Live: ${n}/${total} evals (file)`;
         }
     };
     script.onerror = () => {
@@ -1196,21 +1245,267 @@ function reloadRunData() {
     document.body.appendChild(script);
 }
 
-function toggleLiveRefresh() {
-    const pill = document.getElementById('live-pill');
+/* Live vs Manual. Live follows the newest run in runs\ through the bridge's
+ * /api/live: while a study is searching, every evaluation streamed so far
+ * (calibration/bo_log.csv) is drawn on the chart and written to the search log
+ * as a partial run, and once dashboard_data.js exists the full run replaces
+ * it, so the dashboard updates without choosing a file. Manual keeps the run
+ * picked from the list. Without the bridge, Live falls back to re-reading the
+ * published dashboard_data.js. The choice is remembered across reloads.
+ */
+let DATA_MODE = localStorage.getItem('bopis.dataMode') || 'live';
+let LIVE_LOADED_RUN = null;
+let LIVE_PARTIAL = null;     // partial run being streamed, drawn instead of RUN_DATA
+let LIVE_PARTIAL_KEY = null;
+let RUN_PROMPTS = null;      // /api/run/prompts payload for the loaded run
+let CHAT_POINTS = [];        // scored chat replies: { energy, speed, quality, text, config }
+
+function setLiveLabel(text) {
     const label = document.getElementById('live-label');
-    if (LIVE_TIMER) {
-        clearInterval(LIVE_TIMER);
-        LIVE_TIMER = null;
-        pill?.classList.remove('on');
-        if (label) label.textContent = 'Live: off';
+    if (label) label.textContent = text;
+}
+
+function setDataMode(mode) {
+    DATA_MODE = mode === 'manual' ? 'manual' : 'live';
+    localStorage.setItem('bopis.dataMode', DATA_MODE);
+    document.getElementById('mode-live')?.classList.toggle('on', DATA_MODE === 'live');
+    document.getElementById('mode-manual')?.classList.toggle('on', DATA_MODE === 'manual');
+    const select = document.getElementById('run-select');
+    if (select) select.style.display = DATA_MODE === 'manual' ? '' : 'none';
+    if (LIVE_TIMER) { clearInterval(LIVE_TIMER); LIVE_TIMER = null; }
+    if (DATA_MODE === 'manual') {
+        setLiveLabel('');
+        if (LIVE_PARTIAL) clearPartial();
+        refreshRunList();
         return;
     }
+    LIVE_LOADED_RUN = RUN_DATA?.meta?.run || null;
     LIVE_FINGERPRINT = runFingerprint(RUN_DATA);
-    pill?.classList.add('on');
-    if (label) label.textContent = 'Live: watching…';
-    reloadRunData();
-    LIVE_TIMER = setInterval(reloadRunData, 4000);
+    setLiveLabel('Live: connecting…');
+    liveTick();
+    LIVE_TIMER = setInterval(liveTick, 2500);
+}
+
+function loadRunScript(src, onDone) {
+    document.getElementById('live-data-script')?.remove();
+    const script = document.createElement('script');
+    script.id = 'live-data-script';
+    script.src = `${src}${src.includes('?') ? '&' : '?'}t=${Date.now()}`;
+    script.onload = () => onDone(window.BOPIS_DATA);
+    script.onerror = () => onDone(null);
+    document.body.appendChild(script);
+}
+
+/* Manual mode: the runs in runs\, newest first, plus "from a file…". */
+async function refreshRunList() {
+    const select = document.getElementById('run-select');
+    if (!select) return;
+    let runs = [];
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/runs`, { cache: 'no-store' });
+        runs = response.ok ? (await response.json()).runs || [] : [];
+    } catch (_error) {
+        runs = [];
+    }
+    const current = RUN_DATA?.meta?.run;
+    select.innerHTML = `<option value="">${runs.length ? 'Choose a run…' : 'No runs found (start python -m bopis ui)'}</option>`
+        + runs.map(r => `<option value="${escapeHtml(r.run)}" ${r.finished ? '' : 'disabled'} ${r.run === current ? 'selected' : ''}>`
+            + `${escapeHtml(r.run)} · ${escapeHtml(r.backend || '?')} · ${r.n_evals} evals${r.finished ? '' : ' · unfinished'}</option>`).join('')
+        + '<option value="__file">From a file…</option>';
+}
+
+function chooseRun(run) {
+    if (!run) return;
+    if (run === '__file') {
+        document.getElementById('run-file-input').click();
+        refreshRunList();
+        return;
+    }
+    loadRunScript(`${BRIDGE_BASE}/api/live/data?run=${encodeURIComponent(run)}`, fresh => {
+        if (fresh) applyRunData(fresh);
+    });
+}
+
+/* The proxy prompts behind every point: the search measures each
+ * configuration as the mean over this fixed subset. */
+async function loadRunPrompts(run) {
+    const body = document.getElementById('run-prompts-body');
+    const summary = document.querySelector('#run-prompts summary');
+    RUN_PROMPTS = null;
+    if (!body) return;
+    if (!run) { body.textContent = 'No run loaded.'; return; }
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/run/prompts?run=${encodeURIComponent(run)}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error((await response.json()).error || `HTTP ${response.status}`);
+        RUN_PROMPTS = await response.json();
+    } catch (error) {
+        body.textContent = BRIDGE ? `No prompt sample recorded for ${run}.` : 'Start python -m bopis ui to list the prompts.';
+        return;
+    }
+    const proxy = RUN_PROMPTS.proxy || [];
+    const counts = {};
+    proxy.forEach(p => { counts[p.task_type] = (counts[p.task_type] || 0) + 1; });
+    if (summary) summary.textContent = `Prompts this run measured on: ${proxy.length} proxy prompts (of a ${RUN_PROMPTS.n_sample}-prompt sample)`;
+    body.innerHTML = `<div style="margin-bottom:6px;">Every point on the chart is one configuration's <b>mean</b> energy, speed and BERTScore F1
+            over these same prompts, so points are comparable. Task mix: ${Object.entries(counts).map(([k, v]) => `${escapeHtml(k)} ${v}`).join(' · ')}.</div>
+        <ol style="margin:0; padding-left:20px; max-height:220px; overflow:auto;">
+        ${proxy.map(p => `<li><code>${escapeHtml(p.prompt_id)}</code> <span style="color:#718096;">${escapeHtml(p.task_type)} · ~${escapeHtml(p.prompt_tokens || '?')} tok</span>
+            ${p.instruction ? `: ${escapeHtml(p.instruction.length > 140 ? p.instruction.slice(0, 139) + '…' : p.instruction)}` : ' <i style="color:#A0AEC0;">(synthetic, no text)</i>'}</li>`).join('')}
+        </ol>`;
+}
+
+/* A partial run built from the rows streamed so far. Only the chart and the
+ * search log read it; the cards keep the last finished run, because x*, the
+ * ratios and the tests do not exist until the search completes. */
+function partialFromLive(live) {
+    const evals = (live.evaluations || []).filter(e => [e.energy_j, e.tokens_per_s, e.quality_f1].every(Number.isFinite));
+    const dominates = (a, b) => a.energy_j <= b.energy_j && a.tokens_per_s >= b.tokens_per_s && a.quality_f1 >= b.quality_f1
+        && (a.energy_j < b.energy_j || a.tokens_per_s > b.tokens_per_s || a.quality_f1 > b.quality_f1);
+    const points = evals.map(e => ({
+        ...e, label: e.config, precision: (parseCfgKey(e.config) || {}).p,
+        on_front: !evals.some(other => other !== e && dominates(other, e)), is_xstar: false
+    }));
+    const stage = String(live.stage || '');
+    return {
+        meta: { run: live.run, backend: live.backend || 'running', n_total_iterations: live.n_total,
+                n_seeds: Math.round((Number(live.n_total) || 30) / 3), partial: true },
+        pareto: { points, random_points: [] },
+        surrogate: { points: evals.filter(e => Number.isFinite(e.expected_improvement))
+            .map(e => ({ iteration: e.iteration, expected_improvement: e.expected_improvement, mu: e.mu, sigma: e.sigma, config: e.config })) },
+        reference_point: null,
+        stage
+    };
+}
+
+function clearPartial() {
+    LIVE_PARTIAL = null;
+    LIVE_PARTIAL_KEY = null;
+    if (RUN_DATA) { buildSearchLog(RUN_DATA); renderSearchLog(REPLAY_LIMIT); }
+    drawPareto3D();
+}
+
+function renderLiveProgress(live) {
+    const status = document.getElementById('dashboard-status');
+    if (!status) return;
+    const evals = live.evaluations || [];
+    const total = Number(live.n_total) || 0;
+    const pct = total ? Math.min(100, 100 * evals.length / total) : 0;
+    const scored = evals.filter(e => Number.isFinite(e.energy_j));
+    const best = scored.slice().sort((a, b) => a.energy_j - b.energy_j)[0];
+    const fmt = e => `${escapeHtml(e.config || '?')} · ${Number(e.energy_j).toFixed(1)} J · `
+        + `${Number(e.tokens_per_s).toFixed(1)} tok/s · F1 ${Number(e.quality_f1).toFixed(3)}`;
+    status.className = 'note info';
+    status.innerHTML = `<strong>${escapeHtml(live.run)}</strong> · <b>running</b> · ${escapeHtml(live.stage || 'starting')}
+        <div class="live-progress"><div style="width:${pct.toFixed(1)}%"></div></div>
+        ${evals.length}${total ? ` / ${total}` : ''} BOPIS evaluations measured. The chart and search log below update with each one.
+        ${best ? `<br>lowest energy so far: ${fmt(best)} <span style="color:#718096;">(not yet x*: x* is chosen against the floors once the front is complete)</span>` : ''}
+        ${RUN_DATA?.meta?.run ? `<br><span style="color:#718096;">The summary cards still show the last finished run, ${escapeHtml(RUN_DATA.meta.run)}.</span>` : ''}`;
+}
+
+function renderStudyState(study) {
+    const button = document.getElementById('study-btn');
+    const note = document.getElementById('study-note');
+    if (!button || !study) return;
+    button.innerHTML = study.running ? '&#9632; Study running…' : '&#9654; Run a study';
+    if (note && !study.running && study.exit_code) {
+        note.innerHTML = `<b>The last study stopped with exit code ${study.exit_code}.</b>`
+            + (study.log_tail ? `<pre style="white-space:pre-wrap; max-height:160px; overflow:auto; font-size:11px;">${escapeHtml(study.log_tail)}</pre>` : '');
+    }
+}
+
+async function liveTick() {
+    if (DATA_MODE !== 'live') return;
+    let live = null;
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/live`, { cache: 'no-store' });
+        live = response.ok ? await response.json() : null;
+    } catch (_error) {
+        live = null;
+    }
+    if (!live) {
+        // No bridge: the published file is all there is to follow.
+        reloadRunData();
+        return;
+    }
+    renderStudyState(live.study);
+    if (!live.run) { setLiveLabel('Live: no runs yet'); return; }
+    if (!live.finished) {
+        const total = live.n_total ? `/${live.n_total}` : '';
+        const n = (live.evaluations || []).length;
+        setLiveLabel(`Live: ${n}${total} evals`);
+        renderLiveProgress(live);
+        const key = `${live.run}|${n}`;
+        if (key !== LIVE_PARTIAL_KEY) {
+            LIVE_PARTIAL_KEY = key;
+            LIVE_PARTIAL = partialFromLive(live);
+            REPLAY_LIMIT = null;
+            buildSearchLog(LIVE_PARTIAL);
+            renderSearchLog(null);
+            drawPareto3D();
+        }
+        return;
+    }
+    if (live.run === LIVE_LOADED_RUN) {
+        setLiveLabel(live.study?.running ? `Live: ${live.run}` : `Live: ${live.run} · idle, start a study to see it move`);
+        return;
+    }
+    loadRunScript(`${BRIDGE_BASE}${live.data_url}`, fresh => {
+        if (!fresh || DATA_MODE !== 'live') return;
+        // A run that finished while the page was open (a simulated study can
+        // finish between two ticks) is replayed, so the search is seen
+        // unfolding rather than appearing all at once.
+        const arrivedWhileWatching = LIVE_LOADED_RUN !== null;
+        LIVE_LOADED_RUN = live.run;
+        LIVE_FINGERPRINT = runFingerprint(fresh);
+        LIVE_PARTIAL = null;
+        LIVE_PARTIAL_KEY = null;
+        applyRunData(fresh);
+        setLiveLabel(`Live: ${live.run}`);
+        if (arrivedWhileWatching && !REPLAY_TIMER) toggleReplay();
+    });
+}
+
+function toggleStudyPanel() {
+    const panel = document.getElementById('study-panel');
+    if (panel) panel.style.display = panel.style.display === 'none' ? '' : 'none';
+}
+
+function presetDefaults(preset) {
+    // A real study loads a model per configuration and runs every proxy
+    // prompt through it: keep the demo short by default.
+    document.getElementById('study-iterations').value = preset === 'real' ? 12 : 30;
+    document.getElementById('study-proxy').value = preset === 'real' ? 8 : 20;
+}
+
+async function startStudy() {
+    const note = document.getElementById('study-note');
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/study`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                preset: document.getElementById('study-preset').value,
+                iterations: Number(document.getElementById('study-iterations').value),
+                proxy_size: Number(document.getElementById('study-proxy').value)
+            })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        if (note) note.innerHTML = `Started (pid ${result.pid}). Profiling the host takes a moment before the first evaluation appears.
+            <br><code style="font-size:11px;">${escapeHtml(result.command || '')}</code>`;
+        renderStudyState(result);
+        if (DATA_MODE !== 'live') setDataMode('live');
+    } catch (error) {
+        if (note) note.innerHTML = `<b>Could not start the study:</b> ${escapeHtml(error.message)}`;
+    }
+}
+
+async function stopStudy() {
+    try {
+        const response = await fetch(`${BRIDGE_BASE}/api/study/stop`, { method: 'POST' });
+        renderStudyState(await response.json());
+        const note = document.getElementById('study-note');
+        if (note) note.textContent = 'Stopped. The partial run stays in runs\\ but has no dashboard_data.js.';
+    } catch (_error) { /* bridge gone: nothing to stop */ }
 }
 
 /* ── Surrogate reliability ──────────────────────────────────────────────────
@@ -1554,6 +1849,7 @@ const runFileInput = document.getElementById('run-file-input');
 if (runFileInput) runFileInput.addEventListener('change', event => {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
+    if (DATA_MODE === 'live') setDataMode('manual');
     const reader = new FileReader();
     reader.onload = () => ingestRunData(String(reader.result));
     reader.readAsText(file);
@@ -2024,6 +2320,13 @@ function buildSearchLog(data) {
             + ` <span class="d">(target ${logNum(loo.ucr_target, 2)})</span>`);
     }
 
+    if (meta.partial) {
+        // A run still searching has no final front and no x* yet.
+        push(total, 'info', `searching <span class="d">·</span> <span class="n">${points.length}</span>`
+            + `/${escapeHtml(String(meta.n_total_iterations ?? '?'))} measured <span class="d">·</span> `
+            + `${escapeHtml(data.stage || '')} <span class="d">·</span> x* is chosen when the search completes`);
+        return;
+    }
     const selection = data.selection || {};
     const thresholds = data.thresholds || {};
     const srr = Number(selection.srr_percent), qrr = Number(selection.qrr_percent);
@@ -2136,7 +2439,7 @@ function logRowClick(index) {
     drawConvergence();
 
     const point = row.pointIndex === undefined ? null
-        : (RUN_DATA?.pareto?.points || [])[row.pointIndex];
+        : (chartData()?.pareto?.points || [])[row.pointIndex];
     const output = document.getElementById('pareto-selection');
     if (output && point) {
         output.textContent = `Evaluation ${point.iteration} (${point.source || 'trial'}) · `
@@ -2154,7 +2457,7 @@ function logRowClick(index) {
  * explanation of Bayesian optimization available without saying a word.
  */
 function replayTotal() {
-    const points = (RUN_DATA?.pareto?.points || []);
+    const points = (chartData()?.pareto?.points || []);
     return points.reduce((max, p) => Math.max(max, Number(p.iteration) || 0), 0);
 }
 
@@ -2394,6 +2697,7 @@ function renderSessionTally() {
 }
 
 detectBridge();
+setDataMode(DATA_MODE);
 
 /* ── Configuration picker (the dock) ──────────────────────────────────────
  * The options are the configurations BOPIS selected in the loaded run: x*,
@@ -3105,7 +3409,12 @@ async function doChat() {
         renderSessionTally();
         scrollToBottom();
 
-        if (reference) scoreReply(scoreId, reply, reference.reference);
+        if (reference) scoreReply(scoreId, reply, reference.reference, {
+            energy: energy.joules,
+            speed: decodeSeconds > 0 ? generatedTokens / decodeSeconds : NaN,
+            text: reference.instruction || txt,
+            config: DEPLOYED_KEY
+        });
     } catch (error) {
         chatHistory.pop();
         pending.innerHTML = `
@@ -3243,7 +3552,7 @@ function dollyActionsHtml(promptId, compareId) {
                 title="Load this exact Dolly prompt into the input again">↺ Ask again</button>
             <button class="btn-dolly" ${canCompare ? '' : 'disabled'} title="${canCompare ? '' : escapeHtml(why)}"
                 onclick="compareOnPrompt('${escapeHtml(promptId)}', '${compareId}', this)">
-                ⚖ Compare default · random search · BOPIS on this prompt</button>
+                ⚖ Compare Random Search vs BOPIS on this prompt</button>
         </div>
         <div id="${compareId}"></div>`;
 }
@@ -3299,7 +3608,7 @@ async function compareOnPrompt(promptId, targetId, button) {
     }
 }
 
-async function scoreReply(elementId, candidate, referenceText) {
+async function scoreReply(elementId, candidate, referenceText, point = null) {
     const el = document.getElementById(elementId);
     try {
         const response = await fetch(`${BRIDGE_BASE}/api/score`, {
@@ -3311,6 +3620,10 @@ async function scoreReply(elementId, candidate, referenceText) {
         if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
         SESSION.f1.push(Number(result.quality_f1));
         renderSessionTally();
+        if (point && [point.energy, point.speed, Number(result.quality_f1)].every(Number.isFinite)) {
+            CHAT_POINTS.push({ ...point, quality: Number(result.quality_f1), iteration: `chat ${CHAT_POINTS.length + 1}` });
+            drawPareto3D();
+        }
         if (!el) return;
         el.className = 'q-ok';
         el.title = `BERTScore ${result.model}, ${result.baseline_rescaled ? 'baseline-rescaled' : 'raw'}; `
@@ -3440,19 +3753,34 @@ function drawP() {
         }
     });
 }
+/* Which run the chart draws: the partial run streaming in Live mode, or the loaded one. */
+function chartData() {
+    return LIVE_PARTIAL || RUN_DATA;
+}
+
+/* Short on-chart label: evaluation number and the settings that differ most. */
+function pointLabel(point) {
+    if (point.arm === 'chat') return `you: ${point.text.length > 28 ? point.text.slice(0, 27) + '…' : point.text}`;
+    const c = parseCfgKey(point.config || '') || {};
+    const parts = [c.m ? String(c.m).replace('qwen2.5-', '') : '', c.p, c.t ? `t${c.t}` : '', c.g !== undefined ? `g${c.g}` : '']
+        .filter(Boolean).join(' ');
+    return `${point.arm === 'random' ? 'r' : '#'}${point.iteration ?? ''} ${parts || point.label || ''}`.trim();
+}
+
 function drawPareto3D() {
     const canvas = document.getElementById('pareto');
-    if (!canvas || !RUN_DATA?.pareto) return;
+    const data = chartData();
+    if (!canvas || !data?.pareto) return;
     // During a replay only evaluations up to REPLAY_LIMIT may be drawn. The
     // x* marker is withheld too: it is a conclusion, and showing it before the
     // search has run would misrepresent how it was reached.
     const withinReplay = point => REPLAY_LIMIT === null
         || (Number(point.iteration) || 0) <= REPLAY_LIMIT;
 
-    const source = (RUN_DATA.pareto.points || []).filter(withinReplay).map(point => ({
+    const source = (data.pareto.points || []).filter(withinReplay).map(point => ({
         energy: Number(point.energy_j), speed: Number(point.tokens_per_s), quality: Number(point.quality_f1),
         front: Boolean(point.on_front), selected: REPLAY_LIMIT === null && Boolean(point.is_xstar),
-        label: point.label,
+        label: point.label, config: point.config,
         precision: point.precision, iteration: point.iteration, arm: 'bopis'
     })).filter(point => [point.energy, point.speed, point.quality].every(Number.isFinite));
 
@@ -3461,17 +3789,23 @@ function drawPareto3D() {
     // encodes quality on this chart.
     const showRandom = !!document.getElementById('show-random')?.checked;
     if (showRandom) {
-        (RUN_DATA.pareto.random_points || []).filter(withinReplay).forEach(point => {
+        (data.pareto.random_points || []).filter(withinReplay).forEach(point => {
             const p = {
                 energy: Number(point.energy_j), speed: Number(point.tokens_per_s),
                 quality: Number(point.quality_f1), front: false, selected: false,
-                label: point.label, precision: point.precision,
+                label: point.label, config: point.config, precision: point.precision,
                 iteration: point.iteration, arm: 'random'
             };
             if ([p.energy, p.speed, p.quality].every(Number.isFinite)) source.push(p);
         });
     }
-    const reference = RUN_DATA.reference_point || {};
+    // Replies from this chat session that have a BERTScore (Dolly prompts):
+    // one prompt each, on whichever configuration answered, so they sit among
+    // the search's per-prompt means as an indicative check, not as evidence.
+    if (document.getElementById('show-chat')?.checked) {
+        CHAT_POINTS.forEach(point => source.push({ ...point, arm: 'chat', front: false, selected: false }));
+    }
+    const reference = data.reference_point || {};
     if (!source.length) return;
     const referencePoint = { energy: Number(reference.energy_j), speed: Number(reference.tokens_per_s), quality: Number(reference.quality_f1), reference: true };
     if ([referencePoint.energy, referencePoint.speed, referencePoint.quality].every(Number.isFinite)) source.push(referencePoint);
@@ -3594,6 +3928,7 @@ function drawPareto3D() {
         ctx.beginPath(); front.forEach((item, index) => index ? ctx.lineTo(item.screen.x, item.screen.y) : ctx.moveTo(item.screen.x, item.screen.y)); ctx.stroke(); ctx.setLineDash([]);
     }
     const targets = [];
+    const showLabels = !!document.getElementById('show-labels')?.checked;
     projected.forEach(({ point, screen }) => {
         const speedFraction = (point.speed - bounds.speed.lo) / bounds.speed.span;
         const radius = point.selected ? 10 : point.reference ? 8 : 4 + Math.max(0, speedFraction) * 4;
@@ -3601,7 +3936,12 @@ function drawPareto3D() {
         ctx.globalAlpha = point.front || point.selected || point.reference ? 1 : 0.45;
         ctx.fillStyle = point.reference ? '#E53E3E' : colorScale(qualityFraction);
         ctx.beginPath();
-        if (point.arm === 'random') {
+        if (point.arm === 'chat') {
+            const r = radius + 2;
+            ctx.moveTo(screen.x, screen.y - r); ctx.lineTo(screen.x + r, screen.y);
+            ctx.lineTo(screen.x, screen.y + r); ctx.lineTo(screen.x - r, screen.y); ctx.closePath();
+            ctx.globalAlpha = 1;
+        } else if (point.arm === 'random') {
             // Squares for the random-search arm. Shape, not colour: colour is
             // already carrying quality on this chart.
             const side = radius * 1.7;
@@ -3611,13 +3951,20 @@ function drawPareto3D() {
         }
         ctx.fill();
         ctx.strokeStyle = point.selected ? '#102231'
+                        : point.arm === 'chat' ? '#D53F8C'
                         : point.arm === 'random' ? '#B7791F' : '#111827';
-        ctx.lineWidth = point.selected ? 2.5 : point.arm === 'random' ? 1.6 : 1;
+        ctx.lineWidth = point.selected ? 2.5 : point.arm === 'chat' ? 2.2 : point.arm === 'random' ? 1.6 : 1;
         ctx.stroke();
         targets.push({ point, x: screen.x, y: screen.y, radius: radius + 7 });
         if (point.selected || point.reference) {
             ctx.globalAlpha = 1; ctx.fillStyle = point.selected ? '#102231' : '#822727'; ctx.font = '700 11px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
             ctx.fillText(point.selected ? 'x*' : 'default', screen.x, screen.y - radius - 8);
+        } else if (showLabels || point.arm === 'chat') {
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = point.arm === 'chat' ? '#97266D' : '#2D3748';
+            ctx.font = point.arm === 'chat' ? '600 10px IBM Plex Sans, sans-serif' : '9px IBM Plex Mono, monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText(pointLabel(point), screen.x + radius + 3, screen.y - 3);
         }
     });
     canvas._paretoHitTargets = targets;
@@ -3660,6 +4007,12 @@ function selectParetoPoint(canvas, event) {
         return;
     }
     const point = target.item.point;
+    if (point.arm === 'chat') {
+        output.textContent = `Your chat prompt · "${point.text}" · answered by ${point.config ? describeCfg(parseCfgKey(point.config)) : 'the launched server'}`
+            + ` · Energy ${point.energy.toFixed(2)} J · Speed ${point.speed.toFixed(2)} tok/s · BERTScore F1 ${point.quality.toFixed(4)}`
+            + ' · one prompt, indicative only';
+        return;
+    }
     const prefix = point.selected ? 'x* (BOPIS pick) · '
                  : point.reference ? 'Default · '
                  : point.arm === 'random' ? 'Random search · '
@@ -3668,7 +4021,9 @@ function selectParetoPoint(canvas, event) {
         + ` · Energy ${point.energy.toFixed(2)} J`
         + ` · Speed ${point.speed.toFixed(2)} tok/s`
         + ` · Quality (BERTScore F1) ${point.quality.toFixed(4)}`
-        + ` · Iter ${point.iteration ?? '—'}`;
+        + ` · Iter ${point.iteration ?? '—'}`
+        + (point.reference || !RUN_PROMPTS?.proxy?.length ? ''
+           : ` · mean over the ${RUN_PROMPTS.proxy.length} proxy prompts listed below`);
 }
 
 function resetParetoView() {
@@ -3686,31 +4041,46 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
 
 <!-- Hero FX: full-viewport interactive spiral (Canvas 2D + requestAnimationFrame).
      On first input focus / send, the same canvas glides down to the header slot and
-     becomes the small rotating BOPIS galaxy beside "Welcome, BOPIS-er." -->
+     becomes the small rotating BOPIS galaxy beside "Welcome, BOPIS-er."
+     A second mini canvas in the sidebar keeps the same galaxy next to "BOPIS System". -->
 <script>
 (function () {
   try {
     const heroFx = document.getElementById('hero-fx');
     const canvas = document.getElementById('hero-canvas');
     const slotEl = document.getElementById('brand-slot');
+    const sideCanvas = document.getElementById('sidebar-canvas');
     if (!heroFx || !canvas) throw new Error('hero-fx markup missing');
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const ctx = canvas.getContext('2d');
+    const sideCtx = sideCanvas && sideCanvas.getContext('2d');
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const TAU = Math.PI * 2;
     let w = 0, h = 0, raf = null, dismissed = false, paused = false, angle = 0;
     let mode = 'full', morph = null;               // full -> morph -> mini
     let last = performance.now();
+    let sideW = 0, sideH = 0;
 
+    function fitEl(el, c, cw, ch) {
+      el.width = Math.floor(cw * dpr); el.height = Math.floor(ch * dpr);
+      el.style.width = cw + 'px'; el.style.height = ch + 'px';
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
     function fit(cw, ch) {
       w = cw; h = ch;
-      canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr);
-      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      fitEl(canvas, ctx, w, h);
+    }
+    function fitSidebar() {
+      if (!sideCanvas || !sideCtx) return;
+      const s = (sideCanvas.parentElement && Math.round(sideCanvas.parentElement.getBoundingClientRect().width)) || 40;
+      sideW = sideH = s;
+      fitEl(sideCanvas, sideCtx, s, s);
     }
     function size() { if (mode === 'full') fit(window.innerWidth, window.innerHeight); }
     size();
+    fitSidebar();
     window.addEventListener('resize', size);
+    window.addEventListener('resize', fitSidebar);
 
     // Cyan #00E5FF core -> deep navy #001133 rim.
     const STOPS = [[0,229,255],[0,150,230],[0,64,150],[0,17,51]];
@@ -3751,6 +4121,94 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
       heroFx.remove();
     }
 
+    function paintSpiral(c, cw, ch, t, dt, opts) {
+      const sizeMul = opts.sizeMul;
+      const physics = !!opts.physics;
+      const e = opts.e || 0;
+      const cx = opts.cx, cy = opts.cy, maxR = opts.maxR;
+      const breathe = 1 + 0.03 * Math.sin(t * 1.3);
+
+      if (physics && mouse.active) {
+        const k = 1 - Math.pow(0.8, dt);
+        mouse.sx += (mouse.x - mouse.sx) * k; mouse.sy += (mouse.y - mouse.sy) * k;
+        const sp = Math.hypot(mouse.sx - mouse.px, mouse.sy - mouse.py) / dt;
+        mouse.speed += (sp - mouse.speed) * 0.2;
+        mouse.px = mouse.sx; mouse.py = mouse.sy;
+      } else if (physics) { mouse.speed *= 0.9; }
+      const R = Math.max(140, Math.min(window.innerWidth, window.innerHeight) * 0.17), R2 = R * R;
+      const boost = 2.4 + Math.min(mouse.speed, 30) * 0.12;
+      const damp = Math.pow(DAMP, dt);
+      c.clearRect(0, 0, cw, ch);
+
+      for (let n = 0; n < dots.length; n++) {
+        const d = dots[n];
+        const phase = t * 2.0 - d.t * 9;
+        const r = d.t * maxR * breathe * (1 + 0.018 * Math.sin(phase));
+        const th = d.arm + angle + d.t * TURNS * TAU;
+        const ix = cx + Math.cos(th) * r, iy = cy + Math.sin(th) * r;
+        let x = ix, y = iy, push = 0, vx = 0, vy = 0;
+
+        if (physics) {
+          d.ix = ix; d.iy = iy;
+          if (!d.seeded) { d.x = ix; d.y = iy; d.seeded = true; }
+          if (mouse.active) {
+            const dx = d.x - mouse.sx, dy = d.y - mouse.sy, d2 = dx * dx + dy * dy;
+            if (d2 < R2 && d2 > 0.01) {
+              const dist = Math.sqrt(d2), ux = dx / dist, uy = dy / dist;
+              const f = (1 - dist / R) * (1 - dist / R) * boost;
+              d.vx += (ux - uy * 0.35) * f * dt;
+              d.vy += (uy + ux * 0.35) * f * dt;
+            }
+          }
+          d.vx += (ix - d.x) * SPRING * dt; d.vy += (iy - d.y) * SPRING * dt;
+          d.vx *= damp; d.vy *= damp;
+          d.x += d.vx * dt; d.y += d.vy * dt;
+          push = Math.min(1, Math.max(0, Math.hypot(d.x - ix, d.y - iy) - 3) / 45);
+          x = d.x; y = d.y; vx = d.vx; vy = d.vy;
+        } else if (opts.followMain) {
+          const k = mode === 'morph' ? 1 - e : 0;
+          x = ix + d.ox * k; y = iy + d.oy * k;
+          d.x = x; d.y = y; d.vx = d.vy = 0;
+        }
+
+        const odd = n & 1;
+        const am = odd ? (opts.thinOdds || 0) : 1;
+        const tr = physics ? d.trail : null;
+        if (tr) {
+          if (push > 0.06) { tr.push(x, y); if (tr.length > TRAIL * 2) { tr.shift(); tr.shift(); } }
+          else if (tr.length) { tr.shift(); tr.shift(); }
+        }
+        if (am <= 0.01) continue;
+
+        const size = Math.max(0.5, (0.9 + d.t * 2.6) * (1 + 0.22 * Math.sin(phase)) * (1 + push * 0.5) * sizeMul);
+        const alpha = (0.55 + d.t * 0.4) * am;
+        c.fillStyle = d.color;
+        const cnt = tr ? tr.length / 2 : 0;
+        for (let k = 0; k < cnt - 1; k++) {
+          const a = (k + 1) / cnt;
+          c.globalAlpha = alpha * 0.35 * a;
+          c.beginPath(); c.arc(tr[2 * k], tr[2 * k + 1], size * (0.35 + 0.5 * a), 0, TAU); c.fill();
+        }
+        c.globalAlpha = alpha;
+        c.beginPath();
+        if (push > 0.12) {
+          c.save(); c.translate(x, y); c.rotate(Math.atan2(vy, vx));
+          c.ellipse(0, 0, size * (1 + push * 3.2), size * (1 + push * 0.4), 0, 0, TAU);
+          c.fill(); c.restore();
+        } else {
+          c.arc(x, y, size, 0, TAU); c.fill();
+        }
+      }
+      c.globalAlpha = 1;
+    }
+
+    function paintSidebar(t) {
+      if (!sideCtx || !sideW) return;
+      paintSpiral(sideCtx, sideW, sideH, t, 1, {
+        cx: sideW / 2, cy: sideH / 2, maxR: sideW / 2 - 2, sizeMul: MINI, thinOdds: 0
+      });
+    }
+
     function step(t, dt) {
       angle += ROT * dt / 60;
       let cx = 0, cy = 0, maxR = 0, sizeMul = 1, e = 0;
@@ -3767,77 +4225,14 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
         }
       }
       if (mode === 'mini') { cx = cy = w / 2; maxR = w / 2 - 2; sizeMul = MINI; e = 1; }
-      const physics = mode === 'full';
-      const breathe = 1 + 0.03 * Math.sin(t * 1.3);
-
-      if (physics && mouse.active) {
-        const k = 1 - Math.pow(0.8, dt);
-        mouse.sx += (mouse.x - mouse.sx) * k; mouse.sy += (mouse.y - mouse.sy) * k;
-        const sp = Math.hypot(mouse.sx - mouse.px, mouse.sy - mouse.py) / dt;
-        mouse.speed += (sp - mouse.speed) * 0.2;
-        mouse.px = mouse.sx; mouse.py = mouse.sy;
-      } else { mouse.speed *= 0.9; }
-      const R = Math.max(140, Math.min(window.innerWidth, window.innerHeight) * 0.17), R2 = R * R;
-      const boost = 2.4 + Math.min(mouse.speed, 30) * 0.12;
-      const damp = Math.pow(DAMP, dt);
-      ctx.clearRect(0, 0, w, h);
-
-      for (let n = 0; n < dots.length; n++) {
-        const d = dots[n];
-        const phase = t * 2.0 - d.t * 9;
-        const r = d.t * maxR * breathe * (1 + 0.018 * Math.sin(phase));
-        const th = d.arm + angle + d.t * TURNS * TAU;
-        const ix = cx + Math.cos(th) * r, iy = cy + Math.sin(th) * r;
-        d.ix = ix; d.iy = iy;
-        if (!d.seeded) { d.x = ix; d.y = iy; d.seeded = true; }
-
-        let push = 0;
-        if (physics) {
-          if (mouse.active) {
-            const dx = d.x - mouse.sx, dy = d.y - mouse.sy, d2 = dx * dx + dy * dy;
-            if (d2 < R2 && d2 > 0.01) {
-              const dist = Math.sqrt(d2), ux = dx / dist, uy = dy / dist;
-              const f = (1 - dist / R) * (1 - dist / R) * boost;
-              d.vx += (ux - uy * 0.35) * f * dt;    // repulsion plus a slight swirl
-              d.vy += (uy + ux * 0.35) * f * dt;
-            }
-          }
-          d.vx += (ix - d.x) * SPRING * dt; d.vy += (iy - d.y) * SPRING * dt;
-          d.vx *= damp; d.vy *= damp;
-          d.x += d.vx * dt; d.y += d.vy * dt;
-          push = Math.min(1, Math.max(0, Math.hypot(d.x - ix, d.y - iy) - 3) / 45);
-        } else {                                    // morph / mini: follow the ideal spiral, decay leftover push
-          const k = mode === 'morph' ? 1 - e : 0;
-          d.x = ix + d.ox * k; d.y = iy + d.oy * k; d.vx = d.vy = 0;
-        }
-
-        const odd = n & 1;                          // thin the field as it shrinks to logo size
-        const am = odd ? (mode === 'full' ? 1 : mode === 'morph' ? 1 - e : 0) : 1;
-        const tr = d.trail;
-        if (push > 0.06) { tr.push(d.x, d.y); if (tr.length > TRAIL * 2) { tr.shift(); tr.shift(); } }
-        else if (tr.length) { tr.shift(); tr.shift(); }
-        if (am <= 0.01) continue;
-
-        const size = Math.max(0.5, (0.9 + d.t * 2.6) * (1 + 0.22 * Math.sin(phase)) * (1 + push * 0.5) * sizeMul);
-        const alpha = (0.55 + d.t * 0.4) * am;
-        ctx.fillStyle = d.color;
-        const cnt = tr.length / 2;
-        for (let k = 0; k < cnt - 1; k++) {         // fading trail behind displaced dots
-          const a = (k + 1) / cnt;
-          ctx.globalAlpha = alpha * 0.35 * a;
-          ctx.beginPath(); ctx.arc(tr[2 * k], tr[2 * k + 1], size * (0.35 + 0.5 * a), 0, TAU); ctx.fill();
-        }
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        if (push > 0.12) {
-          ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(Math.atan2(d.vy, d.vx));
-          ctx.ellipse(0, 0, size * (1 + push * 3.2), size * (1 + push * 0.4), 0, 0, TAU);
-          ctx.fill(); ctx.restore();
-        } else {
-          ctx.arc(d.x, d.y, size, 0, TAU); ctx.fill();
-        }
-      }
-      ctx.globalAlpha = 1;
+      const thinOdds = mode === 'full' ? 1 : mode === 'morph' ? 1 - e : 0;
+      paintSpiral(ctx, w, h, t, dt, {
+        cx, cy, maxR, sizeMul, e,
+        physics: mode === 'full',
+        followMain: mode !== 'full',
+        thinOdds
+      });
+      paintSidebar(t);
     }
 
     function frame(ts) {
@@ -3845,7 +4240,14 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
       const dt = Math.min(2.5, Math.max(0.2, (ts - last) / 16.667));
       last = ts;
       if (paused) return;
-      if (mode === 'mini' && canvas.offsetParent === null) return;   // header hidden (other tab)
+      const headerGone = mode === 'mini' && canvas.offsetParent === null;
+      const sideGone = !sideCanvas || sideCanvas.offsetParent === null;
+      if (headerGone && sideGone) return;
+      if (headerGone) {
+        angle += ROT * dt / 60;
+        paintSidebar(ts / 1000);
+        return;
+      }
       step(ts / 1000, dt);
     }
 
@@ -3890,6 +4292,8 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
     document.body.classList.remove('landing');
     document.body.classList.add('chatting', 'hero-lit');
     const fx = document.getElementById('hero-fx'); if (fx) fx.remove();
+    const sideSlot = document.getElementById('sidebar-brand-slot');
+    if (sideSlot) sideSlot.outerHTML = '<div class="avatar">B</div>';
   }
 })();
 </script>

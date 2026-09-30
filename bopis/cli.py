@@ -695,11 +695,38 @@ def _add_quality_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _progress_reporter(run_dir, n_total: int, backend: str = "", quiet: bool = False):
+    """Print each stage and record it in progress.json for the Live dashboard."""
+    import json
+    import time
+
+    def record(stage: str) -> None:
+        with open(run_dir.path("progress.json"), "w", encoding="utf-8") as handle:
+            json.dump({"stage": stage, "n_total": n_total, "backend": backend,
+                       "updated": time.time()},
+                      handle)
+
+    def report(message: str) -> None:
+        if not quiet:
+            print(message)
+        if message.lstrip().startswith("Stage"):
+            record(message.strip())
+
+    record("Starting")
+    return report
+
+
 def cmd_ui(args: argparse.Namespace) -> int:
     """Serve bopis.html with measured energy and BERTScore behind the chat."""
     from bopis import ui_server
 
     print(_rule("BOPIS UI"))
+    if not args.llama_binary:
+        # Choosing a configuration in the chat starts its own llama-server;
+        # use the bundled one so that works without remembering the flag.
+        args.llama_binary = ui_server.find_llama_binary()
+        if args.llama_binary:
+            print(_kv("llama-server", f"{args.llama_binary} (auto-detected)"))
     instruments = ui_server.Instruments(
         llama_url=args.llama_url,
         hwmon_url=args.hwmon_url,
@@ -948,7 +975,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         measurer=measurer,
         backend_start=backend.start,
         backend_stop=backend.stop,
-        progress=(lambda message: print(message)) if not args.quiet else (lambda _m: None),
+        progress=_progress_reporter(run_dir, settings.n_total, backend=args.backend,
+                                    quiet=args.quiet),
         scorer=scorer,
     )
     result = study.run()
@@ -1403,6 +1431,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="duration of the P_idle calibration (Chapter 3 specifies 60 s)",
     )
     p_run.add_argument("--synthetic", action="store_true", help="synthetic prompts")
+    p_run.add_argument("--data-dir", default="data", help="where Dolly 15k lives")
     p_run.add_argument(
         "--skip-validation",
         action="store_true",

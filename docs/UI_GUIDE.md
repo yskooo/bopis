@@ -178,8 +178,10 @@ This is the study's Stage 3 comparison on **one** prompt, using the study
 protocol (`/completion`, study template, `n_predict = t`, no system prompt). It
 is an illustration. The reported comparison is still the run's 500-prompt
 validation. It takes a minute or two, because each configuration loads its own
-model. It needs `bopis ui --llama-binary ...` (demo.ps1 passes it) and the model
-files in `models\`.
+model. It needs a llama-server binary, which `bopis ui` finds on its own in
+`toolsulkan\` (preferred, so GPU offload `g` takes effect) or `tools\cpu\`;
+`--llama-binary` overrides it. The model files must be in `models\`. The
+configuration picker in the chat bar uses the same binary.
 
 **Random search is automated too.** Both search arms are algorithms in the tool.
 Random search tries 30 configurations at random (the baseline). BOPIS chooses
@@ -327,26 +329,47 @@ Both canvases size themselves from their parent's width, which is zero while the
 panel is hidden, so they are redrawn on tab switch and on window resize. If a
 chart ever looks squashed, resizing the window re-renders it.
 
-### 3.0a Live refresh — watching a run as it happens
+### 3.0a Live or Manual: where the run data comes from
 
-The **Live** pill in the run-evidence header re-reads `dashboard_data.js` every
-4 seconds and redraws only when the run has actually advanced, so the 3D view
-does not reset under you. The label reports progress, e.g. `Live: 18/30 evals`.
+The run-evidence header has a **Live | Manual** toggle. Live is the default,
+and the choice is kept across reloads. Both need the bridge, so open the page
+through `python -m bopis ui`.
 
-Turn it on before starting a study, and the dashboard fills in as the search
-proceeds.
+- **Live** follows the newest run in `runs\`. While a study is searching, every
+  evaluation is drawn on the 3D chart and written to the search log as soon as
+  it is measured. The status note shows the stage, a progress bar, `n / N`
+  evaluations and the lowest energy so far. These come from
+  `calibration\bo_log.csv`, which the runner writes one row at a time, and
+  `progress.json`, which it rewrites at every stage. The summary cards keep the
+  last *finished* run, because x\*, the ratios and the tests exist only once
+  the search completes. When the run writes `dashboard_data.js`, the whole
+  dashboard switches to it. If the run finished while the page was open, the
+  search is replayed on the chart. The lowest energy so far is not x\*: x\* is
+  chosen only after the floors are checked against the full front.
+- **Nothing moves in Live when no study is running.** The label then reads
+  `idle, start a study to see it move`.
+- **▶ Run a study** starts `python -m bopis run` in the background:
+  - *Quick* uses the simulator on real Dolly prompts. It takes about a minute,
+    and the energy is simulated.
+  - *Real* uses llama-server with every GGUF in `models\`, on port 8084 so the
+    chat on 8080 keeps answering. Energy is measured CPU package energy when
+    the sensor feed is up, otherwise the labelled Mode C estimate. It is slow,
+    so the defaults are 12 evaluations on 8 proxy prompts. Eight is the
+    minimum, one per Dolly task type.
 
-**How it works, and its one limitation.** `bopis.html` is opened over `file://`,
-where `fetch()` is blocked by the same-origin policy. So live refresh re-appends
-a `<script>` element with a cache-busting query string, which the browser does
-re-request. That works, but it means **the run must be writing
-`dashboard_data.js` to the repo root as it goes.** Today `dashboard_data.js` is
-written when a run *finishes*, so the pill is a progress monitor across
-successive runs rather than a true within-run tick. To get a genuine live view,
-have the runner write the payload incrementally to the root path the page loads.
+  Both skip the 500-prompt validation. Run that from the command line for
+  thesis numbers.
+- **Manual** shows a list of the runs in `runs\`, newest first, plus *From a
+  file…*. Picking one loads it and keeps it.
 
-If the file is missing the label reads `Live: no data file`, which is accurate
-rather than silent.
+**On the chart.** **Labels** writes each point's evaluation number and
+configuration beside it, e.g. `#12 1.5b Q4_K_M t128 g14`. **My chat prompts**
+plots every chat reply that has a BERTScore (Dolly prompts) as a pink diamond
+at its energy, speed and F1. A diamond is one prompt on whichever
+configuration answered, so it is an indicative check, not a search point.
+Below the legend, **Prompts this run measured on** lists the proxy prompts.
+Every search point is the mean over that same set, which is what makes the
+points comparable.
 
 ### 3.1 Run evidence banner
 
