@@ -37,12 +37,13 @@ body {
     padding: 0 8px;
 }
 .avatar {
-    width: 36px; height: 36px;
+    width: 40px; height: 40px;
     border-radius: 50%;
     background: #EDF2F7;
     display: flex; align-items: center; justify-content: center;
     font-weight: 600; color: #2B6CB0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    flex: none;
 }
 .user-name { font-weight: 600; font-size: 15px; color: #2D3748; }
 
@@ -122,7 +123,7 @@ body {
 .tag.blue { background: #BEE3F8; color: #2C5282; }
 
 /* ─ CHAT ────────── */
-.chat-container { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 18px; margin-top: 10px; padding-bottom: 60px; }
+.chat-container { position: relative; z-index: 0; display: flex; flex-direction: column; gap: 18px; margin-top: 10px; padding-bottom: 60px; }
 .msg { display: flex; flex-direction: column; gap: 8px; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -479,7 +480,7 @@ body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr
    input dock are visible and usable immediately — the entrance moment lives
    entirely in the hero-fx graphic layer behind them, never in a gate that
    blocks the interface itself. */
-.chat-hero { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 36px; margin-bottom: 8px; }
+.chat-hero { position: relative; z-index: 40; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; min-height: 36px; margin-bottom: 8px; }
 .hw-widget {
     position: relative; margin-left: auto; flex: none;
     display: inline-flex; align-items: center; gap: 7px;
@@ -499,7 +500,7 @@ body.workspace-mode .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr
 .hw-widget-panel.open + .hw-widget-chevron,
 .hw-widget.open .hw-widget-chevron { transform: rotate(180deg); }
 .hw-widget-panel {
-    display: none; position: absolute; top: 40px; right: 0; z-index: 30;
+    display: none; position: absolute; top: 40px; right: 0; z-index: 50;
     width: 270px; background: #FFFFFF; border: 1px solid #E4E9EE; border-radius: 12px;
     padding: 12px 14px; box-shadow: 0 14px 34px rgba(16,34,49,.14);
 }
@@ -546,6 +547,9 @@ body {
     padding: 28px 16px 20px;
 }
 .avatar { background: #DDF3F2; color: var(--cyan); box-shadow: none; }
+.sidebar-brand-slot { width: 40px; height: 40px; flex: none; display: block; border-radius: 50%; overflow: hidden;
+    background: radial-gradient(circle, rgba(0,229,255,.18) 0%, transparent 72%); }
+#sidebar-canvas { display: block; width: 40px; height: 40px; }
 .user-name, .nav-item.active, .nav-item:hover { color: #F2FAF9; }
 .nav-item { color: #A9C1C7; border-radius: 5px; letter-spacing: .01em; }
 .nav-item:hover { background: rgba(255,255,255,.08); }
@@ -659,10 +663,12 @@ body.chatting .chat-container { opacity: 1; transform: none; }
 
 <nav class="sidebar">
     <div class="user-profile">
-        <div class="avatar">B</div>
+        <span class="sidebar-brand-slot" id="sidebar-brand-slot" aria-hidden="true">
+            <canvas id="sidebar-canvas"></canvas>
+        </span>
         <div style="display:flex; flex-direction:column">
-            <span class="user-name">BOPIS System</span>
-            <span style="font-size:11px; color:#718096">Local LLM Optimizer</span>
+            <span class="user-name">BOPIS</span>
+            <!-- <span style="font-size:11px; color:#718096">Local LLM Optimizer</span> -->
         </div>
     </div>
     
@@ -3546,7 +3552,7 @@ function dollyActionsHtml(promptId, compareId) {
                 title="Load this exact Dolly prompt into the input again">↺ Ask again</button>
             <button class="btn-dolly" ${canCompare ? '' : 'disabled'} title="${canCompare ? '' : escapeHtml(why)}"
                 onclick="compareOnPrompt('${escapeHtml(promptId)}', '${compareId}', this)">
-                ⚖ Compare default · random search · BOPIS on this prompt</button>
+                ⚖ Compare Random Search vs BOPIS on this prompt</button>
         </div>
         <div id="${compareId}"></div>`;
 }
@@ -4035,31 +4041,46 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
 
 <!-- Hero FX: full-viewport interactive spiral (Canvas 2D + requestAnimationFrame).
      On first input focus / send, the same canvas glides down to the header slot and
-     becomes the small rotating BOPIS galaxy beside "Welcome, BOPIS-er." -->
+     becomes the small rotating BOPIS galaxy beside "Welcome, BOPIS-er."
+     A second mini canvas in the sidebar keeps the same galaxy next to "BOPIS System". -->
 <script>
 (function () {
   try {
     const heroFx = document.getElementById('hero-fx');
     const canvas = document.getElementById('hero-canvas');
     const slotEl = document.getElementById('brand-slot');
+    const sideCanvas = document.getElementById('sidebar-canvas');
     if (!heroFx || !canvas) throw new Error('hero-fx markup missing');
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const ctx = canvas.getContext('2d');
+    const sideCtx = sideCanvas && sideCanvas.getContext('2d');
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const TAU = Math.PI * 2;
     let w = 0, h = 0, raf = null, dismissed = false, paused = false, angle = 0;
     let mode = 'full', morph = null;               // full -> morph -> mini
     let last = performance.now();
+    let sideW = 0, sideH = 0;
 
+    function fitEl(el, c, cw, ch) {
+      el.width = Math.floor(cw * dpr); el.height = Math.floor(ch * dpr);
+      el.style.width = cw + 'px'; el.style.height = ch + 'px';
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
     function fit(cw, ch) {
       w = cw; h = ch;
-      canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr);
-      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      fitEl(canvas, ctx, w, h);
+    }
+    function fitSidebar() {
+      if (!sideCanvas || !sideCtx) return;
+      const s = (sideCanvas.parentElement && Math.round(sideCanvas.parentElement.getBoundingClientRect().width)) || 40;
+      sideW = sideH = s;
+      fitEl(sideCanvas, sideCtx, s, s);
     }
     function size() { if (mode === 'full') fit(window.innerWidth, window.innerHeight); }
     size();
+    fitSidebar();
     window.addEventListener('resize', size);
+    window.addEventListener('resize', fitSidebar);
 
     // Cyan #00E5FF core -> deep navy #001133 rim.
     const STOPS = [[0,229,255],[0,150,230],[0,64,150],[0,17,51]];
@@ -4100,6 +4121,94 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
       heroFx.remove();
     }
 
+    function paintSpiral(c, cw, ch, t, dt, opts) {
+      const sizeMul = opts.sizeMul;
+      const physics = !!opts.physics;
+      const e = opts.e || 0;
+      const cx = opts.cx, cy = opts.cy, maxR = opts.maxR;
+      const breathe = 1 + 0.03 * Math.sin(t * 1.3);
+
+      if (physics && mouse.active) {
+        const k = 1 - Math.pow(0.8, dt);
+        mouse.sx += (mouse.x - mouse.sx) * k; mouse.sy += (mouse.y - mouse.sy) * k;
+        const sp = Math.hypot(mouse.sx - mouse.px, mouse.sy - mouse.py) / dt;
+        mouse.speed += (sp - mouse.speed) * 0.2;
+        mouse.px = mouse.sx; mouse.py = mouse.sy;
+      } else if (physics) { mouse.speed *= 0.9; }
+      const R = Math.max(140, Math.min(window.innerWidth, window.innerHeight) * 0.17), R2 = R * R;
+      const boost = 2.4 + Math.min(mouse.speed, 30) * 0.12;
+      const damp = Math.pow(DAMP, dt);
+      c.clearRect(0, 0, cw, ch);
+
+      for (let n = 0; n < dots.length; n++) {
+        const d = dots[n];
+        const phase = t * 2.0 - d.t * 9;
+        const r = d.t * maxR * breathe * (1 + 0.018 * Math.sin(phase));
+        const th = d.arm + angle + d.t * TURNS * TAU;
+        const ix = cx + Math.cos(th) * r, iy = cy + Math.sin(th) * r;
+        let x = ix, y = iy, push = 0, vx = 0, vy = 0;
+
+        if (physics) {
+          d.ix = ix; d.iy = iy;
+          if (!d.seeded) { d.x = ix; d.y = iy; d.seeded = true; }
+          if (mouse.active) {
+            const dx = d.x - mouse.sx, dy = d.y - mouse.sy, d2 = dx * dx + dy * dy;
+            if (d2 < R2 && d2 > 0.01) {
+              const dist = Math.sqrt(d2), ux = dx / dist, uy = dy / dist;
+              const f = (1 - dist / R) * (1 - dist / R) * boost;
+              d.vx += (ux - uy * 0.35) * f * dt;
+              d.vy += (uy + ux * 0.35) * f * dt;
+            }
+          }
+          d.vx += (ix - d.x) * SPRING * dt; d.vy += (iy - d.y) * SPRING * dt;
+          d.vx *= damp; d.vy *= damp;
+          d.x += d.vx * dt; d.y += d.vy * dt;
+          push = Math.min(1, Math.max(0, Math.hypot(d.x - ix, d.y - iy) - 3) / 45);
+          x = d.x; y = d.y; vx = d.vx; vy = d.vy;
+        } else if (opts.followMain) {
+          const k = mode === 'morph' ? 1 - e : 0;
+          x = ix + d.ox * k; y = iy + d.oy * k;
+          d.x = x; d.y = y; d.vx = d.vy = 0;
+        }
+
+        const odd = n & 1;
+        const am = odd ? (opts.thinOdds || 0) : 1;
+        const tr = physics ? d.trail : null;
+        if (tr) {
+          if (push > 0.06) { tr.push(x, y); if (tr.length > TRAIL * 2) { tr.shift(); tr.shift(); } }
+          else if (tr.length) { tr.shift(); tr.shift(); }
+        }
+        if (am <= 0.01) continue;
+
+        const size = Math.max(0.5, (0.9 + d.t * 2.6) * (1 + 0.22 * Math.sin(phase)) * (1 + push * 0.5) * sizeMul);
+        const alpha = (0.55 + d.t * 0.4) * am;
+        c.fillStyle = d.color;
+        const cnt = tr ? tr.length / 2 : 0;
+        for (let k = 0; k < cnt - 1; k++) {
+          const a = (k + 1) / cnt;
+          c.globalAlpha = alpha * 0.35 * a;
+          c.beginPath(); c.arc(tr[2 * k], tr[2 * k + 1], size * (0.35 + 0.5 * a), 0, TAU); c.fill();
+        }
+        c.globalAlpha = alpha;
+        c.beginPath();
+        if (push > 0.12) {
+          c.save(); c.translate(x, y); c.rotate(Math.atan2(vy, vx));
+          c.ellipse(0, 0, size * (1 + push * 3.2), size * (1 + push * 0.4), 0, 0, TAU);
+          c.fill(); c.restore();
+        } else {
+          c.arc(x, y, size, 0, TAU); c.fill();
+        }
+      }
+      c.globalAlpha = 1;
+    }
+
+    function paintSidebar(t) {
+      if (!sideCtx || !sideW) return;
+      paintSpiral(sideCtx, sideW, sideH, t, 1, {
+        cx: sideW / 2, cy: sideH / 2, maxR: sideW / 2 - 2, sizeMul: MINI, thinOdds: 0
+      });
+    }
+
     function step(t, dt) {
       angle += ROT * dt / 60;
       let cx = 0, cy = 0, maxR = 0, sizeMul = 1, e = 0;
@@ -4116,77 +4225,14 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
         }
       }
       if (mode === 'mini') { cx = cy = w / 2; maxR = w / 2 - 2; sizeMul = MINI; e = 1; }
-      const physics = mode === 'full';
-      const breathe = 1 + 0.03 * Math.sin(t * 1.3);
-
-      if (physics && mouse.active) {
-        const k = 1 - Math.pow(0.8, dt);
-        mouse.sx += (mouse.x - mouse.sx) * k; mouse.sy += (mouse.y - mouse.sy) * k;
-        const sp = Math.hypot(mouse.sx - mouse.px, mouse.sy - mouse.py) / dt;
-        mouse.speed += (sp - mouse.speed) * 0.2;
-        mouse.px = mouse.sx; mouse.py = mouse.sy;
-      } else { mouse.speed *= 0.9; }
-      const R = Math.max(140, Math.min(window.innerWidth, window.innerHeight) * 0.17), R2 = R * R;
-      const boost = 2.4 + Math.min(mouse.speed, 30) * 0.12;
-      const damp = Math.pow(DAMP, dt);
-      ctx.clearRect(0, 0, w, h);
-
-      for (let n = 0; n < dots.length; n++) {
-        const d = dots[n];
-        const phase = t * 2.0 - d.t * 9;
-        const r = d.t * maxR * breathe * (1 + 0.018 * Math.sin(phase));
-        const th = d.arm + angle + d.t * TURNS * TAU;
-        const ix = cx + Math.cos(th) * r, iy = cy + Math.sin(th) * r;
-        d.ix = ix; d.iy = iy;
-        if (!d.seeded) { d.x = ix; d.y = iy; d.seeded = true; }
-
-        let push = 0;
-        if (physics) {
-          if (mouse.active) {
-            const dx = d.x - mouse.sx, dy = d.y - mouse.sy, d2 = dx * dx + dy * dy;
-            if (d2 < R2 && d2 > 0.01) {
-              const dist = Math.sqrt(d2), ux = dx / dist, uy = dy / dist;
-              const f = (1 - dist / R) * (1 - dist / R) * boost;
-              d.vx += (ux - uy * 0.35) * f * dt;    // repulsion plus a slight swirl
-              d.vy += (uy + ux * 0.35) * f * dt;
-            }
-          }
-          d.vx += (ix - d.x) * SPRING * dt; d.vy += (iy - d.y) * SPRING * dt;
-          d.vx *= damp; d.vy *= damp;
-          d.x += d.vx * dt; d.y += d.vy * dt;
-          push = Math.min(1, Math.max(0, Math.hypot(d.x - ix, d.y - iy) - 3) / 45);
-        } else {                                    // morph / mini: follow the ideal spiral, decay leftover push
-          const k = mode === 'morph' ? 1 - e : 0;
-          d.x = ix + d.ox * k; d.y = iy + d.oy * k; d.vx = d.vy = 0;
-        }
-
-        const odd = n & 1;                          // thin the field as it shrinks to logo size
-        const am = odd ? (mode === 'full' ? 1 : mode === 'morph' ? 1 - e : 0) : 1;
-        const tr = d.trail;
-        if (push > 0.06) { tr.push(d.x, d.y); if (tr.length > TRAIL * 2) { tr.shift(); tr.shift(); } }
-        else if (tr.length) { tr.shift(); tr.shift(); }
-        if (am <= 0.01) continue;
-
-        const size = Math.max(0.5, (0.9 + d.t * 2.6) * (1 + 0.22 * Math.sin(phase)) * (1 + push * 0.5) * sizeMul);
-        const alpha = (0.55 + d.t * 0.4) * am;
-        ctx.fillStyle = d.color;
-        const cnt = tr.length / 2;
-        for (let k = 0; k < cnt - 1; k++) {         // fading trail behind displaced dots
-          const a = (k + 1) / cnt;
-          ctx.globalAlpha = alpha * 0.35 * a;
-          ctx.beginPath(); ctx.arc(tr[2 * k], tr[2 * k + 1], size * (0.35 + 0.5 * a), 0, TAU); ctx.fill();
-        }
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        if (push > 0.12) {
-          ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(Math.atan2(d.vy, d.vx));
-          ctx.ellipse(0, 0, size * (1 + push * 3.2), size * (1 + push * 0.4), 0, 0, TAU);
-          ctx.fill(); ctx.restore();
-        } else {
-          ctx.arc(d.x, d.y, size, 0, TAU); ctx.fill();
-        }
-      }
-      ctx.globalAlpha = 1;
+      const thinOdds = mode === 'full' ? 1 : mode === 'morph' ? 1 - e : 0;
+      paintSpiral(ctx, w, h, t, dt, {
+        cx, cy, maxR, sizeMul, e,
+        physics: mode === 'full',
+        followMain: mode !== 'full',
+        thinOdds
+      });
+      paintSidebar(t);
     }
 
     function frame(ts) {
@@ -4194,7 +4240,14 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
       const dt = Math.min(2.5, Math.max(0.2, (ts - last) / 16.667));
       last = ts;
       if (paused) return;
-      if (mode === 'mini' && canvas.offsetParent === null) return;   // header hidden (other tab)
+      const headerGone = mode === 'mini' && canvas.offsetParent === null;
+      const sideGone = !sideCanvas || sideCanvas.offsetParent === null;
+      if (headerGone && sideGone) return;
+      if (headerGone) {
+        angle += ROT * dt / 60;
+        paintSidebar(ts / 1000);
+        return;
+      }
       step(ts / 1000, dt);
     }
 
@@ -4239,6 +4292,8 @@ setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
     document.body.classList.remove('landing');
     document.body.classList.add('chatting', 'hero-lit');
     const fx = document.getElementById('hero-fx'); if (fx) fx.remove();
+    const sideSlot = document.getElementById('sidebar-brand-slot');
+    if (sideSlot) sideSlot.outerHTML = '<div class="avatar">B</div>';
   }
 })();
 </script>
