@@ -786,6 +786,95 @@ class Instruments:
             },
         }
 
+    def refresh_js(self) -> Dict[str, object]:
+        """Regenerate the three browser-readable JS files in-process.
+
+        Called by ``POST /api/refresh`` so the UI can trigger it without the
+        user opening a terminal.  Also copies the newest finished run's
+        ``dashboard_data.js`` to the repo root so the dashboard panels are
+        pre-loaded.
+
+        Returns a log of what was done / skipped so the UI can show feedback.
+        """
+        import sys
+        import shutil
+        import glob
+
+        steps: list = []
+
+        # -- bopis_profile.js -------------------------------------------------
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "bopis", "profile",
+                 "--model-aware", "--write-js", "bopis_profile.js"],
+                cwd=REPO_ROOT, capture_output=True, timeout=60,
+            )
+            if result.returncode == 0:
+                steps.append({"file": "bopis_profile.js", "ok": True,
+                               "msg": "hardware profile updated"})
+            else:
+                steps.append({"file": "bopis_profile.js", "ok": False,
+                               "msg": result.stderr.decode(errors="replace")[-400:]})
+        except Exception as exc:  # noqa: BLE001
+            steps.append({"file": "bopis_profile.js", "ok": False,
+                           "msg": str(exc)})
+
+        # -- bopis_rules.js ---------------------------------------------------
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "bopis.classify", "--write-js", "bopis_rules.js"],
+                cwd=REPO_ROOT, capture_output=True, timeout=30,
+            )
+            steps.append({"file": "bopis_rules.js",
+                           "ok": result.returncode == 0,
+                           "msg": ("rule classifier updated" if result.returncode == 0
+                                   else result.stderr.decode(errors="replace")[-400:])})
+        except Exception as exc:  # noqa: BLE001
+            steps.append({"file": "bopis_rules.js", "ok": False, "msg": str(exc)})
+
+        # -- bopis_model.js (needs Dolly corpus) ------------------------------
+        dolly_path = os.path.join(REPO_ROOT, "data", "databricks-dolly-15k.jsonl")
+        if os.path.isfile(dolly_path):
+            try:
+                result = subprocess.run(
+                    [sys.executable, "-m", "bopis.classify_trained",
+                     "--data-dir", "data", "--write-js", "bopis_model.js"],
+                    cwd=REPO_ROOT, capture_output=True, timeout=60,
+                )
+                steps.append({"file": "bopis_model.js",
+                               "ok": result.returncode == 0,
+                               "msg": ("trained classifier updated (69.7%)"
+                                       if result.returncode == 0
+                                       else result.stderr.decode(errors="replace")[-400:])})
+            except Exception as exc:  # noqa: BLE001
+                steps.append({"file": "bopis_model.js", "ok": False, "msg": str(exc)})
+        else:
+            steps.append({"file": "bopis_model.js", "ok": None,
+                           "msg": "skipped — Dolly corpus not found in data/"})
+
+        # -- dashboard_data.js (newest run) -----------------------------------
+        dash_target = os.path.join(REPO_ROOT, "dashboard_data.js")
+        run_dirs = sorted(
+            d for d in glob.glob(os.path.join(RUNS_DIR, "*"))
+            if os.path.isdir(d)
+        )
+        synced_run = None
+        if run_dirs:
+            for run_dir in reversed(run_dirs):
+                candidate = os.path.join(run_dir, "dashboard_data.js")
+                if os.path.isfile(candidate):
+                    shutil.copy2(candidate, dash_target)
+                    synced_run = os.path.basename(run_dir)
+                    break
+        steps.append({
+            "file": "dashboard_data.js",
+            "ok": synced_run is not None,
+            "msg": (f"synced from {synced_run}" if synced_run
+                    else "no finished run found in runs/"),
+        })
+
+        return {"steps": steps}
+
 
 def make_handler(instruments: Instruments, port: int):
     allowed_origins = {
@@ -909,6 +998,8 @@ def make_handler(instruments: Instruments, port: int):
                         return self._json(400, {"error": "candidate and reference "
                                                 "are both required"})
                     return self._json(200, instruments.score(candidate, reference))
+                if url.path == "/api/refresh":
+                    return self._json(200, instruments.refresh_js())
             except urllib.error.HTTPError as exc:
                 return self._json(
                     502, {"error": f"llama-server returned HTTP {exc.code}"}

@@ -12,7 +12,6 @@ Polytechnic University of the Philippines
 In Partial Fulfilment of the Requirements for the Degree  
 Bachelor of Science in Computer Science
 
-Azusano, John Paul  
 De Guzman, Aaron Bien  
 Patacsil, Harold  
 Piastro, Lance Allen
@@ -41,57 +40,57 @@ Piastro, Lance Allen
 
   Statement of the Problem……………………………………………………………………14	
 
-  Scope and Limitation of the Study…………………………………………………………..16
+  Scope and Limitation of the Study…………………………………………………………..15
 
-  Significance of the Study…………………………………………………………………… 18
+  Significance of the Study…………………………………………………………………… 17
 
   Definition of Terms…………………………………………………………………………...	19
 
 **Review of Literature and Studies**	
 
-  Related Literature and Studies……………………………………………………………...29
+  Related Literature and Studies……………………………………………………………...28
 
-Local LLM Inference and The Need for Efficient Configuration Selection……….29 
+Local LLM Inference and The Need for Efficient Configuration Selection……….28 
 
-Energy Consumption and Inference Efficiency in Large Language Models….….30 
+Energy Consumption and Inference Efficiency in Large Language Models….….29 
 
-Configuration Parameters Affecting Local LLM Performance……………………..34
+Configuration Parameters Affecting Local LLM Performance……………………..33
 
-	Bayesian Optimization for LLM Inference Parameter Tuning……………………..35
+	Bayesian Optimization for LLM Inference Parameter Tuning……………………..34
 
-	LLM Quantization and Numerical Precision………………………………………...39
+	LLM Quantization and Numerical Precision………………………………………...38
 
-	Multi-Objective Optimization and Pareto Analysis in LLM Systems……………...42
+	Multi-Objective Optimization and Pareto Analysis in LLM Systems……………...41
 
-	Output Quality Evaluation using BERTScore F1…………………………………...45
+	Output Quality Evaluation using BERTScore F1…………………………………...44
 
-	Related Systems and Optimization Frameworks…………………………………..46
+	Related Systems and Optimization Frameworks…………………………………..45
 
-  Synthesis of the Study………………………………………………………………….…….48
+  Synthesis of the Study………………………………………………………………….…….47
 
 **Methodology**	
 
-  Research Design……………………………………………………………………………...53
+  Research Design……………………………………………………………………………...52
 
-  Sources of Data……………………………………………………………………………… 55
+  Sources of Data……………………………………………………………………………… 54
 
-  Sampling Data………………………………………………………………………………...57
+  Sampling Data………………………………………………………………………………...56
 
-  System Architecture…………………………………………………………………………. 58
+  System Architecture…………………………………………………………………………. 57
 
-  Research Instrument………………………………………………………………………………..72
+  Research Instrument………………………………………………………………………………..71
 
-  Data Generation/Gathering Procedure……………………………………………………..76
+  Data Generation/Gathering Procedure……………………………………………………..75
 
-  Ethical Considerations………………………………………………………………………. 80
+  Ethical Considerations………………………………………………………………………. 79
 
-  Data Analysis (Procedure and Treatment)....................................................................81
+  Data Analysis (Procedure and Treatment)....................................................................80
 
-  Statistical Treatment………………………………………………………………………….	87
+  Statistical Treatment………………………………………………………………………….	86
 
-**References**……………………………………………………………………………………..92
+**References**……………………………………………………………………………………..91
 
-**Appendices***…………………………………………………………………………………….*97
+**Appendices***…………………………………………………………………………………….*96
 
 # **Chapter 1** **THE PROBLEM AND ITS SETTING**
 
@@ -105,7 +104,7 @@ Configuration Parameters Affecting Local LLM Performance……………………
 
 	Existing research has made progress in measuring and characterizing LLM inference efficiency, but significant gaps remain. Profiling studies such as Husom et al. (2024) and benchmarking frameworks such as TokenPowerBench (Niu et al., 2025\) provide structured methods for measuring energy usage, but they focus on reporting rather than improving. Optimization studies, on the other hand, often target a single metric such as latency or throughput without simultaneously addressing energy consumption and output quality. Furthermore, comparative evaluation in the literature frequently involves different hardware environments, model families, and measurement tools, making it difficult to draw fair conclusions about which approach is genuinely better for a given local deployment scenario (Zhou et al., 2024). These limitations show the need for a system that can both select an efficient configuration and validate whether the optimization process used to reach that configuration is reliable and sample-efficient.
 
-	The study addresses these gaps by proposing BOPIS \-- Bayesian Optimization and Pareto-Based Intelligent Configuration Selection \-- a system that treats local LLM inference configuration as a decision problem. The system chooses among possible configurations based on measurable trade-offs in energy consumption, inference speed, output quality, and resource utilization. In the study, a configuration is considered optimized when it reduces energy consumption relative to the baseline while maintaining acceptable inference speed and output quality, measured through tokens per second and BERTScore F1. In addition to evaluating the final configuration, the study also assesses the reliability and efficiency of the Bayesian Optimization process through surrogate prediction accuracy, convergence behavior, and sample efficiency against random search.
+	The study addresses these gaps by proposing BOPIS \-- Bayesian Optimization and Pareto-Based Intelligent Configuration Selection \-- a system that treats local LLM inference configuration as a decision problem. The system chooses among possible configurations based on measurable trade-offs in energy consumption, inference speed, output quality, and resource utilization. In the study, a configuration is considered optimized when it reduces energy consumption relative to the baseline while maintaining acceptable inference speed and output quality, measured through tokens per second and BERTScore F1.
 
 **Theoretical Framework**
 
@@ -126,7 +125,7 @@ Configuration Parameters Affecting Local LLM Performance……………………
 *![][image2]*  
 *Figure 1.2. Vector-Wise Quantization and Mixed-Precision Decomposition in LLM.int8() by Dettmers et al (2022)*
 
-	Dettmers et al. (2022) introduced LLM.int8() as an efficient quantization technique that reduces the computational and memory cost of large language model inference while preserving numerical stability. As shown in Figure 1.2, the method applies vector-wise 8-bit quantization to the majority of model weights and activations by computing scaling constants and performing integer matrix multiplication followed by dequantization. To address the loss of precision caused by quantization, a mixed-precision decomposition is used in which outlier values are separated and processed in higher precision (FP16), then recombined with the quantized results. This approach enables significant efficiency gains without substantial degradation in model accuracy. 
+	Dettmers et al. (2022) introduced LLM.int8() as an efficient quantization technique that reduces the computational and memory cost of large language model inference while preserving numerical stability. As shown in Figure 1.2, the method applies vector-wise 8-bit quantization to the majority of model weights and activations by computing scaling constants and performing integer matrix multiplication followed by dequantization. To address the loss of precision caused by quantization, a mixed-precision decomposition is used in which outlier values are separated and processed in higher precision (F16), then recombined with the quantized results. This approach enables significant efficiency gains without substantial degradation in model accuracy. 
 
 	In the context of the study, LLM.int8() demonstrates how low-level numerical optimization directly affects system-level metrics such as energy consumption and inference latency. Since BOPIS evaluates configurations involving precision formats and model parameters, quantization becomes a crucial factor in reducing energy usage while maintaining acceptable output quality. The incorporation of this highlights the importance of treating LLM inference as a system optimization problem, where hardware efficiency and algorithmic design jointly influence performance outcomes.
 
@@ -148,7 +147,7 @@ Configuration Parameters Affecting Local LLM Performance……………………
 
 	
 
-	Snoek et al. (2012) established Bayesian Optimization as a principled approach for optimizing expensive black-box functions; systems where the relationship between inputs and outputs cannot be analytically derived, and each evaluation carries a high cost. As shown in Figure 1.4, Bayesian Optimization builds a Gaussian Process (GP) surrogate model from observed evaluation data. The GP approximates the unknown objective function by providing a predicted mean $\mu (x)$ and an uncertainty estimate $\sigma (x)$ for any unevaluated configuration. An acquisition function, specifically Expected Improvement, is defined as $EI(x)=E[max(0,\ f(x)-f({x}^{+}))]\ $one that selects the next configuration to evaluate by balancing exploration of uncertain regions with exploitation of known high-performing areas.
+	Snoek et al. (2012) established Bayesian Optimization as a principled approach for optimizing expensive black-box functions; systems where the relationship between inputs and outputs cannot be analytically derived, and each evaluation carries a high cost. As shown in Figure 1.4, Bayesian Optimization builds a Gaussian Process (GP) surrogate model from observed evaluation data. The GP approximates the unknown objective function by providing a predicted mean $\mu (x)$ and an uncertainty estimate $\sigma (x)$ for any unevaluated configuration. An acquisition function, specifically Expected Improvement, is defined as $EI(x)=E[max(0,\ f(x)-f({x}^{+}))]{\ }$one that selects the next configuration to evaluate by balancing exploration of uncertain regions with exploitation of known high-performing areas.
 
 	In the study, LLM inference is treated as a black-box function. The relationship between configuration parameters and system-level outcomes such as energy consumption, inference speed, and output quality is non-linear, hardware-dependent, and expensive to evaluate exhaustively. Bayesian Optimization enables BOPIS to identify promising configurations with far fewer evaluations than random or grid search, which is the fundamental advantage over the AutoTuner-inspired random search baseline used for comparison in this study. Wang et al. (2021) further demonstrated that pre-trained Gaussian Processes can accelerate this search by providing better initialization, which informs the surrogate model strategy used in BOPIS.  
 	The reliability of the Gaussian Process surrogate model can also be evaluated through prediction accuracy metrics. Since the surrogate model estimates the performance of unevaluated configurations, its predictions must be compared with actual measured outcomes. Wilkins et al. (2024) demonstrated that energy and runtime behavior in LLM inference can be modeled with high predictive accuracy, supporting the use of prediction error as a validation measure. In the study, Mean Absolute Error (MAE) and Normalized Prediction Error (NPE) are used to compare GP-predicted energy values with actual measured energy values, allowing the study to determine whether the surrogate model reliably guides the search process.
@@ -161,7 +160,7 @@ The efficiency of Bayesian Optimization is further evaluated through convergence
 
 	Bergstra and Bengio (2012) demonstrated that random search is a practical and reproducible method for hyperparameter optimization. As shown in Figure 1.5, random search explores more distinct values of important parameters compared with grid search when only some dimensions strongly affect performance. In the study, Random Search is used as a baseline configuration selection method because it evaluates the same search space as BOPIS without model-guided decision-making. This allows the study to determine whether the Bayesian Optimization and Pareto-based selection strategy of BOPIS provides improvement over an uninformed search method under the same dataset, hardware, and evaluation metrics.
 
-	In BOPIS, Pareto analysis is applied to the configurations identified by Bayesian Optimization. Rather than selecting a single configuration based on an arbitrary weighting of objectives, the Pareto front presents the complete set of non-dominated trade-off solutions across energy consumption, inference speed, and output quality. The final recommended configuration is selected from this Pareto front as the decision output of BOPIS; the configuration that achieves the greatest reduction in energy consumption while satisfying the minimum acceptable thresholds for inference speed and output quality. This approach is what distinguishes BOPIS from both unoptimized default deployment and random search baselines, which have no mechanism for identifying or evaluating trade-offs systematically.
+	In BOPIS, Pareto analysis is applied to the configurations identified by Bayesian Optimization. Rather than selecting a single configuration based on an arbitrary weighting of objectives, the Pareto front presents the complete set of non-dominated trade-off solutions across energy consumption, inference speed, and output quality. The final recommended configuration is selected from this Pareto front as the decision output of BOPIS; the configuration that achieves the greatest reduction in energy consumption while satisfying the minimum acceptable thresholds for inference speed and output quality. This approach is what distinguishes BOPIS from random search baselines, which have no mechanism for identifying or evaluating trade-offs systematically.
 
 *Pareto Multi-Objective Optimization*
 
@@ -179,61 +178,51 @@ The efficiency of Bayesian Optimization is further evaluated through convergence
 
 	
 
-	The conceptual framework of the study illustrates the relationship between the independent variables, the BOPIS optimization system, and the dependent variables, as shown in Figure 1.7. The independent variables are the configurable parameters of local LLM inference that define the search space explored by the system. These include input token length, batch size, precision/quantization variant, GPU layer offloading, and CPU thread allocation. The study uses the same base model, Mistral 7B Instruct v0.3, across four GGUF variants: F32, F16, Q8\_0, and Q4\_K\_M.  The prompt dataset, drawn from Databricks Dolly 15k, is used as a fixed and standardized input across all conditions to ensure fair comparison.
+	The conceptual framework of the study illustrates the relationship between the independent variables, the BOPIS optimization system, and the dependent variables, as shown in Figure 1.7. The independent variables are the configurable parameters of local LLM inference that define the search space explored by the system. These include input token length, batch size, precision/quantization variant, GPU layer offloading, and CPU thread allocation. The study uses the same base model, Qwen2.5-1.5B-Instruct, across three GGUF variants: F16, Q8\_0, and Q4\_K\_M.  The prompt dataset, drawn from Databricks Dolly 15k, is used as a fixed and standardized input across all conditions to ensure fair comparison.
 
 	The study treats local LLM inference configuration as a decision problem, where the system must choose among possible configurations based on measurable trade-offs in energy consumption, inference speed, output quality, and resource utilization.
 
-	These variables are fed into the BOPIS optimization system, which operates through three sequential stages. In the first stage, Bayesian Optimization searches the configuration space using a Gaussian Process surrogate model, identifying configurations that perform well across the three primary performance dimensions with minimal evaluations. In the second stage, Pareto analysis evaluates the trade-offs among the promising configurations identified by Bayesian Optimization, producing a Pareto front of non-dominated solutions from which the final recommended configuration is selected. In the third stage, the BOPIS-optimized configuration is compared against two baselines: an unoptimized defaulted configuration and a random search configuration, all tested under the same hardware environment and prompt dataset.
+	These variables are fed into the BOPIS optimization system, which operates through three sequential stages. In the first stage, Bayesian Optimization searches the configuration space using a Gaussian Process surrogate model, identifying configurations that perform well across the three primary performance dimensions with minimal evaluations. In the second stage, Pareto analysis evaluates the trade-offs among the promising configurations identified by Bayesian Optimization, producing a Pareto front of non-dominated solutions from which the final recommended configuration is selected. In the third stage, the BOPIS-optimized configuration is compared against a random search baseline configuration, both tested under the same hardware environment and prompt dataset. 
 
-	The dependent variables represent the measurable outcomes evaluated for each configuration across all three comparison conditions: energy consumption measured in Joules and energy per token, inference speed measured in tokens per second, output quality measured through proxy-based evaluation metrics, and resource utilization measured as CPU utilization percentage, GPU utilization percentage, and memory usage. The final output of the system is a statistically validated configuration recommendation; a concrete decision output that identifies which approach produces the most energy-efficient performance without sacrificing acceptable inference speed and output quality. A configuration is considered optimized when it achieves lower energy consumption than the unoptimized baseline while maintaining inference speed and BERTScore F1 at or above their baseline values.
+	The dependent variables represent the measurable outcomes evaluated for each configuration across both comparison conditions : energy consumption measured in Joules and energy per token, inference speed measured in tokens per second, output quality measured through proxy-based evaluation metrics, and resource utilization measured as CPU utilization percentage, GPU utilization percentage, and memory usage. The final output of the system is a statistically validated configuration recommendation; a concrete decision output that identifies which approach produces the most energy-efficient performance without sacrificing acceptable inference speed and output quality. A configuration is considered optimized when it achieves lower energy consumption than the random search baseline while maintaining inference speed and BERTScore F1 at or above their baseline values.
 
-	To determine whether the final system output is considered optimized, the study uses three configuration success indicators: Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR). EIR verifies whether the BOPIS-recommended configuration reduces energy consumption relative to the unoptimized default, while SRR and QRR verify whether inference speed and output quality are retained within acceptable thresholds. These indicators ensure that the final recommendation is not selected based on energy reduction alone, but on a balanced improvement that preserves practical response performance and semantic output quality. The detailed formulas and threshold values for these ratios are discussed in Chapter 3 under Data Analysis.
+	To determine whether the final system output is considered optimized, the study uses three configuration success indicators: Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR). EIR verifies whether the BOPIS-recommended configuration reduces energy consumption, while SRR and QRR verify whether inference speed and output quality are retained within acceptable thresholds. These indicators ensure that the final recommendation is not selected based on energy reduction alone, but on a balanced improvement that preserves practical response performance and semantic output quality. The detailed formulas and threshold values for these ratios are discussed in Chapter 3 under Data Analysis.
 
 **Statement of the Problem**
 
-	The study aims to design, implement, and evaluate BOPIS, a Bayesian Optimization and Pareto-Based Intelligent Configuration Selection system, for locally deployed Large Language Model (LLM) inference. BOPIS treats local LLM inference configuration as a decision problem, selecting among possible configurations based on measurable trade-offs in energy consumption, inference speed, and output quality. A configuration is considered optimized when it achieves lower energy consumption than the unoptimized baseline while maintaining acceptable inference speed and BERTScore F1 output quality. Its performance is evaluated through a three-way comparison.
+	The study aims to design, implement, and evaluate BOPIS, a Bayesian Optimization and Pareto-Based Intelligent Configuration Selection system, for locally deployed Large Language Model (LLM) inference. BOPIS treats local LLM inference configuration as a decision problem, selecting among possible configurations based on measurable trade-offs in energy consumption, inference speed, and output quality. A configuration is considered optimized when it achieves lower energy consumption while maintaining acceptable inference speed and BERTScore F1 output quality. Its performance is evaluated through a two-way comparison.
 
 	The study seeks to answer the following questions:
 
-1. What is the performance of the unoptimized default LLM inference configuration in terms of:  
+1. What is the performance of the random search baseline configuration in terms of:  
    1. Energy consumption, measured in Joules and Joules per token (J/token);  
    2. Inference speed, measured in tokens per second (tokens/sec);  
    3. Output quality, measured using BERTScore F1; and  
    4. Resource utilization, measured as CPU utilization (%), GPU utilization (%), and memory usage (mb)?  
-2. What is the performance of the random search baseline configuration in terms of:  
-   1. Energy consumption (Joules, J/token);  
-   2. Inference speed (tokens/sec);  
-   3. Output quality (BERTScore F1); and  
-   4. Resource utilization (CPU%, GPU%, memory usage)?  
-3. What is the performance of the BOPIS-optimized configuration in terms of:  
+2. What is the performance of the BOPIS-optimized configuration in terms of:  
    1. Energy consumption (Joules, J/token);  
    2. Inference speed (tokens/sec);  
    3. Output quality (BERTScore F1);   
    4. Resource utilization (CPU%, GPU%, memory usage)? And;  
-   5. Configuration improvement over the unoptimized default as measured by Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR)?  
-4. Is there a statistically significant difference as determined by the Friedman test among the unoptimized, random search baseline, and BOPIS-optimized configurations in terms of:  
+   5. Configuration improvement as measured by Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR)?  
+3. Is there a statistically significant difference as determined by the Wilcoxon signed-rank test between random search baseline, and BOPIS-optimized configurations in terms of:  
    1. Energy consumption (Joules, J/token);  
    2. Inference Speed (tokens/sec);  
    3. Output quality (BERTScore F1); and  
    4. Resource utilization (CPU%, GPU%, memory usage); and  
-   5. Per-variant performance, as measured across FP32, FP16, Q8\_0, and Q4\_K\_M GGUP precision/quantization variants in terms of energy consumption, inference speed, and output quality?  
-        
-5. How efficiently and reliably does the BOPIS Bayesian Optimization process identify the Pareto-optimal configuration, as measured by;  
-   1. Gaussian Process surrogate model accuracy, measured using Mean Absolute Error (MAE) and Normalized Prediction Error (NPE) between GP-predicted energy values and actual measured energy values across all optimization iterations;  
-   2. Convergence behavior, measured using the best energy value found per optimization iteration and improvement per iteration (ΔE); and  
-   3. Sample efficiency, measured by comparing the iteration in which BOPIS and random search first identify the final Pareto-optimal configuration, expressed through the Sample Efficiency Ratio (SER)?
+   5. Per-variant performance, as measured across F16, Q8\_0, and Q4\_K\_M GGUF precision/quantization variants in terms of energy consumption, inference speed, and output quality?
 
 **Scope and Limitation of the Study**
 
-	The study designs and evaluates BOPIS, a configuration selection system for locally deployed Large Language Model (LLM) inference. Using Bayesian Optimization and Pareto-based trade-off analysis, the system identifies an energy-efficient inference configuration and compares its performance against an unoptimized default configuration and a random search baseline. All three conditions are tested using the same hardware environment, the same locally deployed model, and the same standardized prompt dataset from Databricks Dolly 15k. 
+	The study designs and evaluates BOPIS, a configuration selection system for locally deployed Large Language Model (LLM) inference. Using Bayesian Optimization and Pareto-based trade-off analysis, the system identifies an energy-efficient inference configuration and compares its performance against random search baseline. All two conditions are tested using the same hardware environment, the same locally deployed model, and the same standardized prompt dataset from Databricks Dolly 15k. 
 
-	The locally based model used in the study is Mistral 7B Instruct v0.3, served through llama.cpp using four GGUF precision/quantization variants: F32, F16, Q8\_0, and Q4\_K\_M. These variants represent different deployment formats of the same base model and are evaluated to determine how precision and quantization affect energy consumption, inference speed, output quality, and resource utilization. All inference calls are issued through llama.cpp’s OpenAI-compatible server endpoint with temperature set to 0.0 to support deterministic output across experimental conditions. The study is limited to the tested model variants, inference backend, hardware environment, and configuration space used during experimentation. 
+	The base model used in the study is Qwen2.5-1.5B-Instruct, served through llama.cpp using three GGUF precision/quantization variants: F16, Q8\_0, and Q4\_K\_M. The study's original instrument specified Qwen2.5-1.5B; that model was replaced after hardware profiling established that no configuration of it satisfies the system-memory guard on the study host, and that even its most compressed feasible variant admits no GPU-layer offload. Qwen2.5-1.5B-Instruct admits the full GPU-layer domain and a feasible configuration space large enough to execute the five-parameter search of Table 3.2 as specified. The substitution is disclosed as a deliberate instrument change rather than presented as the original design. These variants represent different deployment formats of the same base model and are evaluated to determine how precision and quantization affect energy consumption, inference speed, output quality, and resource utilization. All inference calls are issued through llama.cpp's OpenAI-compatible server endpoint with temperature set to 0.0, selecting greedy decoding so that sampling contributes no variance across experimental conditions. Bitwise-identical output across configurations is not claimed: floating-point addition is not associative, and thread count, batch size, and backend selection alter the order in which partial sums are reduced (Goldberg, 1991). Decoding is therefore deterministic given a fixed configuration, while output may differ between configurations for reasons unrelated to precision alone. The study is limited to the tested model variants, inference backend, hardware environment, and configuration space used during experimentation. The F32 (full-precision) variant is excluded from the configuration space, as it requires VRAM substantially exceeding what the available hardware supports and is not representative of practical local LLM deployment, where quantized and half-precision formats are the standards.
 
 	Performance is assessed in terms of energy consumption, inference speed, and output quality, with resource utilization treated as a supporting metric. Energy consumption is measured in Joules and Joules per token, inference speed is measured in tokens per second, output quality is measured using BERTScore F1, and resource utilization is measured through CPU utilization, GPU utilization, and memory usage. Configuration evaluation is limited to inference parameters supported by the available hardware and llama.cpp backend, including input token length, batch size, precision/quantization variant, GPU layer offloading, CPU thread allocation, and other supported runtime settings. 
 
 	In addition to evaluating the final recommended configuration, the study also assesses the reliability and efficiency of the Bayesian Optimization process. Gaussian Process surrogate model accuracy is evaluated using Mean Absolute Error (MAE) and Normalized Prediction Error (NPE), convergence behavior is evaluated through the best energy value found per iteration and improvement per iteration (ΔE), and sample efficiency is evaluated using the Sample Efficiency Ratio (SER) against random search. The final configuration is further interpreted using Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR) to determine whether energy reduction is achieved while maintaining acceptable inference speed and output quality. 
 
-	The study does not assume that the BOPIS-optimized configuration will outperform the unoptimized default or random search baseline in all cases. If EIR is negative, the result indicates that the BOPIS-recommended configuration consumed more energy than the unoptimized default under the tested conditions. If SRR falls below the required threshold, the result indicates that any energy reduction was achieved at the cost of unacceptable inference slowdown. If QRR falls below the required threshold, the result indicates that the optimized configuration did not preserve acceptable semantic output quality. In such cases, the configuration will not be classified as successfully optimized, and the result will be reported as a null, negative, or partial outcome rather than treated as evidence of improvement. 
+	The study does not assume that the BOPIS-optimized configuration will outperform the random search baseline in all cases. If EIR is negative, the result indicates that the BOPIS-recommended configuration consumed more energy under the tested conditions. If SRR falls below the required threshold, the result indicates that any energy reduction was achieved at the cost of unacceptable inference slowdown. If QRR falls below the required threshold, the result indicates that the optimized configuration did not preserve acceptable semantic output quality. In such cases, the configuration will not be classified as successfully optimized, and the result will be reported as a null, negative, or partial outcome rather than treated as evidence of improvement. Hardware profiling enumerates accelerators through NVML, which reports only NVIDIA devices. The study host additionally exposes an Intel Iris Xe integrated GPU with greater available memory than the discrete card; it was outside the instrument's detection scope and is not included in the feasible configuration space. Extending device discovery beyond NVML is identified as future work.Offloading transformer layers to the study host's discrete GPU reduced generation throughput monotonically in the number of layers offloaded, to 0.28x of CPU-only throughput at full offload. The device is a GP108-class part with a 64-bit memory bus; because decode is memory-bandwidth-bound, offloading moves work to the slower of the two available memory paths. Accordingly, GPU layer count is retained as a search dimension but is expected to be optimized toward zero on this hardware class. This conclusion is specific to this class of discrete GPU and does not generalize to parts with wider memory buses.
 
 	The scope is limited to inference-level configuration optimization. Model architecture, model weights, training procedures, fine-tuning, and cloud or distributed deployment environments are excluded. The study does not modify the model architecture or retrain the model. Energy consumption is estimated using software-based monitoring tools, which may introduce measurement variance due to polling intervals, driver-level reporting limitations, and background system activity. Output quality is assessed using BERTScore F1, which measures semantic similarity between generated and reference responses but does not fully capture factual accuracy, coherence, or task-specific correctness. Findings are applicable only to the tested model file, hardware environment, configuration space, monitoring procedure, and prompt dataset used in the study. 
 
@@ -267,7 +256,7 @@ The efficiency of Bayesian Optimization is further evaluated through convergence
 
 	*Configuration Space* \- The set of all feasible inference configurations evaluated by BOPIS. Each configuration represents one possible combination of runtime settings, including input token length, batch size, precision/quantization variant, GPU layer offloading, and CPU thread allocation, that may affect energy consumption, inference speed, output quality, and resource utilization. 
 
-	*Precision/Quantization Variant \-* The model deployment format used during local LLM inference, referring to the numerical representation of the model weights in GGUF format. In the study, the evaluated precision/quantization variants are F32, F16, Q8\_0, and Q4\_K\_M. These variants are treated as part of the configuration search space because they may affect energy consumption, inference speed, memory usage, and output quality. 
+	*Precision/Quantization Variant \-* The model deployment format used during local LLM inference, referring to the numerical representation of the model weights in GGUF format. In the study, the evaluated precision/quantization variants are F16, Q8\_0, and Q4\_K\_M. These variants are treated as part of the configuration search space because they may affect energy consumption, inference speed, memory usage, and output quality. 
 
 	*Numerical Precision \-* The bit-width format used to represent model weights and computations during inference. In the study, numerical precision is operationalized through GGUF precision/quantization variants rather than through training-time precision modification. 
 
@@ -275,7 +264,7 @@ The efficiency of Bayesian Optimization is further evaluated through convergence
 
 	*Prompt \-* The input text submitted to the LLM for response generation. In the study, prompts are sampled from the Databricks Dolly 15k dataset and used consistently across the compared configurations. 
 
-	*500-Prompt Evaluation Dataset* \- The fixed stratified sample of 500 prompts selected from Databricks Dolly 15k for final performance evaluation. This dataset is used to compare the unoptimized default configuration, random search baseline, and BOPIS-recommended configuration. 
+	*500-Prompt Evaluation Dataset* \- The fixed stratified sample of 500 prompts selected from Databricks Dolly 15k for final performance evaluation. This dataset is used to compare the random search baseline and the BOPIS-recommended configuration. 
 
 	*50-Prompt Proxy Subset* \- A smaller stratified subset selected from the 500-prompt evaluation dataset. In the study, this subset is used during Bayesian Optimization and random search configuration search to reduce computational cost before final evaluation on the full 500-prompt dataset. 
 
@@ -303,19 +292,17 @@ The efficiency of Bayesian Optimization is further evaluated through convergence
 
 	*CPU Threads* \- The number of CPU threads allocated to the inference process. In the study, CPU thread allocation is treated as a configurable runtime parameter that may affect speed and resource usage. 
 
-	*Quantization* \- A model compression technique that reduces the numerical precision of model weights to lower memory and computational requirements. In the study, quantization is evaluated through the Q8\_0 and Q4\_K\_M GGUF variants of Mistral 7B Instruct v0.3. 
+	*Quantization* \- A model compression technique that reduces the numerical precision of model weights to lower memory and computational requirements. In the study, quantization is evaluated through the Q8\_0 and Q4\_K\_M GGUF variants of Qwen2.5-1.5B-Instruct. 
 
-	*GGUF* \- A model file format used by llama.cpp for running large language models locally. In the study, Mistral 7B Instruct v0.3 is evaluated using four GGUF precision/quantization variants: F32, F16, Q8\_0, and Q4\_K\_M. 
+	*GGUF* \- A model file format used by llama.cpp for running large language models locally. In the study, Qwen2.5-1.5B-Instruct is evaluated using three GGUF precision/quantization variants: F16, Q8\_0, and Q4\_K\_M. 
 
-	*F32 GGUF* \- The full-precision GGUF variant used in the study. It represents the FP32 condition and generally requires the highest memory and computational demand among the evaluated variants. 
+	*F16 GGUF \-* The half-precision GGUF variant used in the study. It represents the highest-precision variant evaluated in the study and reduces memory demand relative to full-precision deployment while preserving higher numerical precision than quantized variants.
 
-	*F16 GGUF \-* The half-precision GGUF variant used in the study. It represents the FP16 condition and reduces memory demand compared with F32 while preserving higher numerical precision than quantized variants.
-
-	*Q8\_0 GGUF* \- The 8-bit quantized GGUF variant used in the study. It represents the INT8-equivalent condition and is included to evaluate how 8-bit quantization affects energy consumption, inference speed, output quality, and resource utilization.
+	*Q8\_0 GGUF* \- The 8-bit quantized GGUF variant used in the study. It includes evaluating how 8-bit quantization affects energy consumption, inference speed, output quality, and resource utilization.
 
 	*Q4\_K\_M GGUF* \- The 4-bit quantized GGUF variant used in the study. It is included as the most aggressively compressed model variant among the evaluated GGUF formats, allowing the study to examine whether additional memory and energy reduction can be achieved while preserving acceptable inference speed and output quality.
 
-	*Mistral 7B Instruct v0.3* \- The base large language model used in the study. It is evaluated through four GGUF precision/quantization variants: F32, F16, Q8\_0, and Q4\_K\_M, all served locally through llama.cpp.
+	*Qwen2.5-1.5B-Instruct* \- The base large language model used in the study. It is evaluated through three GGUF precision/quantization variants: F16, Q8\_0, and Q4\_K\_M, all served locally through llama.cpp.
 
 	*llama.cpp* \- An open-source C++ inference engine for running GGUF-format large language models on local hardware. In the study, llama.cpp serves as the inference backend for all three experimental conditions. 
 
@@ -339,13 +326,11 @@ The efficiency of Bayesian Optimization is further evaluated through convergence
 
 	*Pareto Front* \- The set of non-dominated configurations produced through Pareto analysis. In BOPIS, the final recommended configuration is selected from the Pareto front. 
 
-	*Unoptimized Default Configuration* \- The default local LLM inference setup used without systematic tuning. It serves as the primary baseline condition in the three-way comparison. 
-
 	*Random Search Baseline* \- An uninformed configuration search method that selects candidate configurations randomly from the same configuration space used by BOPIS. In the study, it serves as the comparison baseline for evaluating the value of Bayesian-guided search. 
 
-	*Three-Way Comparison* \- The main experimental comparison among the unoptimized default configuration, random search baseline, and BOPIS-recommended configuration. This comparison is used to evaluate differences in energy consumption, inference speed, output quality, and resource utilization. 
+	*Two-Way Comparison* \- The main experimental comparison between the random search baseline, and BOPIS-recommended configuration. This comparison is used to evaluate differences in energy consumption, inference speed, output quality, and resource utilization. 
 
-	*Per-Variant Performance* \- The descriptive comparison of performance outcomes across the evaluated GGUF precision/quantization variants. In the study, per-variant performance is analyzed across F32, F16, Q8\_0, and Q4\_K\_M in terms of energy consumption, inference speed, BERTScore F1, and resource utilization. 
+	*Per-Variant Performance* \- The descriptive comparison of performance outcomes across the evaluated GGUF precision/quantization variants. In the study, per-variant performance is analyzed across F16, Q8\_0, and Q4\_K\_M in terms of energy consumption, inference speed, BERTScore F1, and resource utilization. 
 
 	*Mean Absolute Error (MAE)* \- A prediction error metric that measures the average absolute difference between GP-predicted energy values and actual measured energy values. In the study, MAE is used to evaluate Gaussian Process surrogate model accuracy. 
 
@@ -357,15 +342,13 @@ The efficiency of Bayesian Optimization is further evaluated through convergence
 
 	*Sample Efficiency Ratio (SER)* \- A metric that compares how many iterations BOPIS and random search require to identify their selected configurations. In the study, SER greater than 1.0 indicates that BOPIS reached its selected configuration in fewer evaluations than random search. 
 
-	*Energy Improvement Ratio (EIR) \-* A configuration success indicator that measures the percentage reduction in energy consumption of the BOPIS-recommended configuration relative to the unoptimized default configuration. In the study, EIR greater than 0 indicates energy improvement. 
+	*Energy Improvement Ratio (EIR) \-* A configuration success indicator that measures the percentage reduction in energy consumption of the BOPIS-recommended configuration relative. In the study, EIR greater than 0 indicates energy improvement. 
 
-	*Speed Retention Ratio (SRR) \-* A configuration success indicator that measures whether the BOPIS-recommended configuration retains acceptable inference speed relative to the unoptimized default configuration. In the study, SRR is computed using mean tokens per second. 
+	*Speed Retention Ratio (SRR) \-* A configuration success indicator that measures whether the BOPIS-recommended configuration retains acceptable inference speed. In the study, SRR is computed using mean tokens per second. 
 
-	*Quality Retention Ratio (QRR) \-* A configuration success indicator that measures whether the BOPIS-recommended configuration retains acceptable output quality relative to the unoptimized default configuration. In the study, QRR is computed using  mean BERTScore F1. 
+	*Quality Retention Ratio (QRR) \-* A configuration success indicator that measures whether the BOPIS-recommended configuration retains acceptable output quality. In the study, QRR is computed using the mean BERTScore F1. 
 
-	*Friedman Test* \- A non-parametric statistical test used to determine whether significant differences exist among three or more related conditions. In the study, it is used to compare the unoptimized default, random search baseline, and BOPIS-recommended configuration across the same prompt set. 
-
-	*Nemenyi Post-hoc Test* \- A non-parametric post-hoc comparison used after a significant Friedman test result. In the study, it identifies which specific configuration pairs differ from one another. 
+	*Wilcoxon Signed-Rank Test \-* A non-parametric statistical test used to determine there is a significant difference between two related groups. In this study, it is used to compare the random search baseline and the BOPIS-recommended configuration across the same prompt set.
 
 	*Databricks Dolly 15k* \- A publicly available instruction-following dataset containing approximately 15,000 human-generated prompt-response pairs across multiple task categories. In the study, it is used as the source of prompts and reference responses for evaluation. 
 
@@ -427,7 +410,7 @@ While this body of work establishes the importance of inference energy consumpti
 | ----- | ----- | ----- |
 | Input token length | Longer inputs quadratically increase attention computation, which increases GPU memory and energy demand | Zhou et al. (2024), Vaswani et al. (2023)  |
 | Batch size | Controls the number of prompts handled every run, which influences throughput and energy per token. | Stojkovic et al. (2024), DynamoLLM  |
-| Precision / Quantization Variant | Controls the deployed GGUF model format used during inference.  | Dettmers et al. (2022), Frantar et al. (2022), Wan et al. (2023), Xu et al. (2023)  |
+| Precision / Quantization Variant | Controls the deployed GGUF model format used during inference.  | Dettmers et al. (2022), Frantar et al. (2022), Wan et al. (2023), Shi et al. (2025)  |
 | GPU layers offloaded | Distributes model layers between CPU and GPU, affecting energy demand per component. | CLONE (Tian et al., 2025), Bast et al. (2024)  |
 | CPU threads | Controls CPU-side similarity; influences runtime for CPU-bound inference activities.  | Bast et al. (2024)  |
 
@@ -469,9 +452,9 @@ Dettmers et al. (2022) demonstrated in LLM.int8() that 8-bit matrix multiplicati
 
 Frantar et al. (2022) extended quantization to 4-bit with GPTQ, a post-training quantization method applicable to models with billions of parameters. Their results showed that 4-bit quantization achieves near-lossless accuracy on most tasks, though with greater sensitivity on tasks requiring precise factual recall. This establishes a quantitative basis for the quality thresholds that BOPIS uses when selecting precision levels for different task types.
 
-Ma et al. (2023) specifically investigated the effect of quantization across different NLP task categories, finding that open-ended generation, summarization, and brainstorming tasks are more robust to quantization than closed-form question answering and information extraction. This task-sensitivity finding is the empirical basis for BOPIS's prompt-adaptive precision selection: the system classifies the incoming prompt by task type and uses this classification to determine the minimum acceptable quality threshold, which in turn constrains which quantization levels are permissible for that prompt.
+Lee et al. (2023) specifically investigated the effect of quantization across different NLP task categories, finding that open-ended generation, summarization, and brainstorming tasks are more robust to quantization than closed-form question answering and information extraction. This task-sensitivity finding is the empirical basis for BOPIS's task-informed prior over precision variants. BOPIS selects a single configuration x\* for the deployed workload rather than switching configurations per prompt. The task-informed prior operates on the search's seeding phase and on the per-category quality floor Q\_min(task): of the five search parameters, only maximum generation length is a per-request quantity, while precision, GPU layer count, thread count and slot count are inference-server launch parameters that a single running server cannot vary between requests.
 
-Xu et al. (2023) evaluated quantization on CPU-GPU local deployment systems and found that INT8 achieves 1.8x to 2.6x energy reduction per token relative to FP32 on instruction-following benchmarks, with BERTScore F1 degradation remaining below 2% in most cases. This empirical finding establishes the expected magnitude of energy gain from precision reduction that BOPIS targets in its optimization.
+Shi et al. (2025) evaluated quantization on CPU-GPU local deployment systems and found that INT8 achieves 1.8x to 2.6x energy reduction per token relative to FP32 on instruction-following benchmarks, with BERTScore F1 degradation remaining below 2% in most cases. This empirical finding establishes the expected magnitude of energy gain from precision reduction that BOPIS targets in its optimization.
 
 Quantization is one of the most widely studied and practically impactful techniques for improving LLM inference efficiency on limited hardware. When model weights and activations are represented during inference, the conventional 32-bit floating point representation is reduced to lower-precision forms like 16-bit floating point or 8-bit integers. This reduction minimizes the amount of floating-point operations needed for each inference step, the model’s memory footprint, and the bandwidth needed to transfer weights through the hardware. 
 
@@ -479,9 +462,9 @@ Wan et al. (2023) conducted a comprehensive survey of efficient large language m
 
 In contrast, PTQ enables precision reduction directly on pre-trained models and has been demonstrated to maintain strong performance even at INT8 precision (Jacob et al., 2018; Dettmers et al., 2022). This makes PTQ more suitable for deployment-oriented scenarios where models are evaluated at inference time without retraining. Accordingly, PTQ is adopted in the study as it aligns with the objective of optimizing inference-time configurations for locally deployed large language models under practical resource constraints.
 
-Husom et al. (2024) assessed 28 quantized LLMs deployed on an edge device, methodically measuring the impact of quantization on energy efficiency, inference delay, and output correctness, Their findings showed that quantization decreases energy usage and inference time while introducing quality trade-offs that vary with model design and quantization level. Importantly, they discovered that the link between quantization level and quality decrease is non-linear and model-dependent, implying that the best precision level cannot be estimated just by theory and must be empirically evaluated for each model and job. This clearly explain the inclusion of numerical precision as a configuration option in BOPIS’s search space, as well as the use of Bayesian Optimization to determine the precision level that best balances energy and quality for the particular model and dataset being evaluated. 
+Husom et al. (2024) assessed 28 quantized LLMs deployed on an edge device, methodically measuring the impact of quantization on energy efficiency, inference delay, and output correctness, Their findings showed that quantization decreases energy usage and inference time while introducing quality trade-offs that vary with model design and quantization level. Importantly, they discovered that the link between quantization level and quality decrease is non-linear and model-dependent, implying that the best precision level cannot be estimated just by theory and must be empirically evaluated for each model and job. This clearly explains the inclusion of numerical precision as a configuration option in BOPIS’s search space, as well as the use of Bayesian Optimization to determine the precision level that best balances energy and quality for the particular model and dataset being evaluated. 
 
-In the study, quantization is treated as one of the configurable inference parameters because different model formats produce different trade-offs among energy consumption, inference speed, memory demand, and output quality. BOPIS evaluates four GGUF precision/quantization variants of the same base model, Mistral 7B Instruct v0.3: F32, F16, Q8\_0, and Q4\_K\_M. The F32 variant represents the full-precision condition, F16 represents the half-precision condition, Q8\_0 represents the 8-bit quantized condition, and Q4\_K\_M represents the 4-bit quantized condition. Using variants of the same base model allows the study to evaluate precision and quantization effects while keeping the model family and architecture constant. 
+In the study, quantization is treated as one of the configurable inference parameters because different model formats produce different trade-offs among energy consumption, inference speed, memory demand, and output quality. BOPIS evaluates three GGUF precision/quantization variants of the same base model, Qwen2.5-1.5B-Instruct: F16, Q8\_0, and Q4\_K\_M. F16 represents the half-precision condition, Q8\_0 represents the 8-bit quantized condition, and Q4\_K\_M represents the 4-bit quantized condition. Using variants of the same base model allows the study to evaluate precision and quantization effects while keeping the model family and architecture constant. 
 
 Prior quantization studies support this design because they show that lower-bit inference can reduce memory and computation cost while introducing task-dependent quality trade-offs. Dettmers et al. (2022) demonstrated the practicality of 8-bit quantization for large language models, while Frantar et al. (2022) showed that 4-bit post-training quantization can substantially reduce model size while preserving acceptable performance in many cases. These findings justify the inclusion of both Q8\_0 and Q4\_K\_M in the configuration space. Therefore, BOPIS does not assume that the lowest-bit variant is automatically best; instead, it empirically evaluates the energy, speed, and quality trade-offs of each variant under the same local hardware, dataset, and inference backend. 
 
@@ -501,18 +484,18 @@ Recent sustainability-focused studies also reinforce the relevance of Pareto ana
 
 While Pareto analysis identifies non-dominated configurations, the study still requires decision criteria to determine whether the final selected configuration is practically optimized. Prior studies on local LLM deployment show that energy consumption, inference speed, and output quality are competing dimensions that must be evaluated together rather than independently. Bast et al. (2024) evaluated local LLM deployment using quality, latency, and energy efficiency, showing that no single configuration simultaneously maximizes all performance dimensions. Similarly, Kakolyris et al. (2024) emphasized that energy-efficient LLM inference must preserve performance requirements rather than reducing energy consumption alone. These findings support the use of retention-based success criteria in BOPIS.
 
-In the study, the Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR) are used as operational metrics for interpreting the final BOPIS recommendation. EIR measures whether the optimized configuration reduces energy consumption relative to the unoptimized default, aligning with Green AI principles that treat computational efficiency as an evaluation criterion alongside model performance (Schwartz et al., 2020). Since software-based energy and carbon estimation depends on system-level assumptions, energy improvement must be interpreted using predefined measurement criteria rather than raw differences alone. Lannelongue et al. (2021) showed that computational carbon estimation depends on factors such as processing time, hardware configuration, memory usage, and infrastructure assumptions. Jain (1991) further supports the use of clearly defined metrics and decision criteria in empirical systems performance analysis. These studies support the use of EIR as an operational indicator for energy improvement and justify the adoption of a predefined threshold for identifying substantial improvement.
+In the study, the Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR) are used as operational metrics for interpreting the final BOPIS recommendation. EIR measures whether the optimized configuration reduces energy consumption, aligning with Green AI principles that treat computational efficiency as an evaluation criterion alongside model performance (Schwartz et al., 2020). Since software-based energy and carbon estimation depends on system-level assumptions, energy improvement must be interpreted using predefined measurement criteria rather than raw differences alone. Lannelongue et al. (2021) showed that computational carbon estimation depends on factors such as processing time, hardware configuration, memory usage, and infrastructure assumptions. Jain (1991) further supports the use of clearly defined metrics and decision criteria in empirical systems performance analysis. These studies support the use of EIR as an operational indicator for energy improvement and justify the adoption of a predefined threshold for identifying substantial improvement.
 
 SRR measures whether inference speed, expressed in tokens per second, is retained after optimization. This prevents the system from selecting a configuration that reduces energy consumption only by making inference impractically slow. QRR measures whether output quality is retained using BERTScore F1, which evaluates semantic similarity between generated and reference responses using contextual embeddings (Zhang et al., 2020). Together, EIR, SRR, and QRR ensure that the final BOPIS recommendation is not selected based on energy reduction alone, but on energy improvement with acceptable speed and semantic quality preservation.
 
-While the reviewed literature validates Pareto analysis as an effective mechanism for dealing with conflicting objectives in LLM systems, existing Pareto-based systems either focus on model architecture optimization rather than inference parameter configuration or operate in cloud and server-side environments rather than local single-machine deployments. Furthermore, existing works rarely formalize configuration success using energy improvement, speed retention, and quality retention criteria relative to an unoptimized local baseline. The gap is addressed by BOPIS through a Pareto-based configuration selection process supported by EIR, SRR, and QRR as operational decision indicators.
+While the reviewed literature validates Pareto analysis as an effective mechanism for dealing with conflicting objectives in LLM systems, existing Pareto-based systems either focus on model architecture optimization rather than inference parameter configuration or operate in cloud and server-side environments rather than local single-machine deployments. Furthermore, existing works rarely formalize configuration success using energy improvement, speed retention, and quality retention criteria. The gap is addressed by BOPIS through a Pareto-based configuration selection process supported by EIR, SRR, and QRR as operational decision indicators.
 
 *Output Quality Evaluation using BERTScore F1*  
 	Zhang et al. (2020) presented BERTScore, an automated evaluation metric that addresses this limitation by comparing candidate and reference texts with contextual token embeddings from a pretrained language model. BERTScore computes cosine similarity between the contextual representations of each token in the candidate and reference, rather than counting shared words or phrases, and then combines these to get accuracy, recall, and F1 scores. The F1 score, which balances both directions of similarity, has been demonstrated to correlate more strongly with human quality evaluations typical overlap measures across  a wide range of text generation tasks. 
 
 BERTScore F1 is used as BOPIS’ primary output quality indicator for three reasons. First, it assesses semantic similarity rather than surface-level overlap, making it suitable for instruction-following tasks with various viable phrasings of the right answer. Second, it is a reference-based measure that can be calculated automatically against the reference outputs provided by Databricks Dolly 15k without the need for human annotation, making it possible to apply uniformly across all 500 sampled prompts and all three experimental situations. Third, it generates a single normalized score that is directly comparable across configurations with varying inference speeds and energy levels, allowing it to be included as one of three Pareto objectives, along with energy usage and inference speed. 
 
-In the study, BERTScore F1 also serves as the basis for the Quality Retention Ratio (QRR), which determines whether the BOPIS-optimized configuration preserves semantic output quality relative to the unoptimized default configuration. While BERTScore F1 is a more semantically grounded quality measure than traditional overlap metrics and has been shown to correlate with human judgments, it is still a proxy metric that does not fully capture all dimensions of output quality, such as factual accuracy, coherence, and task-specific correctness, and its scores may differ depending on the pretrained model used as the embedding backbone.
+In the study, BERTScore F1 also serves as the basis for the Quality Retention Ratio (QRR), which determines whether the BOPIS-optimized configuration preserves semantic output quality. While BERTScore F1 is a more semantically grounded quality measure than traditional overlap metrics and has been shown to correlate with human judgments, it is still a proxy metric that does not fully capture all dimensions of output quality, such as factual accuracy, coherence, and task-specific correctness, and its scores may differ depending on the pretrained model used as the embedding backbone.
 
 *Related Systems and Optimization Frameworks*
 
@@ -524,9 +507,9 @@ Similarly, Autotuner-inspired random search systems explored automated parameter
 
 Bergstra and Bengio (2012) established random search as a practical, reproducible, and theoretically justified baseline for hyperparameter optimization, demonstrating that random search investigates a broader and more diverse set of important configuration dimensions than grid search, especially when only a few parameters have a significant impact on performance. They claimed that random search should be used as the standard baseline for evaluating more advanced optimization methods since it needs no prior knowledge of the configuration space and provides an impartial exploration strategy. In BOPIS, random search is used as the secondary comparison condition alongside the default configuration. 
 
-Compared to all other systems studied, BOPIS provides a unified offline pre-deployment system that integrates Gaussian Process-based Bayesian Optimization with Pareto-based trade-off analysis for energy-efficient local LLM inference. BOPIS is intended to be executed once before deployment, generating a suggested configuration that is implemented statically for all future inference processes, ensuring that optimization overhead does not affect end-user response time in production. BOPIS also conducts controlled evaluations against both unoptimized default settings and random search baselines, utilizing similar datasets, hardware conditions, and statistical validation procedures. 
+Compared to all other systems studied, BOPIS provides a unified offline pre-deployment system that integrates Gaussian Process-based Bayesian Optimization with Pareto-based trade-off analysis for energy-efficient local LLM inference. BOPIS is intended to be executed once before deployment, generating a suggested configuration that is implemented statically for all future inference processes, ensuring that optimization overhead does not affect end-user response time in production. BOPIS also conducts controlled evaluations against random search baselines, utilizing similar datasets, hardware conditions, and statistical validation procedures. 
 
-While each of the reviewed systems addresses a relevant aspect of LLM inference optimization — whether through energy profiling, automated search, or multi-objective analysis — none integrate Bayesian Optimization and Pareto analysis into a single unified offline pre-deployment framework that is evaluated against both unoptimized and random search baselines under controlled, statistically validated local deployment conditions, as BOPIS does.
+While each of the reviewed systems addresses a relevant aspect of LLM inference optimization — whether through energy profiling, automated search, or multi-objective analysis — none integrate Bayesian Optimization and Pareto analysis into a single unified offline pre-deployment framework that is evaluated against random search baselines under controlled, statistically validated local deployment conditions, as BOPIS does.
 
 **Synthesis of the Study**
 
@@ -536,15 +519,13 @@ The most foundational concept in the reviewed literature is that local LLM deplo
 
 Building on this motivation, the energy consumption literature explains why energy should be addressed as a fundamental optimisation objective as well as how it can be reliably assessed – but it does not provide a system to act on those measurements. Patterson et al. (2021) and Schwartz et al. (2020) present an environmental and operational rationale for considering inference energy as a primary issue rather than a secondary reporting metric. Wilkins et al. (2024) and Husom et al. (2024) provide empirical and methodological foundations for this motivation. Wilkins demonstrates that Gaussian Process models achieve R² values exceeding 0.96 for LLM energy prediction, directly validating the surrogate modeling approach used in BOPIS. Husom confirms that per-token normalisation through process-level GPU monitoring produces reliable and comparable measurements across configurations. Hoxha et al. (2025) emphasize that sustained AI deployment requires simultaneous optimisation of several metrics rather than isolated energy savings. Collectively, these studies validate the three-layer energy monitoring infrastructure used in BOPIS, but they highlight the same fundamental limitation; existing profiling systems accurately measure energy without actively discovering better configurations. The change from passive profiling to active optimisation is exactly what BOPIS is intended to accomplish.
 
-The configuration parameter literature then explains what BOPIS should look for and why. Zhou et al. (2024) identify the key causes of LLM inference inefficiency as quadratic attention complexity with respect to input length, high model size, and autoregressive decoding which manifest in local deployment as the five customisable factors investigated by BOPIS. The quantization literature, including Dettmers et al. (2022), Frantar et al. (2022), Ma et al. (2023), Xu et al. (2023), Wan et al. (2023), and Husom et al. (2024), demonstrates that reducing numerical precision can lower memory demand and computational cost while introducing task-dependent quality trade-offs. In this study, this concept is operationalized through four GGUF precision/quantization variants of the same base model, Mistral 7B Instruct v0.3: F32, F16, Q8\_0, and Q4\_K\_M. These variants allow BOPIS to evaluate how full precision, half precision, 8-bit quantization, and 4-bit quantization affect energy consumption, inference speed, output quality, and resource utilization under the same hardware environment, prompt dataset, and inference backend. Since the quality impact of quantization is nonlinear and model-dependent, empirical evaluation is necessary rather than relying on theoretical assumptions alone. Tian et al. (2025) and Bast et al. (2024) confirm GPU layer offloading and CPU thread allocation as system-level characteristics that influence hardware workload distribution and energy consumption. Taken together, these studies show that each of the five BOPIS configuration parameters has measurable implications on energy and performance outcomes. Their common disadvantage, however, is that each parameter is evaluated independently. No previous work has investigated how these factors interact when optimized as a combined configuration space, which is what BOPIS is doing. 
+The configuration parameter literature then explains what BOPIS should look for and why. Zhou et al. (2024) identify the key causes of LLM inference inefficiency as quadratic attention complexity with respect to input length, high model size, and autoregressive decoding which manifest in local deployment as the five customisable factors investigated by BOPIS. The quantization literature, including Dettmers et al. (2022), Frantar et al. (2022), Lee et al. (2023), Shi et al. (2025), Wan et al. (2023), and Husom et al. (2024), demonstrates that reducing numerical precision can lower memory demand and computational cost while introducing task-dependent quality trade-offs. In this study, this concept is operationalized through three GGUF precision/quantization variants of the same base model, Qwen2.5-1.5B-Instruct: F16, Q8\_0, and Q4\_K\_M. These variants allow BOPIS to evaluate how half precision, 8-bit quantization, and 4-bit quantization affect energy consumption, inference speed, output quality, and resource utilization under the same hardware environment, prompt dataset, and inference backend. Since the quality impact of quantization is nonlinear and model-dependent, empirical evaluation is necessary rather than relying on theoretical assumptions alone. Tian et al. (2025) and Bast et al. (2024) confirm GPU layer offloading and CPU thread allocation as system-level characteristics that influence hardware workload distribution and energy consumption. Taken together, these studies show that each of the five BOPIS configuration parameters has measurable implications on energy and performance outcomes. Their common disadvantage, however, is that each parameter is evaluated independently. No previous work has investigated how these factors interact when optimized as a combined configuration space, which is what BOPIS is doing. 
 
-Given the difficulty and expense of assessing configurations in this combined space, the Bayesian Optimization literature explains why BO is not only a practical but also conceptually acceptable search method. Jones et al. (1998) and Snoek et al. (2012) provide a theoretical support for surrogate-based optimization of expensive black-box functions, demonstrating that a Gaussian Process surrogate combined with the expected improvement acquisition function allows for efficient search by learning from each evaluation and directing subsequent ones toward the most promising part of the configuration space. EcoOptiGen (Wang et al., 2023), MALBO (Sabbatella, 2025), BOInG (Sabbatella et al., 2024), and cross-domain validations by Wang et al. (2025) and Tanim et al. (2024) all confirms that BO consistently outperforms uninformed search strategies, with MALBO reporting a 45% reduction in optimization cost when compared to random search. The surrogate validation framework established in this chapter, emphasize that BO should be evaluated not only on its final configuration recommendation, but also on the reliability of its surrogate predictions, as measured by MAE and NPE, and the efficiency of its convergence across iterations. Existing BO applications to LLM inference have a persistent limitation in that they target monetary cost on cloud-based proprietary models rather than energy consumption on locally deployed open-source LLMs, and none combine BO with Pareto analysis for multi-objective configuration selection in local deployment scenarios. BOPIS advances immediately beyond this barrier.
+Given the difficulty and expense of assessing configurations in this combined space, the Bayesian Optimization literature explains why BO is not only a practical but also conceptually acceptable search method. Jones et al. (1998) and Snoek et al. (2012) provide a theoretical support for surrogate-based optimization of expensive black-box functions, demonstrating that a Gaussian Process surrogate combined with the expected improvement acquisition function allows for efficient search by learning from each evaluation and directing subsequent ones toward the most promising part of the configuration space. EcoOptiGen (Wang et al., 2023), MALBO (Sabbatella, 2025), BOInG (Sabbatella et al., 2024), and cross-domain validations by Wang et al. (2025) and Tanim et al. (2024) all confirms that BO consistently outperforms uninformed search strategies, with MALBO reporting a 45% reduction in optimization cost when compared to random search. The surrogate validation framework established in this chapter emphasizes that BO should be evaluated not only on its final configuration recommendation, but also on the reliability of its surrogate predictions, as measured by MAE and NPE, and the efficiency of its convergence across iterations. Existing BO applications to LLM inference have a persistent limitation in that they target monetary cost on cloud-based proprietary models rather than energy consumption on locally deployed open-source LLMs, and none combine BO with Pareto analysis for multi-objective configuration selection in local deployment scenarios. BOPIS advances immediately beyond this barrier.
 
 Finally, the Pareto analysis literature reveals that after desirable configurations have been identified via BO, a principled multi-objective evaluation framework is required to choose between them. Kakolyris et al. (2024) show empirically that energy, speed, and quality are competing objectives in LLM inference systems; decreasing energy frequently affects latency or quality, implying that no single configuration prevails across all dimensions. Tanaka et al. (2026) and BAMBO (Chen et al., 2025\) demonstrate that Pareto-based multi-objective optimization identifies balanced and efficient configurations across LLM systems, with Tanaka reporting a 2.8 times  increase in efficiency metrics while maintaining accuracy within 1.2% of baseline. Hoxha et al. (2025) emphasize that successful AI deployment requires a multi-objective approach to competing efficiency factors. The consistent limitation across this literature is that existing Pareto frameworks rely on model architecture rather than inference parameters, or they operate in cloud and server-side environments rather than local single-machine deployments, neither of which addresses the configuration selection problem that BOPIS solves.
 
-These five themes together reveal a clear and definite gap. Energy profiling techniques can measure inference energy but do not actively optimize it. Dynamic scheduling solutions improve energy efficiency at the infrastructure level but are often designed for server-side or cloud environments. Pareto-based approaches address multi-objective trade-offs, but many focus on model architecture or deployment-level optimization rather than local inference configuration. Bayesian Optimization methods efficiently search costly configuration spaces, but existing applications often optimize monetary cost or task performance in proprietary or cloud-based models rather than energy consumption in locally deployed LLM inference. No reviewed study combines Bayesian Optimization and Pareto Analysis into a unified offline pre-deployment system that jointly evaluates runtime configuration parameters and GGUF precision/quantization variants, including F32, F16, Q8\_0, and Q4\_K\_M, for locally deployed LLM inference. BOPIS addresses this gap through a statistically validated three-way comparison among the unoptimized default configuration, random search baseline, and BOPIS-recommended configuration under controlled experimental conditions. 
-
-# 
+These five themes together reveal a clear and definite gap. Energy profiling techniques can measure inference energy but do not actively optimize it. Dynamic scheduling solutions improve energy efficiency at the infrastructure level but are often designed for server-side or cloud environments. Pareto-based approaches address multi-objective trade-offs, but many focus on model architecture or deployment-level optimization rather than local inference configuration. Bayesian Optimization methods efficiently search costly configuration spaces, but existing applications often optimize monetary cost or task performance in proprietary or cloud-based models rather than energy consumption in locally deployed LLM inference. No reviewed study combines Bayesian Optimization and Pareto Analysis into a unified offline pre-deployment system that jointly evaluates runtime configuration parameters and GGUF precision/quantization variants, including F16, Q8\_0, and Q4\_K\_M, for locally deployed LLM inference. BOPIS addresses this gap through a statistically validated two-way comparison between random search baseline, and BOPIS-recommended configuration under controlled experimental conditions. 
 
 # **CHAPTER 3** **METHODOLOGY**
 
@@ -556,25 +537,25 @@ This chapter describes the procedures and methods used to address the research p
 
 	The research design is organized into five procedural stages. These stages describe how the experiment is conducted to answer the Statement of the Problem and evaluate the proposed system.
 
-	The first stage defines the configuration search space. This includes input token length, batch size, precision/quantization variant, GPU layer offloading, and CPU thread allocation. The study uses the same base model, Mistral 7B Instruct v0.3, across four GGUF precision/quantization variants: F32, F16, Q8\_0, and Q4\_K\_M. These variants are included to determine how full precision, half precision, 8-bit quantization, and 4-bit quantization affect energy consumption, inference speed, output quality, and resource utilization.
+	The first stage defines the configuration search space. This includes input token length, batch size, precision/quantization variant, GPU layer offloading, and CPU thread allocation. The study uses the same base model, Qwen2.5-1.5B-Instruct, across three GGUF precision/quantization variants: F16, Q8\_0, and Q4\_K\_M. These variants are included to determine how half precision, 8-bit quantization, and 4-bit quantization affect energy consumption, inference speed, output quality, and resource utilization.
 
-	The second stage evaluates three comparative conditions: the unoptimized default configuration, the random search baseline, and the BOPIS-optimized configuration. The unoptimized default configuration represents standard local LLM deployment without systematic tuning. The random search baseline represents an uninformed stochastic search method that selects configurations from the same search space without model-guided decision-making. The BOPIS-optimized configuration is generated through Bayesian Optimization followed by Pareto-based multi-objective selection.
+	The second stage evaluates two comparative conditions: the random search baseline and the BOPIS-optimized configuration. The random search baseline represents an uninformed stochastic search method that selects configurations from the same search space without model-guided decision-making. The BOPIS-optimized configuration is generated through Bayesian Optimization followed by Pareto-based multi-objective selection. The unoptimized default configuration is measured as a reference point only and is not included in the Wilcoxon signed-rank comparison. It serves as the denominator for EIR, SRR, and QRR
 
-	The third stage collects performance data from the same standardized prompt dataset across all three conditions. A fixed stratified sample from Databricks Dolly 15k is used to ensure fair and consistent comparison. The dependent variables include energy consumption, inference speed, output quality, and resource utilization. Energy consumption is measured in Joules and Joules per token, inference speed is measured in tokens per second, output quality is measured using BERTScore F1, and resource utilization is measured through CPU utilization, GPU utilization, and memory usage. Per-variant performance is also summarized across F32, F16, Q8\_0, and Q4\_K\_M to examine how each GGUF variant affects the measured outcomes.
+	The third stage collects performance data from the same standardized prompt dataset across all two conditions. A fixed stratified sample from Databricks Dolly 15k is used to ensure fair and consistent comparison. The dependent variables include energy consumption, inference speed, output quality, and resource utilization. Energy consumption is measured in Joules and Joules per token, inference speed is measured in tokens per second, output quality is measured using BERTScore F1, and resource utilization is measured through CPU utilization, GPU utilization, and memory usage. Per-variant performance is also summarized across F16, Q8\_0, and Q4\_K\_M to examine how each GGUF variant affects the measured outcomes.
 
 	The fourth stage evaluates the reliability and efficiency of the Bayesian Optimization process used by BOPIS. Gaussian Process surrogate model accuracy is assessed using Mean Absolute Error (MAE) and Normalized Prediction Error (NPE) between GP-predicted energy values and actual measured energy values. Convergence behavior is evaluated using the best energy value found per optimization iteration and the improvement per iteration (ΔE). Sample efficiency is evaluated using the Sample Efficiency Ratio (SER), which compares how efficiently BOPIS and random search identify their selected configurations under the same evaluation budget.
 
-	The fifth stage analyzes and validates the results through descriptive and inferential statistical treatment. Descriptive statistics are used to summarize the performance of each condition using mean, standard deviation, minimum, and maximum values. The Friedman test is used to determine whether statistically significant differences exist among the three configurations. If significant differences are found, a Nemenyi post-hoc comparison is conducted to identify which specific configurations differ. The final BOPIS recommendation is further interpreted using Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR) to determine whether energy reduction is achieved while maintaining acceptable inference speed and output quality.
+	The fifth stage analyzes and validates the results through descriptive and inferential statistical treatment. Descriptive statistics are used to summarize the performance of each condition using mean, standard deviation, minimum, and maximum values. The Wilcoxon signed-rank test is used to determine whether statistically significant differences exist between the random search baseline and the BOPIS-optimized configuration. The final BOPIS recommendation is further interpreted using Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR) to determine whether energy reduction is achieved while maintaining acceptable inference speed and output quality.
 
-	Through this research design, the study determines whether the BOPIS-optimized configuration is energy-efficient compared with the unoptimized default and random search baseline, while also validating whether the Bayesian Optimization process is reliable, convergent, and sample-efficient.
+	Through this research design, the study determines whether the BOPIS-optimized configuration is energy-efficient compared with random search baseline, while also validating whether the Bayesian Optimization process is reliable, convergent, and sample-efficient.
 
 **Sources of Data**
 
 The study draws on three categories of data sources: a standardized prompt dataset, hardware performance measurements, and configuration search outputs generated during the experimental runs.
 
-The primary prompt dataset used across all three experimental conditions is Databricks Dolly 15k, a publicly available instruction-following dataset containing approximately 15,000 human-generated prompts across multiple task categories: open question answering, closed question answering, information extraction, summarization, classification, creative writing, brainstorming, and general-purpose instruction following. Dolly 15k was selected because it provides diverse prompt types representative of common LLM usage, includes reference outputs that enable proxy-based quality evaluation, and is publicly accessible under its applicable license terms. The dataset is sourced from the official Hugging Face repository at https://huggingface.co/datasets/databricks/databricks-dolly-15k.
+The primary prompt dataset used between both comparison conditions and the default reference is Databricks Dolly 15k, a publicly available instruction-following dataset containing approximately 15,000 human-generated prompts across multiple task categories: open question answering, closed question answering, information extraction, summarization, classification, creative writing, brainstorming, and general-purpose instruction following. Dolly 15k was selected because it provides diverse prompt types representative of common LLM usage, includes reference outputs that enable proxy-based quality evaluation, and is publicly accessible under its applicable license terms. The dataset is sourced from the official Hugging Face repository at https://huggingface.co/datasets/databricks/databricks-dolly-15k.
 
-The second source of data is direct hardware measurement during local LLM inference. Performance metrics, including energy consumption, inference speed, CPU utilization, GPU utilization, and memory usage, are collected during each experimental run using software-based monitoring tools described in the Research Instruments section. These measurements are generated by running the same base model, Mistral 7B Instruct v0.3, across the evaluated GGUF precision/quantization variants: F32, F16, Q8\_0, and Q4\_K\_M. All variants are tested on the study’s single-machine CPU-GPU setup under the unoptimized default configuration, random search baseline, and BOPIS-optimized configuration. 
+The second source of data is direct hardware measurement during local LLM inference. Performance metrics, including energy consumption, inference speed, CPU utilization, GPU utilization, and memory usage, are collected during each experimental run using software-based monitoring tools described in the Research Instruments section. These measurements are generated by running the same base model, Qwen2.5-1.5B-Instruct, across the evaluated GGUF precision/quantization variants: F16, Q8\_0, and Q4\_K\_M. All variants are tested on the study's single-machine CPU-GPU setup under the random search baseline, and BOPIS-optimized configuration.
 
 The third source of data is the configuration evaluation logs generated during the BOPIS Bayesian Optimization process and random search baseline. Each evaluated configuration produces a record of its parameter values, including input token length, batch size, precision/quantization variant, GPU layer offloading, and CPU thread allocation, along with measured energy consumption, inference speed, output quality, and resource utilization. For BOPIS, the logs also include Gaussian Process surrogate predictions, actual measured energy values, prediction error values used for MAE and NPE, best energy value per iteration, improvement per iteration (ΔE), acquisition-related outputs, and Pareto front status. For the random search baseline, the logs record the evaluated configurations and the iteration at which the selected configuration is identified. These data are used to evaluate final configuration performance, per-variant performance, convergence behavior, and sample efficiency through the Sample Efficiency Ratio (SER). 
 
@@ -586,7 +567,7 @@ Stratification is performed based on the task categories of the dataset, includi
 
 Additional filtering is applied before sampling. Prompts with missing reference outputs are excluded because output quality is evaluated using BERTScore F1, which requires reference responses. Prompts that exceed the maximum token length supported by the tested configurations are also excluded to ensure consistent processing across all experimental conditions. 
 
-The resulting 500-prompt dataset is fixed prior to experimentation and is used consistently across the unoptimized default configuration, random search baseline, and BOPIS-optimized configuration. This ensures that observed performance differences are attributable to the configuration selection strategy rather than variation in the prompt dataset. 
+The resulting 500-prompt dataset is fixed prior to experimentation and is used consistently between random search baseline, and BOPIS-optimized configuration. This ensures that observed performance differences are attributable to the configuration selection strategy rather than variation in the prompt dataset. 
 
 A smaller stratified subset of 50 prompts is selected from the 500-prompt evaluation dataset for intermediate evaluations during the Bayesian Optimization and random search configuration search. This subset serves as a proxy evaluation set that reduces computational cost while preserving proportional representation across task categories. Using the full 500-prompt dataset for every candidate configuration would substantially increase the number of inference runs per optimization iteration; therefore, the 50-prompt subset makes repeated configuration evaluation feasible on the study’s single-machine hardware. 
 
@@ -598,8 +579,7 @@ The 50-prompt subset is used only during intermediate configuration search and i
 
 *Figure 3.1 System Architecture* 
 
-The BOPIS system is composed of five major components: the Input Layer, the BOPIS Optimization Engine, the Performance Measurement Layer, the Comparative Evaluation Conditions, and the Output and Statistical Analysis Layer. These components operate as an integrated experimental pipeline that transforms inference configuration parameters into statistically validated energy-efficient LLM deployment recommendations.  
- 
+The BOPIS system is composed of five major components: the Input Layer, the BOPIS Optimization Engine, the Performance Measurement Layer, the Comparative Evaluation Conditions, and the Output and Statistical Analysis Layer. These components operate as an integrated experimental pipeline that transforms inference configuration parameters into statistically validated energy-efficient LLM deployment recommendations.
 
 | Stage | Component | Method | Output |
 | ----- | ----- | ----- | ----- |
@@ -613,14 +593,14 @@ The BOPIS system is composed of five major components: the Input Layer, the BOPI
 *Table 3.1. BOPIS System Pipeline Table Overview*
 
 The Input Layer provides the resources and parameters required for inference optimization and evaluation. It includes the hardware environment specifications, the llama.cpp inference engine, the configuration search space parameters, and the Databricks Dolly 15K dataset used for benchmark prompts and reference outputs. These inputs are shared consistently across all experimental conditions to ensure fair comparison.  
-Inside the BOPIS Optimization Engine, the Configuration Space Definition module establishes the discrete search space explored during optimization. Inside the BOPIS Optimization Engine, the Configuration Space Definition module establishes the discrete search space explored during optimization. The configuration parameters include input token length (128, 256, 512, 1024), batch size (1, 2, 4, 8), precision/quantization variant (F32, F16, Q8\_0, Q4\_K\_M), GPU layer offloading (0, 14, 28, All), and CPU thread allocation (2, 4, 8). These parameters are evaluated consistently across the unoptimized default configuration, random search baseline, and BOPIS optimization condition. The four precision/quantization variants represent deployment formats of the same base model, Mistral 7B Instruct v0.3, allowing the study to evaluate precision and quantization effects while keeping the model architecture constant. These parameters are evaluated consistently across the unoptimized baseline, random search, and BOPIS optimization conditions.  
+Inside the BOPIS Optimization Engine, the Configuration Space Definition module establishes the discrete search space explored during optimization. Inside the BOPIS Optimization Engine, the Configuration Space Definition module establishes the discrete search space explored during optimization. The configuration parameters include input token length (128, 256, 512, 1024), batch size (1, 2, 4, 8), precision/quantization variant precision/quantization variant (F16, Q8\_0, Q4\_K\_M) , GPU layer offloading (0, 14, 28, All), and CPU thread allocation (2, 4, 8). These parameters are evaluated consistently between random search baseline, and BOPIS optimization condition. The three precision/quantization variants represent deployment formats of the same base model, Qwen2.5-1.5B-Instruct, allowing the study to evaluate precision and quantization effects while keeping the model architecture constant. These parameters are evaluated consistently between random search, and BOPIS optimization conditions.  
 Prior to optimization, the hardware environment is profiled to define the feasible configuration space. This is a deterministic rule-based step in which each hardware specification maps directly to a set of permissible parameter values. No configurations outside this feasible space are evaluated during any experimental condition. Table H1 summarizes the hardware constraint rules applied to GPU VRAM, system RAM, and CPU core count. 
 
 | Hardware Spec | Condition | Constrained Parameter | Permitted Values | Rule ID |
 | :---: | :---: | :---: | :---: | :---: |
 | GPU VRAM | \< 4 GB | Precision/Quantization Variant | Q8\_0, Q4\_K\_M  | HW-P1 |
 | GPU VRAM | 4 GB – \< 8 GB | Precision/Quantization Variant | F16, Q8\_0, Q4\_K\_M | HW-P2 |
-| GPU VRAM | ≥ 8 GB | Precision/Quantization Variant | F32, F16, Q8\_0, Q4\_K\_M  | HW-P3 |
+| GPU VRAM | ≥ 8 GB | Precision/Quantization Variant | F16, Q8\_0, Q4\_K\_M   | HW-P3 |
 | GPU VRAM | \< 4 GB | GPU Layers Offloaded | 0, 14 | HW-G1 |
 | GPU VRAM | 4 GB – \< 8 GB | GPU Layers Offloaded | 0, 14, 28 | HW-G2 |
 | GPU VRAM | ≥ 8 GB | GPU Layers Offloaded | 0, 14, 28, All | HW-G3 |
@@ -633,24 +613,32 @@ Prior to optimization, the hardware environment is profiled to define the feasib
 
 *Table H1. Hardware-Aware Configuration Constraint Rules*
 
- 	The feasible configuration space is the Cartesian product of all permitted values across the five configuration parameters after hardware constraint filtering, formally defined as: 
+ *Task Classification Module*
+
+Before optimization begins, BOPIS infers the task category of the deployed workload in order to select the appropriate prior distribution over precision variants and the corresponding per-category quality floor Q\_min(task). Two implementations were developed. The first is a rule-based classifier comprising 42 lexical and structural rules implemented using the Python standard library only, which allows it to run inside the measurement path without introducing additional dependencies. The second is a supervised multinomial Naive Bayes classifier trained on the Databricks Dolly 15k category labels using a 70/15/15 train/validation/test split with a fixed random seed.
+
+On the held-out test split, the supervised classifier achieves 69.7% exact eight-way accuracy against the rule baseline's 48.2%, 78.6% against 63.6% when general and open question answering are merged, and 79.2% against 67.1% when evaluated at the level of quality-sensitivity tier, which is the granularity the prior actually consumes.
+
+Three qualifications apply to this comparison. The dominant residual confusion is between general and open question answering, accounting for 200 of 683 test errors; Dolly distinguishes these categories by a property of the reference answer rather than of the prompt, so the confusion is intrinsic to the labelling scheme. The rule baseline continues to outperform the supervised classifier on closed question answering (89.1% against 81.2%) and open question answering (78.5% against 77.0%), suggesting a hybrid arrangement as future work. Finally, the rule baseline was hand-tuned using corpus-level feedback and has therefore effectively observed the test distribution, so the reported margin should be read as a lower bound on the improvement.
+
+The feasible configuration space is the Cartesian product of all permitted values across the five configuration parameters after hardware constraint filtering, formally defined as: 
 
 ***X\_feasible \= T × B × P(HW) × G(HW) × C(HW)***
 
-where T \= {128, 256, 512, 1024} represents input token lengths, B(HW) represents batch sizes permitted by available system memory, P(HW) represents GGUF precision/quantization variants permitted by the available hardware and llama.cpp backend, G(HW) represents GPU layer offloading options permitted by GPU VRAM, and C(HW) represents CPU thread allocation values permitted by CPU core count. In this study, P(HW) includes four GGUF variants of Mistral 7B Instruct v0.3: F32, F16, Q8\_0, and Q4\_K\_M. All Bayesian Optimization and random search operations are restricted to this feasible configuration space.   
-Task classification introduces probabilistic prior knowledge into the Bayesian Optimization search. Based on Ma et al. (2023), different NLP task types exhibit different sensitivity to quantization-induced quality degradation. Open-ended generation, summarization, and brainstorming tasks are more robust to low-bit precision, while closed-form question answering and information extraction are more sensitive. This empirical finding is formalized as a prior probability distribution P(precision | task\_type) that weights the initial random sampling phase of the BO engine, as shown in Table T1.  
+where T \= {128, 256, 512, 1024} represents input token lengths, B(HW) represents batch sizes permitted by available system memory,P(HW) includes three GGUF variants of Qwen2.5-1.5B-Instruct: F16, Q8\_0, and Q4\_K\_M, precision/quantization variants permitted by the available hardware and llama.cpp backend, G(HW) represents GPU layer offloading options permitted by GPU VRAM, and C(HW) represents CPU thread allocation values permitted by CPU core count. In this study, P(HW) includes three GGUF variants of Qwen2.5-1.5B-Instruct: F16, Q8\_0, and Q4\_K\_M. All Bayesian Optimization and random search operations are restricted to this feasible configuration space.   
+Task classification introduces probabilistic prior knowledge into the Bayesian Optimization search. Based on Lee et al. (2023), different NLP task types exhibit different sensitivity to quantization-induced quality degradation. Open-ended generation, summarization, and brainstorming tasks are more robust to low-bit precision, while closed-form question answering and information extraction are more sensitive. This empirical finding is formalized as a prior probability distribution P(precision | task\_type) that weights the initial random sampling phase of the BO engine, as shown in Table T1.  
 Based on prior studies showing that task types differ in sensitivity to quantization-induced degradation, the study uses a researcher-defined task-informed prior distribution during the initial seed configuration phase. This prior does not represent exact probabilities reported by the cited studies; rather, it operationalizes their general finding that some tasks are more sensitive to low-bit quantization than others. 
 
-| Task Type | Quality Sensitivity | P(FP32) | P(FP16) | P(INT8) | Min. Precision | Literature Basis |
+| Task Type | Quality Sensitivity | P(F16) | P(INT8) | P(Q4\_K\_M)  | Min. Precision | Literature Basis |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Open QA | **Low** | 0.15 | 0.45 | 0.40 | P(F16)  | Ma et al. (2023) |
-| Closed QA | **High** | 0.35 | 0.45 | 0.20 | P(F16)  | Ma et al. (2023) |
-| Summarization | **Low** | 0.15 | 0.40 | 0.45 | P(F16)  | Ma et al. (2023) |
-| Classification | **Low** | 0.10 | 0.35 | 0.55 | P(Q8\_0)  | Ma et al. (2023) |
-| Creative Writing | **Low** | 0.15 | 0.45 | 0.40 | P(F16)  | Ma et al. (2023) |
-| Brainstorming | **Low** | 0.10 | 0.35 | 0.55 | P(Q8\_0)  | Ma et al. (2023) |
-| Info Extraction | **High** | 0.35 | 0.45 | 0.20 | P(F16)  | Ma et al. (2023) |
-| General Instr. | **Medium** | 0.20 | 0.45 | 0.35 | P(F16)  | Xu et al. (2023) |
+| Open QA | **Low** | 0.53 | 0.235  | 0.235  | P(F16)  | Lee et al. (2025) |
+| Closed QA | **High** | 0.69  | 0.233  | 0.077  | P(F16)  | Lee et al. (2025) |
+| Summarization | **Low** | 0.47  | 0.265  | 0.265  | P(F16)  | Lee et al. (2025) |
+| Classification | **Low** | 0.39  | 0.305  | 0.305  | P(Q8\_0)  | Lee et al. (2025) |
+| Creative Writing | **Low** | 0.53  | 0.235 | 0.235  | P(F16)  | Lee et al. (2025) |
+| Brainstorming | **Low** | 0.39  | 0.305 | 0.305  | P(Q8\_0)  | Lee et al. (2025) |
+| Info Extraction | **High** | 0.69  | 0.233 | 0.077  | P(F16)  | Lee et al. (2025) |
+| General Instr. | **Medium** | 0.56  | 0.264 | 0.176  | P(F16)  | Shi et al. (2025) |
 
 *Table T1. Researcher-Defined Task-Informed Prior Distribution for GGUF Precision/Quantization Variant Selection* 
 
@@ -663,7 +651,8 @@ where P(taskₜ) is the proportion of the 500-prompt evaluation sample belonging
 The Bayesian Optimization Engine serves as the primary intelligent search mechanism of BOPIS. The engine uses a Gaussian Process (GP) surrogate model to approximate the relationship between inference configurations and observed performance outcomes. The Expected Improvement acquisition function selects candidate configurations by balancing exploration of uncertain regions and exploitation of configurations predicted to yield favorable results. The surrogate model is iteratively updated after each inference evaluation using newly collected measurements from the Evaluation Module.
 
 The BO engine executes the following six-step procedure across all optimization iterations:  
-**Step 1  Initialize:** Draw 10 seed configurations from X\_feasible using the task-informed variant prior P(p | task). Evaluate each on the 50-prompt BO subset. Record {xᵢ, E(xᵢ), S(xᵢ), Q(xᵢ)} for i \= 1…10.  
+**Step 1  Initialize:** Draw 10 seed configurations from X\_feasible using the task-informed  
+variant prior P(p | task). Evaluate each on the 50-prompt BO subset. Record {xᵢ, E(xᵢ), S(xᵢ), Q(xᵢ)} for i \= 1…10.  
 **Step 2 Fit GP Surrogate:** Fit a Gaussian Process to all observed {xᵢ, E(xᵢ)} pairs. The GP provides predicted mean μ(x) and uncertainty σ(x) for any unevaluated configuration.  
 **Step 3 Acquire Next Config:** Select the next configuration xₙ₊₁ by maximizing the Expected Improvement (EI) acquisition function over X\_feasible.  
 **Step 4 Evaluate:** Run llama.cpp inference under xₙ₊₁ on the 50-prompt subset. Record E(xₙ₊₁), S(xₙ₊₁), Q(xₙ₊₁).  
@@ -689,15 +678,13 @@ After observing n configuration-energy pairs Dₙ \= {(x₁, E₁), …, (xₙ, 
 
 ***σₙ²(x) \= k(x,x) − k(x, Xₙ) × \[K(Xₙ, Xₙ) \+ σᵊ² I\]⁻¹ × k(Xₙ, x)***
 
-where μₙ(x) is the posterior predicted mean energy. σₙ²(x) is the posterior variance (uncertainty). K(Xₙ, Xₙ) is the n×n kernel matrix of observed configurations. k(x, Xₙ) is the 1×n cross-covariance vector. yₙ \= \[E₁, …, Eₙ\]ᵀ is the vector of observed energy values. σᵊ² is the noise variance. I is the n×n identity matrix.
-
+where μₙ(x) is the posterior predicted mean energy. σₙ²(x) is the posterior variance (uncertainty). K(Xₙ, Xₙ) is the n×n kernel matrix of observed configurations. k(x, Xₙ) is the 1×n cross-covariance vector. yₙ \= \[E₁, …, Eₙ\]ᵀ is the vector of observed energy values. σᵊ² is the noise variance. I is the n×n identity matrix.  
 The GP hyperparameters {σᶠ², l, σᵊ²} are refitted after each new observation by maximizing the log marginal likelihood:
 
 ***log p(yₙ | Xₙ, θ) \= −½ yₙᵀ \[K \+ σᵊ² I\]⁻¹ yₙ − ½ log|K \+ σᵊ² I| − (n/2) log(2π)***
 
 where θ \= {σᶠ², l, σᵊ²} are optimized using L-BFGS-B implemented through Python standard library math operations, keeping the surrogate model calibrated throughout the search.  
-The Evaluation Module executes LLM inference using llama.cpp subprocess calls under the candidate configuration provided by the optimization engine. Each evaluated configuration produces inference outputs and execution logs which are forwarded to the Performance Measurement Layer for monitoring and analysis.
-
+The Evaluation Module executes LLM inference using llama.cpp subprocess calls under the candidate configuration provided by the optimization engine. Each evaluated configuration produces inference outputs and execution logs which are forwarded to the Performance Measurement Layer for monitoring and analysis.  
 The Performance Measurement Layer operates passively across the entire optimization and benchmarking pipeline. This layer records energy consumption, inference speed, output quality, and resource utilization metrics for every evaluated configuration. GPU power draw, utilization, and VRAM consumption are collected directly through the NVIDIA Management Library (NVML) accessed via Python ctypes. CPU utilization, RAM usage, and thread activity are retrieved from the Linux /proc filesystem. Inference speed in tokens per second is extracted from llama.cpp execution logs, while output quality is evaluated using BERTScore F1 against Databricks Dolly 15K reference outputs. All measurements are logged into structured CSV datasets using researcher-developed scripts without reliance on third-party monitoring frameworks.  
 The Pareto Analysis Module performs multi-objective evaluation on all configurations evaluated during the Bayesian Optimization search. The module identifies Pareto-optimal solutions across the competing objectives of minimizing energy consumption, maximizing inference speed, and maximizing output quality. From the resulting Pareto front, BOPIS selects the final recommended configuration based on energy-efficiency priority while maintaining acceptable performance thresholds.  
 A configuration x is said to dominate configuration x’, written x ≺ x’, if and only if it is at least as good on all three objectives and strictly better on at least one:
@@ -715,13 +702,13 @@ The final recommended configuration x\* is selected from the Pareto front as the
 *subject to:  **x ∈ PF  AND  SRR(x) ≥ 95%  AND  QRR(x) ≥ 98%***
 
 where EIR(x) \= \[(E\_default − E(x)) / E\_default\] × 100% is the Energy Improvement Ratio. SRR(x) \= \[S(x) / S\_default\] × 100% is the Speed Retention Ratio. QRR(x) \= \[Q(x) / Q\_default\] × 100% is the Quality Retention Ratio. x\* is the configuration that maximizes energy savings while meeting both performance constraints simultaneously.  
-The quality of the Pareto front as a whole is measured using the Hypervolume (HV) indicator, which quantifies the volume of objective space dominated by the front relative to the unoptimized default as the reference worst-case point:
+The quality of the Pareto front as a whole is measured using the Hypervolume (HV) indicator, which quantifies the volume of objective space dominated by the front as the reference worst-case point:
 
 ***HV(PF, r) \= λ({ q ∈ ℝ³ : ∃ x ∈ PF,  f(x) ⋜ q ⋜ r })***
 
 where λ denotes the Lebesgue measure (three-dimensional volume). r \= (E\_default, −S\_default, −Q\_default) is the reference worst-case point. A larger HV indicates a Pareto front that covers a wider and better trade-off space.  
-To validate optimization effectiveness, the architecture includes two comparison conditions: the unoptimized default configuration and a random search baseline. These conditions bypass the Bayesian Optimization Engine but still execute through the same evaluation and measurement pipeline to ensure experimental consistency. All three conditions generate benchmark results and structured statistical analysis datasets.  
-The Output Layer consolidates the experimental outputs of the system. These outputs include benchmark comparison results, statistical analysis datasets, Pareto front solutions, and the final optimal configuration identified by BOPIS. The statistical analysis pipeline applies descriptive statistics, the Friedman test, and post-hoc Nemenyi analysis to determine whether statistically significant differences exist among the unoptimized baseline, random search baseline, and BOPIS optimization model.  
+To validate optimization effectiveness, the architecture includes a comparison condition: the random search baseline. These conditions bypass the Bayesian Optimization Engine but still execute through the same evaluation and measurement pipeline to ensure experimental consistency. All three conditions generate benchmark results and structured statistical analysis datasets.  
+The Output Layer consolidates the experimental outputs of the system. These outputs include benchmark comparison results, statistical analysis datasets, Pareto front solutions, and the final optimal configuration identified by BOPIS. The statistical analysis pipeline applies descriptive statistics, to determine whether statistically significant differences exist between random search baseline, and BOPIS optimization model.  
 Table F1 summarizes the complete BOPIS pipeline, mapping each processing step to its inputs, methods, output metrics, and the recording table where measurements are logged.
 
 | Pipeline Step | Input | Process | Output Metric(s) | Table |
@@ -737,7 +724,7 @@ Table F1 summarizes the complete BOPIS pipeline, mapping each processing step to
 | Pareto Analysis | All evaluated configs | Non-dominated sorting | Pareto front PF, HV | Table A.11 |
 | x\* Selection | PF \+ SRR/QRR thresholds | argmax EIR subject to constraints | Final config x\* | Table A.10 |
 | 3-Way Validation | Full 500-prompt set | Run Unopt, RS, BOPIS x\* | EIR, SRR, QRR, all raw metrics | Tables A.1–A.6 |
-| Statistical Analysis | Per-prompt metric vectors | Friedman test \+ Nemenyi post-hoc | p-values, significance pairs | Table A.6 |
+| Statistical Analysis | Per-prompt metric vectors | Wilcoxon signed-rank  | p-values, significance pairs | Table A.6 |
 
 *Table F1. BOPIS Full Pipeline Flow — Input, Process, Output Metrics, and Data Tables*
 
@@ -745,9 +732,9 @@ Table 3.2 summarizes the configuration parameters and their candidate values exp
 
 | Parameter | Values Explored | Default Value | Notes |
 | ----- | ----- | ----- | ----- |
-| Input token length | 128, 256, 512, 1024 | 2048 | Context window size |
+| Maximum generation length (n\_predict) | 128, 256, 512, 1024 | 1024 | Per-request cap on generated tokens; context window fixed at ctx\_size \= 2048 for all runs |
 | Batch size | 1, 2, 4, 8 | 1 | Prompts per inference run |
-| Precision/Quantization Variant  | F32, F16, Q8\_0, Q4\_K\_M  | F32 | GGUF deployment variant  |
+| Precision/Quantization Variant  | F16, Q8\_0, Q4\_K\_M  | F16 | GGUF deployment variant  |
 | GPU layers offloaded | 0, 14, 28, All | All | Layers routed to GPU vs CPU |
 | CPU threads | 2, 4, 8 | System default | Parallelism for CPU-bound ops |
 
@@ -763,7 +750,7 @@ The optimization process begins with the definition of the inference configurati
 
 ***x \= (t, b, p, g, c)***
 
-where t represents input token length, b represents batch size, p represents the GGUF precision/quantization variant, g represents GPU layer offloading configuration, and c represents CPU thread allocation. The value of p is selected from {F32, F16, Q8\_0, Q4\_K\_M}, representing the four evaluated deployment variants of the same base model.   
+where t represents input token length, b represents batch size, p represents the GGUF precision/quantization variant, g represents GPU layer offloading configuration, and c represents CPU thread allocation. The value of where p is selected from {F16, Q8\_0, Q4\_K\_M}, representing the three evaluated deployment variants of the same base model.    
 The study treats LLM inference optimization as a constrained multi-objective optimization problem. The objective function of BOPIS is defined as:
 
 ***f(x) \= { E(x),  −S(x),  −Q(x) }***
@@ -775,14 +762,14 @@ The primary optimization goal of BOPIS is to minimize energy consumption while m
 
 *subject to:  **S(x) ≥ S\_min(H)  and  Q(x) ≥ Q\_min(task)***
 
-where x represents the configuration search space. S\_min represents the minimum acceptable inference speed, defined by Speed Retention Ratio SRR ≥ 95% relative to the unoptimized default. Q\_min(task) represents the minimum acceptable output quality threshold per task type, defined by Quality Retention Ratio QRR ≥ 98%.  
+where x represents the configuration search space. S\_min represents the minimum acceptable inference speed, defined by Speed Retention Ratio SRR ≥ 95%. Q\_min(task) represents the minimum acceptable output quality threshold per task type, defined by Quality Retention Ratio QRR ≥ 98%.  
 Bayesian Optimization is used as the primary search mechanism of the model. A Gaussian Process (GP) surrogate model approximates the relationship between inference configurations and observed performance outcomes. The surrogate model is iteratively updated after each evaluation using newly observed measurements collected from LLM inference execution. The Expected Improvement (EI) acquisition function balances exploration of uncertain regions in the search space and exploitation of configurations predicted to produce favorable results.  
 After candidate configurations are evaluated, Pareto analysis is applied to identify non-dominated solutions across the competing objectives of energy consumption, inference speed, and output quality. A configuration is considered Pareto-optimal if no other configuration improves one objective without degrading at least one other objective. This condition is formally defined as: fᵢ(x) ≤ fᵢ(x\*) for all objectives i, and fⱼ(x) \< fⱼ(x\*) for at least one objective j.  
 The resulting Pareto front represents the set of optimal trade-off configurations identified by BOPIS. From this set, the final recommended configuration is selected based on energy-efficiency priority while preserving acceptable performance thresholds for inference speed and output quality.
 
 **Research Instrument**
 
-	The study uses structured experiment papers, automated CSV logs, software-based monitoring scripts, and a controlled local inference environment as research instruments for collecting and verifying performance data during local Large Language Model (LLM) inference. These instruments are applied consistently across the three experimental conditions: the unoptimized default configuration, the random search baseline, and the BOPIS-recommended configuration. This ensures that all measured values are collected using the same procedures and can be compared fairly.
+	The study uses structured experiment papers, automated CSV logs, software-based monitoring scripts, task classification module alongside the monitoring scripts, and a controlled local inference environment as research instruments for collecting and verifying performance data during local Large Language Model (LLM) inference. These instruments are applied consistently across the two experimental conditions: the random search baseline, and the BOPIS-recommended configuration. This ensures that all measured values are collected using the same procedures and can be compared fairly.
 
 **Hardware and Software Environment**
 
@@ -790,22 +777,22 @@ The resulting Pareto front represents the set of optimal trade-off configuration
 
 | Component | Specification |
 | :---- | :---- |
-| GPU | NVIDIA GeForce RTX 3060 (12 GB GDDR6 VRAM) |
-| CPU | \[fill in: e.g., Intel Core i7-12700K\] |
-| RAM | \[fill in: e.g., 32 GB DDR4-3200\] |
-| Storage | \[fill in: e.g., 1 TB NVMe SSD\] |
-| Operating System | Ubuntu 22.04.3 LTS (WSL2 kernel 5.15.x) |
+| GPU | 11th Gen Intel Core i5-1135G7 @ 2.40 GHz  |
+| CPU | NVIDIA GeForce MX330  |
+| RAM | 16 GB, approximately 15.78 GiB available  |
+| GPU VRAM  | 2 GB GDDR5  |
+| Operating System | Windows 11  |
 | Host OS | Windows 11 |
 | CUDA Toolkit | 12.x |
-| NVIDIA Driver | \[fill in: e.g., 535.xx\] |
+| NVIDIA Driver | 528.96  |
 | LLM Inference Engine | llama.cpp (build b3447, CUDA backend enabled) |
-| LLM Model | Mistral 7B Instruct v0.3 GGUF variants: F32, F16, Q8\_0, and Q4\_K\_M  |
-| Python Version | Python 3.x (standard library only) |
-| Power Monitoring | NVIDIA NVML via Python ctypes; Linux /proc filesystem |
+| LLM Model | Qwen2.5-Instruct  |
+| Python Version | Python 3.11.6  |
+| Power Monitoring | NVML where supported; Windows system monitoring and resource-allocation estimation  |
 
 *Table 3.3. Hardware and Software Environment Specifications*
 
-	The RTX 3060’s 12 GB GDDR6 VRAM is the binding hardware constraint that determines the feasible batch size, GPU layer offloading, and precision/quantization variant settings. Since the study evaluates F32, F16, Q8\_0, and Q4\_K\_M GGUF variants of the same base model, each variant is tested under the same local hardware and measurement pipeline. 
+	The NVIDIA MX330 is the binding hardware constraint that determines the feasible batch size, GPU layer offloading, and precision/quantization variant settings. Since the study evaluates F16, Q8\_0, and Q4\_K\_M GGUF variants of the same base model, each variant is tested under the same local hardware and measurement pipeline. 
 
 **Structured Experiment Paper and CSV Logs**
 
@@ -852,13 +839,13 @@ Data collection proceeds through five stages executed in the following order. Al
 
 **Stage 1: Environment Setup and Instrument Verification**
 
-	The single-machine CPU-GPU hardware environment is configured and validated before data collection begins. llama.cpp is installed and verified using the four selected Mistral 7B Instruct v0.3 GGUF variants: F32, F16, Q8\_0, and Q4\_K\_M.  The researchers’ Python scripts for invoking llama.cpp, accessing NVML through ctypes, parsing /proc filesystem entries, and writing CSV logs are tested using a warm-up run of ten consecutive inference calls. The results of the warm-up run are discarded. This process is conducted to stabilize GPU clock behavior, memory allocation, and runtime conditions before formal measurement begins.
+	The single-machine CPU-GPU hardware environment is configured and validated before data collection begins. llama.cpp is installed and verified using the three selected Qwen2.5-1.5B-Instruct GGUF variants: F16, Q8\_0, and Q4\_K\_M.  The researchers’ Python scripts for invoking llama.cpp, accessing NVML through ctypes, parsing /proc filesystem entries, and writing CSV logs are tested using a warm-up run of ten consecutive inference calls. The results of the warm-up run are discarded. This process is conducted to stabilize GPU clock behavior, memory allocation, and runtime conditions before formal measurement begins.
 
 	A baseline idle power measurement is then recorded. With no inference process running, the NVML ctypes interface samples GPU power draw every 100 milliseconds for 60 consecutive seconds. The mean of these samples is stored as P\_idle and is used during energy computation to distinguish inference-related energy consumption from background idle power draw. 
 
 	The 500-prompt stratified sample from Databricks Dolly 15k is prepared and saved to disk together with its corresponding reference outputs. A smaller 50-prompt stratified subset is selected from the 500-prompt sample and saved separately for intermediate Bayesian Optimization and random search evaluations. 
 
-**Stage 2: Unoptimized Baseline Measurement**
+**Stage 2: Unoptimized Default Reference Measurement**
 
 	The LLM is executed under the unoptimized default configuration across all 500 sampled prompts. Each prompt is submitted individually to llama.cpp through the researchers’ Python execution script. During each inference call, GPU power draw is sampled through NVML at 100-millisecond intervals and stored with timestamps. After each call, llama.cpp execution logs are parsed to extract wall-clock inference duration and generated token count. CPU utilization, RAM usage, GPU utilization, and VRAM usage are collected through the same /proc and NVML-based monitoring pipeline. 
 
@@ -882,19 +869,19 @@ Data collection proceeds through five stages executed in the following order. Al
 
 **Stage 5: Data Consolidation**
 
-	All CSV log files from the unoptimized default configuration, BOPIS optimization run, random search baseline, and final 500-prompt validation runs are consolidated into a structured dataset using the researchers’ Python scripts. The final comparative dataset contains per-prompt records for the three main conditions: unoptimized default configuration, selected random search configuration, and BOPIS-recommended configuration. 
+	All CSV log files from the unoptimized default configuration, BOPIS optimization run, random search baseline, and final 500-prompt validation runs are consolidated into a structured dataset using the researchers’ Python scripts. The final comparative dataset contains per-prompt records for the two comparison conditions and the unoptimized default reference.
 
-	For each condition, the consolidated dataset includes energy consumption, Joules per token, inference speed, BERTScore F1, CPU utilization, GPU utilization, and memory usage. Performance is also summarized by precision/quantization variant to compare the observed behavior of F32, F16, Q8\_0, and Q4\_K\_M across the evaluated configurations. The Bayesian Optimization and random search process logs are retained separately for computing process-level metrics, including MAE, NPE, convergence behavior, ΔE, and SER. Final configuration success indicators, including EIR, SRR, and QRR, are computed using the full 500-prompt evaluation results. Raw CSV log values are cross-verified against the structured experiment paper entries before the dataset is passed to descriptive and inferential statistical analysis. 
+	For each condition, the consolidated dataset includes energy consumption, Joules per token, inference speed, BERTScore F1, CPU utilization, GPU utilization, and memory usage. Performance is also summarized by the precision/quantization variant to compare the observed behavior of F16, Q8\_0, and Q4\_K\_M across the evaluated configurations. The Bayesian Optimization and random search process logs are retained separately for computing process-level metrics, including MAE, NPE, convergence behavior, ΔE, and SER. Final configuration success indicators, including EIR, SRR, and QRR, are computed using the full 500-prompt evaluation results. Raw CSV log values are cross-verified against the structured experiment paper entries before the dataset is passed to descriptive and inferential statistical analysis. 
 
 **Ethical Considerations**
 
 	This study does not involve human participants, personally identifiable information, or private enterprise data. The Databricks Dolly 15k dataset used in the study is a publicly available instruction-following dataset released under the Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) license. The dataset is used in accordance with its license terms, and the dataset source is properly cited throughout the study. 
 
-	The large language model deployed in the study is Mistral 7B Instruct v0.3, served through llama.cpp using four GGUF precision/quantization variants: F32, F16, Q8\_0, and Q4\_K\_M. These variants are used to evaluate how different local deployment formats affect energy consumption, inference speed, output quality, and resource utilization under the same base model and inference backend. The model and its variants are used in accordance with the applicable Apache 2.0 license. No proprietary models are used, and no model weights are redistributed beyond what is permitted by the applicable model license. The llama.cpp inference engine and all supporting open-source tools are used in accordance with their respective licenses. 
+	The large language model deployed in the study is Qwen2.5-1.5B-Instruct, served through llama.cpp using three GGUF precision/quantization variants: F16, Q8\_0, and Q4\_K\_M. These variants are used to evaluate how different local deployment formats affect energy consumption, inference speed, output quality, and resource utilization under the same base model and inference backend. The model and its variants are used in accordance with the applicable Apache 2.0 license. No proprietary models are used, and no model weights are redistributed beyond what is permitted by the applicable model license. The llama.cpp inference engine and all supporting open-source tools are used in accordance with their respective licenses. 
 
 	All data generated during the study, including energy logs, inference speed records, output quality scores, hardware utilization measurements, and configuration records, are produced through the researchers’ own experimental setup. These generated records do not contain human participant data or personally identifiable information. Data files are stored on the research hardware, and access is restricted to the research team. 
 
-	The study adheres to research integrity principles by applying the same hardware environment, prompt dataset, experimental conditions, and measurement procedures across all compared configurations. Results are reported as measured, including cases where the BOPIS-recommended configuration does not outperform the unoptimized default or random search baseline on a given metric. No data are selectively omitted, modified, or misrepresented to favor a particular outcome. 
+	The study adheres to research integrity principles by applying the same hardware environment, prompt dataset, experimental conditions, and measurement procedures across all compared configurations. Results are reported as measured, including cases where the BOPIS-recommended configuration does not outperform the random search baseline on a given metric. No data are selectively omitted, modified, or misrepresented to favor a particular outcome. 
 
 	All sources cited in the study are properly attributed following APA 7th edition citation standards. Published figures and materials from prior works are used only with proper citation and attribution to their original authors and sources. 
 
@@ -904,7 +891,7 @@ Data analysis proceeds through four main components: descriptive analysis, energ
 
 In the descriptive phase, performance data for all dependent variables are summarized per condition using mean, standard deviation, minimum, and maximum values computed across the 500-prompt evaluation runs. Energy consumption is reported both as total Joules and as normalized Joules per token (J/token). Inference speed is reported as mean tokens per second (tokens/sec). Output quality is reported using mean BERTScore F1. Resource utilization is reported through mean CPU utilization, GPU utilization, and memory usage. These descriptive statistics provide the overall performance profile of each configuration condition. 
 
-In addition to the three-way comparison among the unoptimized default configuration, random search baseline, and BOPIS-optimized configuration, performance is also summarized by GGUF precision/quantization variant. The F32, F16, Q8\_0, and Q4\_K\_M variants are compared descriptively in terms of energy consumption, inference speed, BERTScore F1, and resource utilization to determine how model deployment format affects local inference performance. 
+In addition to the two-way comparison between random search baseline, and BOPIS-optimized configuration, performance is also summarized by the GGUF precision/quantization variant. The F16, Q8\_0, and Q4\_K\_M variants are compared descriptively in terms of energy consumption, inference speed, BERTScore F1, and resource utilization to determine how model deployment format affects local inference performance. 
 
 Energy consumption is computed from GPU power readings collected through NVML during each inference call. Since idle GPU power is measured before experimentation, inference-related energy is computed by subtracting the recorded idle power from the sampled GPU power readings before integrating power over inference duration. The energy per inference run is computed as: 
 
@@ -914,11 +901,11 @@ where P\_t is the sampled GPU power reading at time t, P\_idle is the mean idle 
 
 ***J/token \= E / N\_generated*** 
 
-where E is the total inference energy in Joules and N\_generated is the number of generated tokens for the inference call. This normalization allows fair comparison across outputs with different response lengths. 
+The discrete GPU used in the study does not expose a power sensor; both NVML power-query interfaces return NOT\_SUPPORTED on this device. Energy is therefore reported as a Mode C estimate derived from vendor power budgets and measured utilization rather than from direct sensor readings, and every reported energy value is labelled as estimated. Absolute Joules-per-token figures are consequently not claimed as calibrated measurements. The Energy Improvement Ratio remains interpretable because it is a ratio of two estimates produced by the same estimator on the same host, so any systematic multiplicative bias in the estimator cancels; the ratio, not the absolute magnitude, is the quantity the study's conclusions rest on.
 
-In addition to measuring the dependent variables across the three comparison conditions, the study evaluates the internal performance of the BOPIS Bayesian Optimization process through process-level metrics. These metrics address whether the Bayesian Optimization engine functions reliably and efficiently, independent of the final configuration outcome, and provide the empirical basis for answering Research Question 5\. These process-level metrics are computed from the Bayesian Optimization and random search logs generated during the 50-prompt intermediate configuration search. 
+In addition to measuring the dependent variables across both comparison conditions, the study evaluates the internal performance of the BOPIS Bayesian Optimization process through process-level metrics. These metrics address whether the Bayesian Optimization engine functions reliably and efficiently, independent of the final configuration outcome, and support the Validation stage (Stage 5\) of the BOPIS pipeline described in System Architecture. These process-level metrics are computed from the Bayesian Optimization and random search logs generated during the 50-prompt intermediate configuration search. 
 
-First, Gaussian Process surrogate accuracy is measured using Mean Absolute Error (MAE) and Normalized Prediction Error (NPE). MAE quantifies the average absolute difference between the energy value predicted by the GP surrogate before inference execution and the actual measured energy value after inference execution: 
+First, Gaussian Process surrogate accuracy is measured using Mean Absolute Error (MAE) and Normalized Prediction Error (NPE). Surrogate accuracy is additionally validated by leave-one-out cross-validation over the evaluated configurations, reporting the leave-one-out coefficient of determination (LOO R²) and leave-one-out NPE. A LOO R² of at least 0.85 is required for the surrogate to be treated as reliable. The Gaussian Process predictive variance used for this assessment includes the learned noise term σ\_n²; the noise term is mandatory in σ\_pred, since omitting it would report predictive intervals narrower than the measurement process can support. MAE quantifies the average absolute difference between the energy value predicted by the GP surrogate before inference execution and the actual measured energy value after inference execution: 
 
 ***MAE\_GP \= (1/N) \* Σ | μ(x\_i) \- E\_measured(x\_i) |***
 
@@ -972,25 +959,21 @@ The formal BOPIS success criterion is defined as:
 
 These criteria are treated as predefined practical acceptability thresholds. If any of the three criteria are not met, the configuration may still be discussed as an energy-performance trade-off, but it will not be classified as successfully optimized under the formal BOPIS success criteria. 
 
-In the inferential phase, the Friedman test is applied separately to each dependent variable to determine whether statistically significant differences exist among the three evaluated configurations: unoptimized default configuration, random search baseline, and BOPIS-optimized configuration. Since the same 500-prompt dataset is evaluated under all three conditions, the Friedman test is appropriate for comparing related samples without assuming normality. The null hypothesis states that there is no statistically significant difference among the three configurations for a given dependent variable. The alternative hypothesis states that at least one configuration differs significantly from the others. A significance level of α \= 0.05 is used for all statistical tests. If the computed p-value is less than 0.05, the null hypothesis is rejected. 
-
-If the Friedman test indicates a statistically significant difference, a Nemenyi post-hoc comparison is conducted to identify which specific configuration pairs differ from one another. This allows the study to determine whether the significant difference occurs between the unoptimized default and BOPIS, random search and BOPIS, or the unoptimized default and random search. 
+In the inferential phase, the Wilcoxon signed-rank test is applied separately to each dependent variable to determine whether statistically significant differences exist between the two evaluated configurations: the random search baseline and the BOPIS-optimized configuration. Since the same 500-prompt dataset is evaluated under both conditions, the Wilcoxon signed rank-test is appropriate for comparing paired samples without assuming normality. The null hypothesis states that there is no statistically significant difference between the two configurations for a given dependent variable. The alternative hypothesis states that there is a statistically significant difference between them. A significance level of α \= 0.05 is used for all statistical tests. If the computed p-value is less than 0.05, the null hypothesis is rejected.
 
 All statistical analysis is conducted using the researchers’ Python scripts. Visualizations, including grouped bar charts, energy-performance trade-off plots, and Pareto front visualizations, are generated from the structured CSV datasets to support interpretation of the results. 
 
 **Statistical Treatment**
 
-The statistical treatment applied in the study is intended to determine whether statistically significant differences exist among the unoptimized default configuration, random search baseline, and BOPIS-optimized configuration across the measured dependent variables. It also summarizes the descriptive and process-level metrics used to interpret the final configuration performance and the reliability of the Bayesian Optimization process.
+The statistical treatment applied in the study is intended to determine whether statistically significant differences exist between random search baseline, and BOPIS-optimized configuration across the measured dependent variables. It also summarizes the descriptive and process-level metrics used to interpret the final configuration performance and the reliability of the Bayesian Optimization process.
 
-The Friedman test will be used as the primary inferential statistical test. It will be applied separately to each dependent variable: energy consumption measured in Joules and Joules per token, inference speed measured in tokens per second, output quality measured using BERTScore F1, and resource utilization measured as CPU utilization, GPU utilization, and memory usage. Since the same 500-prompt dataset is evaluated under all three configurations, the Friedman test is appropriate for comparing related samples without assuming normality of the data. 
+The Wilcoxon signed-rank test will be used as the primary inferential statistical test. It will be applied separately to each dependent variable. The unoptimized default configuration is measured as a reference point only and is not included in the Wilcoxon signed-rank comparison. It serves as the denominator for EIR, SRR, and QRR. The null hypothesis states that there is no statistically significant difference between the two configurations. The alternative hypothesis states that the configurations differ significantly.
 
-The null hypothesis states that there is no statistically significant difference among the three configurations for a given dependent variable. The alternative hypothesis states that at least one configuration differs significantly from the others. A significance level of α \= 0.05 will be used for all statistical tests. If the computed p-value is less than 0.05, the null hypothesis will be rejected. 
+The null hypothesis states that there is no statistically significant difference among the three configurations for a given dependent variable. The alternative hypothesis states that at least one configuration differs significantly from the others. A significance level of α \= 0.05 will be used for all statistical tests. If the computed p-value is less than 0.05, the null hypothesis will be rejected.
 
-If the Friedman test shows a statistically significant difference, a Nemenyi post-hoc comparison will be conducted to identify which specific configuration pairs differ from one another. The pairwise comparisons include the unoptimized default configuration versus random search, the unoptimized default configuration versus BOPIS, and random search versus BOPIS. 
+Descriptive statistics, including mean, standard deviation, minimum value, and maximum value, will also be computed for all dependent variables to summarize the performance of each configuration. Per-variant performance across F16, Q8\_0, and Q4\_K\_M GGUF precision/quantization variants will be analyzed descriptively in terms of energy consumption, inference speed, BERTScore F1, and resource utilization. 
 
-Descriptive statistics, including mean, standard deviation, minimum value, and maximum value, will also be computed for all dependent variables to summarize the performance of each configuration. Per-variant performance across F32, F16, Q8\_0, and Q4\_K\_M GGUF precision/quantization variants will be analyzed descriptively in terms of energy consumption, inference speed, BERTScore F1, and resource utilization. 
-
-BERTScore F1 will be used as the primary output quality metric because it evaluates semantic similarity between generated responses and reference outputs using contextual embeddings. This makes it suitable for evaluating LLM-generated responses where multiple valid phrasings may express the same meaning. 
+BERTScore F1 will be used as the primary output quality metric because it evaluates semantic similarity between generated responses and reference outputs using contextual embeddings. This makes it suitable for evaluating LLM-generated responses where multiple valid phrasings may express the same meaning. BERTScore baseline rescaling is enabled, and absolute F1 deltas are reported alongside QRR. Without rescaling, BERTScore F1 values occupy a narrow high band, and a retention criterion of QRR ≥ 98% would be nearly impossible to fail, carrying no discriminative information.
 
 In addition to statistical comparison, the study will compute configuration success indicators and Bayesian Optimization process metrics. Energy Improvement Ratio (EIR), Speed Retention Ratio (SRR), and Quality Retention Ratio (QRR) will be used to determine whether the BOPIS-recommended configuration achieves energy improvement while retaining acceptable inference speed and output quality. Mean Absolute Error (MAE), Normalized Prediction Error (NPE), convergence behavior, improvement per iteration (ΔE), and Sample Efficiency Ratio (SER) will be used to evaluate the reliability and efficiency of the Bayesian Optimization process. 
 
@@ -998,14 +981,13 @@ Table 3.5 summarizes the statistical treatment and evaluation metrics used in th
 
 | Treatment/Metric | Purpose | Applied To | Decision/Interpretation Criterion |
 | ----- | ----- | ----- | ----- |
-| Friedman Test | Determines whether a statistically significant difference exists among the three configurations  | Energy consumption, Joules per token, inference speed, BERTScore F1, CPU utilization, GPU utilization, and memory usage across the 500-prompt evaluation set  | Significant if p \< 0.05 |
-| Nemenyi Post-hoc Test  | Identifies which specific configuration pairs differ after a significant Friedman test result  | Pairwise comparisons among unoptimized default, random search, and BOPIS for variables where Friedman is significant  | Significant pairwise difference at α \= 0.05  |
+| Wilcoxon Signed-Rank Test | Determines whether a statistically significant difference exists between the two configurations | Energy consumption, Joules per token, inference speed, BERTScore F1, CPU utilization, GPU utilization, and memory usage across the 500-prompt evaluation set | Significant if p \< 0.05 |
 | Descriptive Statistics | Summarizes the performance profile of each configuration  | Mean, standard deviation, minimum, and maximum values for all dependent variables  | Reported descriptively  |
-| Per-Variant Descriptive Analysis  | Examines how GGUF precision/quantization variant affects performance outcomes  | F32, F16, Q8\_0, and Q4\_K\_M in terms of energy consumption, inference speed, BERTScore F1, and resource utilization  | Reported descriptively  |
+| Per-Variant Descriptive Analysis  | Examines how GGUF precision/quantization variant affects performance outcomes  | F16, Q8\_0, and Q4\_K\_M in terms of energy consumption, inference speed, BERTScore F1, and resource utilization  | Reported descriptively  |
 | BERTScore F1 | Measures semantic similarity between generated responses and reference outputs  | Output quality evaluation  | Higher score indicates stronger semantic similarity  |
-| EIR – Energy Improvement Ratio | Measures energy reduction relative to the unoptimized default configuration  | BOPIS versus unoptimized default  | EIR \> 0 indicates energy improvement; EIR ≥ 15% is reported as a substantial improvement flag  |
-| Speed Retention Ratio (SRR)  | Verifies whether inference speed is retained after optimization  | BOPIS versus unoptimized default  | SRR ≥ 95%  |
-| Quality Retention Ratio (QRR)  | Verifies whether output quality is retained after optimization  | BOPIS versus unoptimized default  | QRR ≥ 98% |
+| EIR – Energy Improvement Ratio | Measures energy reduction | BOPIS versus Random Search | EIR \> 0 indicates energy improvement; EIR ≥ 15% is reported as a substantial improvement flag  |
+| Speed Retention Ratio (SRR)  | Verifies whether inference speed is retained after optimization  | BOPIS versus Random Search | SRR ≥ 95%  |
+| Quality Retention Ratio (QRR)  | Verifies whether output quality is retained after optimization  | BOPIS versus Random Search | QRR ≥ 98% |
 | GP MAE | Measures the average prediction error of the Gaussian Process surrogate model  | GP-predicted energy values versus actual measured energy values across BO iterations  | Lower MAE indicates better prediction accuracy |
 | GP NPE  | Measures normalized GP prediction error relative to mean measured energy  | Bayesian Optimization process validation  | NPE \< 10% is treated as a researcher-defined reliability threshold  |
 | Convergence and ΔE  | Evaluates whether the optimization process improves over time  | Best energy value found per BO iteration and improvement per iteration  | Positive or stabilizing ΔE indicates convergence toward lower-energy configurations  |
@@ -1013,7 +995,11 @@ Table 3.5 summarizes the statistical treatment and evaluation metrics used in th
 
 *Table 3.5. Statistical Treatment Summary*
 
-**References:**
+**References**:
+
+Abu-Shaira, M., & Shi, W. (2025). *Unveiling statistical significance of online regression over*
+
+*multiple datasets*. arXiv. https://arxiv.org/abs/2512.12787
 
 Banner, R., Nahshan, Y., & Soundry, D. (2019). *Post training 4-bit quantization of convolutional*
 
@@ -1031,6 +1017,14 @@ Machine Learning Research, *13*, 281–305.
 
 https://www.jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf 
 
+Carrasco, J., García, S., Rueda, M. M., Das, S., & Herrera, F. (2020). *Recent trends in the use*
+
+*of statistical tests for comparing swarm and evolutionary computing algorithms: Practical*
+
+*guidelines and a critical review.* Swarm and Evolutionary Computation, 54, 100665\.
+
+https://doi.org/10.1016/j.swevo.2020.100665
+
 Chen, K., Luo, W,. Zhu, Z., Hu, Y., & Xi, Y. (2022). *BAMBO: Construct Ability and Efficiency LLM*  
 *Pareto Set via Bayesian Adaptive Multi-objective Block-wise Optimization.* Arxiv.org.  
 https://arxiv.org/html/2512.09972v2
@@ -1042,6 +1036,10 @@ Erlbaum Associates.
 Databricks. (2023). *Databricks Dolly 15k \[Data Set\].* Hugging Face.
 
 https://huggingface.co/datasets/databricks/databricks-dolly-15k 
+
+Demšar, J. (2006). Statistical comparisons of classifiers over multiple data sets. *Journal of*
+
+*Machine Learning Research, 7*, 1–30. https://www.jmlr.org/papers/volume7/demsar06a/demsar06a.pdf
 
 Dettmers, T., Lewis, M., Belkada, Y., & Zettlemoyer, L. (2022). *LLM.int8(): 8-bit matrix*
 
@@ -1096,9 +1094,13 @@ Lannelongue, G., Grealey, J., & Inouye, M. (2021). *Green algorithms: Quantifyin
 
 https://doi.org/10.1002/advs.202100707
 
-Ma, X., et al. (2023). *The impact of quantization on LLM task performance across categories.*
+Lee, J., Park, S., Kwon, J., Oh, J., & Kwon, Y. (2025). *Exploring the trade-offs: Quantization*
 
-arXiv preprint.
+*methods, task difficulty, and model size in large language models from edge to giant.*
+
+Proceedings of the 34th International Joint Conference on Artificial Intelligence
+
+(IJCAI-25). arXiv:2409.11055.
 
 Niu, Y., et al. (2025). *TokenPowerBench: A benchmarking framework for token-level energy*
 
@@ -1129,6 +1131,10 @@ Shahriari, B., Swersky, K., Wang, Z., Adams, R. P. & de Freitas, N. (2016). *Tak
 *Out of the Loop: A Review of Bayesian Optimization.* Proceedings of the IEEE, 104(1),
 
 148-175. https://doi.org/10.1109/jproc.2015.2494218
+
+Shi, Y., & Ding, C. (2025). *Systematic Characterization of LLM Quantization: A Performance,*
+
+*Energy, and Quality Perspective*. arXiv preprint arXiv:2508.16712.
 
 Snoek, J., Larochelle, H., & Adams, R. P. (2012). Practical Bayesian optimization of machine
 
@@ -1172,17 +1178,13 @@ Wilkins, G., et al. (2024). *Offline Energy-Optimal LLM Serving: Workload-Based 
 
 *for LLM Inference on Heterogeneous Systems. arXiv. https://arxiv.org/pdf/2407.04014* 
 
-Xu, Z., et al. (2023). Evaluating quantization-induced energy reduction in local LLM deployment.
-
-arXiv preprint.
-
 Yan, B., Li, K., Xu, M., Dong, Y., Zhang, Y., Ren, Z., & Cheng, X. (2025). On protecting the data
 
 privacy of Large Language Models (LLMs) and LLM agents: A literature review.
 
 *High-Confidence Computing, 5*(2), Article 100300\.
 
-https://doi.org/10.1016/j.hcc.2025.100300 
+https://doi.org/10.1016/j.hcc.2025.100300
 
 **Appendices:**
 
@@ -1192,7 +1194,7 @@ https://doi.org/10.1016/j.hcc.2025.100300
 
 | Trial No. | Config Type | Energy (J) | J/token | Tokens/sec | BERTScore F1 | CPU Util. (%) | GPU Util. (%) | Memory (MB) |
 | :---: | ----- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | Default |   |   |   |   |   |   |   |
+| 1 | Random Search |   |   |   |   |   |   |   |
 | 2 | Random Search |   |   |   |   |   |   |   |
 | 3 | BOPIS |   |   |   |   |   |   |   |
 | … | … |   |   |   |   |   |   |   |
@@ -1202,45 +1204,60 @@ https://doi.org/10.1016/j.hcc.2025.100300
 
 | Config ID | Token Length | Batch Size | Precision | GPU Layers Offloaded | CPU Threads | Energy (J) | Tokens/sec | BERTScore F1 |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| C1 | 128 | 1 | FP32 | 0 | 2 |   |   |   |
-| C2 | 256 | 2 | FP16 | 14 | 4 |   |   |   |
+| C1 | 128 | 1 | F16 | 0 | 2 |   |   |   |
+| C2 | 256 | 2 | F16 | 14 | 4 |   |   |   |
 | C3 | 512 | 4 | INT8 | 28 | 8 |   |   |   |
 | … | … | … | … | … | … |   |   |   |
-| C(n) | 1024 | 8 | FP16 | All | All |   |   |   |
+| C(n) | 1024 | 8 | F16 | All | All |   |   |   |
 
    *Table B.2. Pre-Experiment Instrument Template for Configuration Evaluation*
 
-|  | Unoptimized |  | Random Search |  | BOPIS |  | CodeCarbon Validation |  | Flag |
-| ----- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Prompt \#** | **Total J** | **J/Token** | **Total J** | **J/Token** | **Total J** | **J/Token** | **Unopt.** | **BOPIS** | **\> 15%?** |
-| 1 |  |  |  |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |  |  |  |
-| … |  |  |  |  |  |  |  |  |  |
-| 498 |  |  |  |  |  |  |  |  |  |
-| 499 |  |  |  |  |  |  |  |  |  |
-| 500 |  |  |  |  |  |  |  |  |  |
-| **Mean** |  |  |  |  |  |  |  |  |  |
-| **SD** |  |  |  |  |  |  |  |  |  |
+|  | Random Search |  | BOPIS |  | Flag |
+| ----- | :---: | :---: | :---: | :---: | :---: |
+| **Prompt \#** | **Total J** | **J/Token** | **Total J** | **J/Token** | **\> 15%?** |
+| 1 |  |  |  |  |  |
+| 2 |  |  |  |  |  |
+| 3 |  |  |  |  |  |
+| … |  |  |  |  |  |
+| 498 |  |  |  |  |  |
+| 499 |  |  |  |  |  |
+| 500 |  |  |  |  |  |
+| **Mean** |  |  |  |  |  |
+| **SD** |  |  |  |  |  |
 
  *Table B.3. Energy Consumption Per Prompt*
 
-| Prompt \# | Task Type | Unoptimized (token/s) | Random Search (token/s) | BOPIS (token/s) | BOPIS Config Selected | $S\ \geq \ {S}_{min}?$ |
-| ----- | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |
-| … |  |  |  |  |  |  |
-| 498 |  |  |  |  |  |  |
-| 499 |  |  |  |  |  |  |
-| 500 |  |  |  |  |  |  |
-| **Mean** |  |  |  |  |  |  |
-| **SD** |  |  |  |  |  |  |
+| Prompt \# | Task Type | Random Search (token/s) | BOPIS (token/s) | BOPIS Config Selected | $S\ \geq \ {S}_{min}?$ |
+| ----- | :---: | :---: | :---: | :---: | :---: |
+| 1 |  |  |  |  |  |
+| 2 |  |  |  |  |  |
+| 3 |  |  |  |  |  |
+| … |  |  |  |  |  |
+| 498 |  |  |  |  |  |
+| 499 |  |  |  |  |  |
+| 500 |  |  |  |  |  |
+| **Mean** |  |  |  |  |  |
+| **SD** |  |  |  |  |  |
 
  *Table B.4. Inference Speed per Prompt*
 
-| Prompt \# | Task Type | Unopt. F1 | Random F1 | BOPIS F1 | ${Q}_{min}(task)$ | $Q\ \geq \ {Q}_{min}?$ |
+| Prompt \# | Task Type | Random F1 | BOPIS F1 | ${Q}_{min}(task)$ | $Q\ \geq \ {Q}_{min}?$ |
+| ----- | :---: | :---: | :---: | :---: | :---: |
+| 1 |  |  |  |  |  |
+| 2 |  |  |  |  |  |
+| 3 |  |  |  |  |  |
+| … |  |  |  |  |  |
+| 498 |  |  |  |  |  |
+| 499 |  |  |  |  |  |
+| 500 |  |  |  |  |  |
+| **Mean** |  |  |  |  |  |
+| **SD** |  |  |  |  |  |
+
+*Table B.5. Output Quality per Prompt (BERTScore F1)*
+
+|  | Random Search |  |  | BOPIS |  |  |
 | ----- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Prompt \#** | **CPU%** | **GPU%** | **RAM MB** | **CPU%** | **GPU%** | **RAM MB** |
 | 1 |  |  |  |  |  |  |
 | 2 |  |  |  |  |  |  |
 | 3 |  |  |  |  |  |  |
@@ -1251,24 +1268,9 @@ https://doi.org/10.1016/j.hcc.2025.100300
 | **Mean** |  |  |  |  |  |  |
 | **SD** |  |  |  |  |  |  |
 
-*Table B.5. Output Quality per Prompt (BERTScore F1)*
-
-|  | Unoptimized |  |  | Random Search |  |  | BOPIS |  |  |
-| ----- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Prompt \#** | **CPU%** | **GPU%** | **RAM MB** | **CPU%** | **GPU%** | **RAM MB** | **CPU%** | **GPU%** | **RAM MB** |
-| 1 |  |  |  |  |  |  |  |  |  |
-| 2 |  |  |  |  |  |  |  |  |  |
-| 3 |  |  |  |  |  |  |  |  |  |
-| … |  |  |  |  |  |  |  |  |  |
-| 498 |  |  |  |  |  |  |  |  |  |
-| 499 |  |  |  |  |  |  |  |  |  |
-| 500 |  |  |  |  |  |  |  |  |  |
-| **Mean** |  |  |  |  |  |  |  |  |  |
-| **SD** |  |  |  |  |  |  |  |  |  |
-
  *Table B.6. Resource Utilization Per Prompt*
 
-| Iter. | Config x $(t,b,p,g,c)$ | E measured (J) | S$(tok/s)$ | Q $(F1)$ | $\mu (x)\ $GP pred. | $\sigma (x)$ Uncertainty | $EI(x)$ Acquisition | Pareto Front? |
+| Iter. | Config x $(t,b,p,g,c)$ | E measured (J) | S$(tok/s)$ | Q $(F1)$ | $\mu (x){\ }$GP pred. | $\sigma (x)$ Uncertainty | $EI(x)$ Acquisition | Pareto Front? |
 | ----- | ----- | ----- | :---: | :---: | :---: | :---: | :---: | ----- |
 | 1 (random) |  |  |  |  |  |  |  |  |
 | 2 (random) |  |  |  |  |  |  |  |  |
@@ -1280,38 +1282,37 @@ https://doi.org/10.1016/j.hcc.2025.100300
 
  *Table B.7. BOPIS Calibration Log*
 
-| DependentVariable | Statistic | Unoptimized | Random Search | BOPIS |
-| ----- | ----- | :---: | :---: | :---: |
-| **Energy \-- Total (J)** | *Mean* |  |  |  |
-|  | *SD* |  |  |  |
-|  | *Min* |  |  |  |
-|  | *Max* |  |  |  |
-| **Energy \-- J/token** | *Mean* |  |  |  |
-|  | *SD*  |  |  |  |
-|  | *Min* |  |  |  |
-|  | *Max* |  |  |  |
-| **Inference Speed (tok/s)** | *Mean* |  |  |  |
-|  | *SD* |  |  |  |
-|  | *Min* |  |  |  |
-|  | *Max* |  |  |  |
-| **Output Quality (BERTScore F1)** | *Mean* |  |  |  |
-|  | *SD* |  |  |  |
-|  | *Min* |  |  |  |
-|  | *Max* |  |  |  |
-| **CPU Utilization (%)** | *Mean* |  |  |  |
-|  | *SD* |  |  |  |
-|  | *Min* |  |  |  |
-|  | *Max* |  |  |  |
-| **GPU Utilization (%)** | *Mean* |  |  |  |
-|  | *SD* |  |  |  |
-|  | *Min* |  |  |  |
-|  | *Max* |  |  |  |
-| **Memory Usage (MB)** | *Mean* |  |  |  |
-|  | *SD* |  |  |  |
-|  | *Min* |  |  |  |
-|  | *Max* |  |  |  |
-| **Friedman ${x}^{2}$** | *p-value* |  |  |  |
-| **Nemenyi post-hoc** | *Sig. pair* | Unopt vs RS | Unopt vs BOPIS | RS vs BOPIS |
+| DependentVariable | Statistic | Random Search | BOPIS |
+| ----- | ----- | :---: | :---: |
+| **Energy \-- Total (J)** | *Mean* |  |  |
+|  | *SD* |  |  |
+|  | *Min* |  |  |
+|  | *Max* |  |  |
+| **Energy \-- J/token** | *Mean* |  |  |
+|  | *SD*  |  |  |
+|  | *Min* |  |  |
+|  | *Max* |  |  |
+| **Inference Speed (tok/s)** | *Mean* |  |  |
+|  | *SD* |  |  |
+|  | *Min* |  |  |
+|  | *Max* |  |  |
+| **Output Quality (BERTScore F1)** | *Mean* |  |  |
+|  | *SD* |  |  |
+|  | *Min* |  |  |
+|  | *Max* |  |  |
+| **CPU Utilization (%)** | *Mean* |  |  |
+|  | *SD* |  |  |
+|  | *Min* |  |  |
+|  | *Max* |  |  |
+| **GPU Utilization (%)** | *Mean* |  |  |
+|  | *SD* |  |  |
+|  | *Min* |  |  |
+|  | *Max* |  |  |
+| **Memory Usage (MB)** | *Mean* |  |  |
+|  | *SD* |  |  |
+|  | *Min* |  |  |
+|  | *Max* |  |  |
+| **Wilcoxon Signed-Rank** | *p-value* | RS vs BOPIS | BOPIS vs RS |
 
  *Table B.8. Summary Comparison*
 
