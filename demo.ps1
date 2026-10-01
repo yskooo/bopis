@@ -1,431 +1,403 @@
 <#
 .SYNOPSIS
-    One-command BOPIS demo: refresh the hardware profile, start llama-server on
-    the selected configuration x*, wait until it is actually answering, then open
-    the bopis.html chat UI.
+    BOPIS demo launcher --- matches the startup sequence in docs/UI_GUIDE.md exactly.
 
 .DESCRIPTION
-    This is the launcher for a live demonstration. It does the sequencing that is
-    easy to get wrong under pressure:
+    Step 1  Refresh the three generated JS files (profile, rule classifier,
+            trained classifier) so the UI always shows live values.
 
-      1. Refreshes bopis_profile.js so the UI's hardware panel shows live values
-         rather than a stale snapshot.
-      2. Resolves x* from a completed run directory (selection.csv) when one is
-         given, or falls back to an explicit configuration for a bare chat demo.
-      3. Starts llama-server and **waits for /health to report ready** before
-         opening the browser. Opening the UI first is what produces the
-         "connection refused" panic mid-demo: a 7B model on CPU can take 30-60 s
-         just to load.
-      4. Opens bopis.html.
-      5. Shuts the server down cleanly on Ctrl+C.
+    Step 2  Auto-sync dashboard_data.js from the newest run in runs\ so the
+            Pareto / convergence panels are pre-loaded without any manual copy.
 
-    What this script does NOT do: it does not produce an energy measurement. The
-    study host's MX330 exposes no power telemetry, so any energy figure shown
-    during this demo is a Mode C resource-allocation estimate. See
-    docs/ENERGY_MODES.md before quoting a number from it.
+    Step 3  Start llama-server with the Qwen2.5-1.5B Q4_K_M model on port 8080
+            and wait for /health before touching the browser.
 
-.PARAMETER Run
-    A completed run directory containing selection.csv. When supplied, x* is read
-    from it and deployed via `bopis serve`, which validates feasibility first.
+    Step 4  Start the instrument bridge (python -m bopis ui, port 8090).
+            This gives measured CPU-package energy (if LibreHardwareMonitor is
+            running as administrator with Remote Web Server on) or a per-process
+            Mode C estimate otherwise. Also enables BERTScore on Dolly prompts.
+            Skip with -NoBridge to open bopis.html directly instead.
 
-.PARAMETER Model
-    GGUF path. Repeatable as VARIANT=PATH (e.g. Q4_K_M=C:\Models\m.Q4_K_M.gguf).
-    A bare path is treated as Q4_K_M.
+    Step 5  Open the UI: http://127.0.0.1:8090/ if the bridge is up,
+            otherwise bopis.html from file://.
+
+    Step 6  Hold. Ctrl+C stops everything cleanly.
 
 .PARAMETER LlamaBinary
-    Path to llama-server.exe.
+    Path to llama-server.exe. Defaults to .\tools\cpu\llama-server.exe
+
+.PARAMETER Model
+    Path to the GGUF file. Defaults to .\models\qwen2.5-1.5b-instruct-q4_k_m.gguf
+
+.PARAMETER GpuLayers
+    GPU layers to offload. Default 0 (CPU-only). CPU is 3.5x faster than the
+    MX330 on this host --- leave at 0 for the demo unless you have a reason.
+
+.PARAMETER Threads
+    CPU threads for inference. Default 4.
+
+.PARAMETER Parallel
+    Concurrent slots (--parallel). Default 1 for the demo.
+
+.PARAMETER CtxSize
+    Context window size. Default 2048 (matches DEMO_RUNBOOK).
+
+.PARAMETER MaxTokens
+    Max tokens per reply (--n-predict). Default 256.
 
 .PARAMETER Port
-    Port for llama-server. Default 8080, which is what bopis.html expects.
+    llama-server port. Default 8080 --- hardcoded in bopis.html, do not change.
+
+.PARAMETER UiPort
+    bopis ui bridge port. Default 8090.
+
+.PARAMETER IdleSeconds
+    Seconds the bridge spends calibrating idle CPU power. Default 30.
+    Leave the machine alone during this window.
+
+.PARAMETER HwmonUrl
+    LibreHardwareMonitor / OHM data.json URL. Default http://127.0.0.1:8085/data.json
+
+.PARAMETER NoBridge
+    Skip the bopis ui bridge and open bopis.html directly from file://.
+    Energy will be an in-browser Mode C estimate; BERTScore will be n/a.
+
+.PARAMETER SkipProfile
+    Skip regenerating bopis_profile.js, bopis_rules.js, bopis_model.js.
+    Use when you have already run the script once and nothing has changed.
+
+.PARAMETER NoBrowser
+    Do not open the browser automatically.
 
 .EXAMPLE
-    # Deploy x* from a completed study run.
-    .\demo.ps1 -Run runs\20260918T101500Z `
-               -LlamaBinary C:\Tools\llama-server.exe `
-               -Model Q4_K_M=C:\Models\mistral-7b.Q4_K_M.gguf
+    # Standard defense launch --- everything with defaults:
+    .\demo.ps1
 
 .EXAMPLE
-    # Chat-only demo with no completed run: launch llama-server directly.
-    .\demo.ps1 -LlamaBinary C:\Tools\llama-server.exe `
-               -Model C:\Models\qwen2.5-1.5b.Q4_K_M.gguf `
-               -GpuLayers 20 -Threads 4 -MaxTokens 256
+    # No bridge --- faster startup, bare bopis.html, Mode C energy only:
+    .\demo.ps1 -NoBridge
+
+.EXAMPLE
+    # Custom model path:
+    .\demo.ps1 -Model .\models\qwen2.5-3b-instruct-q4_k_m.gguf
 #>
 
 [CmdletBinding()]
 param(
-    [string]   $Run,
-    [string[]] $Model = @(),
-    [string]   $LlamaBinary,
-    [int]      $Port = 8080,
-    [string]   $LlamaHost = '127.0.0.1',
-    [int]      $CtxSize = 2048,
-
-    # Used only for the no-run fallback path.
-    [int]      $GpuLayers = 0,
-    [int]      $Threads = 4,
-    [int]      $Parallel = 1,
-    [int]      $MaxTokens = 256,
-
-    # Offload target, e.g. Vulkan0 / Vulkan1 / CUDA0, or 'none' for CPU-only.
-    # List what this host exposes with: llama-server.exe --list-devices
-    # Measured on the study laptop (Qwen2.5-1.5B Q4_K_M, ctx 2048, 4 threads):
-    #   CPU only  (ngl 0)              11.5 tok/s   <-- fastest
-    #   Iris Xe   (Vulkan0, ngl 28)     7.6 tok/s
-    #   MX330     (Vulkan1, ngl 14)     4.7 tok/s
-    #   MX330     (Vulkan1, ngl 28)     3.3 tok/s   <-- slowest
-    # Offloading to the MX330 makes generation slower, monotonically in the
-    # number of layers moved. Leave this unset for the fastest demo.
-    [string]   $Device = '',
-
-    # Seconds to wait for the model to load before giving up.
-    [int]      $ReadyTimeoutSec = 180,
-
-    [switch]   $SkipProfile,
-    [switch]   $NoBrowser,
-
-    # The instrument bridge (`bopis ui`): measured CPU package energy through
-    # LibreHardwareMonitor / Open Hardware Monitor when one is running as
-    # administrator with its Remote Web Server on, a per-process Mode C
-    # estimate otherwise, and BERTScore for Dolly prompts. -NoBridge opens the
-    # bare HTML file instead, as before.
-    [int]      $UiPort = 8090,
-    [int]      $IdleSeconds = 30,
-    [string]   $HwmonUrl = 'http://127.0.0.1:8085/data.json',
-    [switch]   $NoBridge,
-
-    # Install/configure/start LibreHardwareMonitor first (one UAC prompt), so
-    # energy in the chat is measured rather than estimated.
-    [switch]   $StartHwmon
+    [string] $LlamaBinary   = '.\tools\cpu\llama-server.exe',
+    [string] $Model         = '.\models\qwen2.5-1.5b-instruct-q4_k_m.gguf',
+    [int]    $GpuLayers     = 0,
+    [int]    $Threads       = 4,
+    [int]    $Parallel      = 1,
+    [int]    $CtxSize       = 2048,
+    [int]    $MaxTokens     = 256,
+    [string] $LlamaHost     = '127.0.0.1',
+    [int]    $Port          = 8080,
+    [int]    $UiPort        = 8090,
+    [int]    $IdleSeconds   = 30,
+    [string] $HwmonUrl      = 'http://127.0.0.1:8085/data.json',
+    [switch] $NoBridge,
+    [switch] $SkipProfile,
+    [switch] $NoBrowser
 )
 
 $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot
-$serverProc = $null
 
+# ------ Helpers ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 function Write-Step { param([string]$m) Write-Host "`n==> $m" -ForegroundColor Cyan }
-function Write-Warn { param([string]$m) Write-Host "    ! $m" -ForegroundColor Yellow }
 function Write-Ok   { param([string]$m) Write-Host "    + $m" -ForegroundColor Green }
+function Write-Warn { param([string]$m) Write-Host "    ! $m" -ForegroundColor Yellow }
 
 function Resolve-Python {
-    foreach ($candidate in @('py', 'python')) {
-        $cmd = Get-Command $candidate -ErrorAction SilentlyContinue
+    foreach ($c in @('python', 'py')) {
+        $cmd = Get-Command $c -ErrorAction SilentlyContinue
         if ($cmd) {
-            if ($candidate -eq 'py') { return @{ Exe = 'py'; Args = @('-3') } }
-            return @{ Exe = 'python'; Args = @() }
+            return @{ Exe = $c; Args = @() }
         }
     }
-    throw 'Neither "py" nor "python" is on PATH.'
+    throw 'Neither "python" nor "py" is on PATH.'
 }
 
-function Invoke-Bopis {
-    param([string[]]$BopisArgs)
-    $py = Resolve-Python
-    $all = $py.Args + @('-m', 'bopis') + $BopisArgs
-    & $py.Exe @all
-    return $LASTEXITCODE
+function Wait-Http {
+    param([string]$Url, [int]$TimeoutSec, [System.Diagnostics.Process]$Proc)
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    $spin = @('|','/','-','\'); $i = 0
+    while ((Get-Date) -lt $deadline) {
+        if ($Proc -and $Proc.HasExited) {
+            Write-Host ''
+            throw "Process (PID $($Proc.Id)) exited before becoming ready."
+        }
+        try {
+            $r = Invoke-WebRequest -Uri $Url -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop
+            if ($r.StatusCode -eq 200) { Write-Host ''; return $true }
+        } catch { }
+        Write-Host "`r    waiting $($spin[$i++ % 4])" -NoNewline
+        Start-Sleep -Milliseconds 600
+    }
+    Write-Host ''; return $false
 }
 
-# --------------------------------------------------------------------------- #
-# 0. Sanity checks
-# --------------------------------------------------------------------------- #
-
+# ------ 0. Sanity checks ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Write-Step 'Checking prerequisites'
 
-if (-not (Test-Path (Join-Path $repo 'bopis.html'))) {
-    throw "bopis.html not found in $repo. Run this script from the repo root."
-}
-Write-Ok 'bopis.html found'
+Push-Location $repo
 
-# Parse -Model into a VARIANT=PATH map.
-$models = @{}
-foreach ($entry in $Model) {
-    if ($entry -match '^([A-Za-z0-9_.:-]+)=(.+)$') {
-        $models[$Matches[1]] = $Matches[2]
-    } else {
-        # Bare path: assume the variant most likely to fit a consumer GPU.
-        $models['Q4_K_M'] = $entry
-    }
-}
+if (-not (Test-Path 'bopis.html')) { throw "bopis.html not found in $repo. Run from the repo root." }
+Write-Ok 'bopis.html present'
 
-foreach ($variant in $models.Keys) {
-    if (-not (Test-Path $models[$variant])) {
-        throw "GGUF for $variant not found: $($models[$variant])"
-    }
-    $sizeGiB = [math]::Round((Get-Item $models[$variant]).Length / 1GB, 2)
-    Write-Ok "$variant -> $($models[$variant]) ($sizeGiB GiB)"
-}
+$llamaPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($LlamaBinary)
+$modelPath  = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Model)
 
-if ($LlamaBinary -and -not (Test-Path $LlamaBinary)) {
-    throw "llama-server not found: $LlamaBinary"
+if (-not (Test-Path $llamaPath)) {
+    Write-Warn "llama-server not found at $llamaPath"
+    Write-Warn 'Continuing in UI-only mode (no chat).'
+    $llamaPath = $null
+}
+if (-not (Test-Path $modelPath)) {
+    Write-Warn "Model GGUF not found at $modelPath"
+    Write-Warn 'Continuing in UI-only mode (no chat).'
+    $modelPath = $null
+}
+if ($llamaPath -and $modelPath) {
+    $sizeGiB = [math]::Round((Get-Item $modelPath).Length / 1GB, 2)
+    Write-Ok "Model: $modelPath ($sizeGiB GiB)"
 }
 
-$canServe = $LlamaBinary -and $models.Count -gt 0
-if (-not $canServe) {
-    Write-Warn 'No -LlamaBinary and/or -Model supplied.'
-    Write-Warn 'Running in UI-only mode: the hardware panel and the static'
-    Write-Warn 'pipeline views will work, but the chat box will not answer.'
-}
+$canServe = $null -ne $llamaPath -and $null -ne $modelPath
+Pop-Location
 
-# --------------------------------------------------------------------------- #
-# 1. Refresh the hardware profile the UI reads
-# --------------------------------------------------------------------------- #
-
+# ------ 1. Refresh generated JS files ------------------------------------------------------------------------------------------------------------------------------------
 if (-not $SkipProfile) {
-    Write-Step 'Refreshing hardware profile for the UI panel'
     Push-Location $repo
+    Write-Step 'Refreshing generated JS files (profile + classifiers)'
+
+    $py = Resolve-Python
+
+    # bopis_profile.js --- hardware panel + feasibility guard
     try {
-        $null = Invoke-Bopis @(
-            'profile', '--model-aware',
+        & $py.Exe ($py.Args + @(
+            '-m', 'bopis', 'profile',
+            '--model-aware',
             '--ctx-size', "$CtxSize",
             '--write-js', 'bopis_profile.js'
-        )
+        )) | Out-Null
         Write-Ok 'bopis_profile.js updated'
-    } catch {
-        Write-Warn "Profile refresh failed: $_"
-        Write-Warn 'The UI will show stale or unavailable hardware values.'
-    } finally {
-        Pop-Location
-    }
 
-    # The UI's Stage 1 task badge reads its rule table from bopis_rules.js.
-    # Regenerate it here so the browser can never run against a stale copy of
-    # rules that are authored in Python.
-    Push-Location $repo
-    try {
-        $py = Resolve-Python
-        $exportArgs = $py.Args + @(
-            '-m', 'bopis.classify', '--write-js', 'bopis_rules.js'
-        )
-        & $py.Exe @exportArgs | Out-Null
-        Write-Ok 'bopis_rules.js updated (Stage 1 rule classifier)'
-    } catch {
-        Write-Warn "Rule export failed: $_"
-        Write-Warn 'The UI will show "Task detection unavailable".'
-    } finally {
-        Pop-Location
-    }
+        # Surface empty feasible space immediately
+        $js = Get-Content 'bopis_profile.js' -Raw -ErrorAction SilentlyContinue
+        if ($js -match '"n_feasible"\s*:\s*0\b') {
+            Write-Warn 'FEASIBLE SPACE IS EMPTY (n_feasible: 0).'
+            Write-Warn 'Cause: not enough free RAM. Close Chrome / VS Code, or reboot.'
+        }
+    } catch { Write-Warn "Profile refresh failed: $_" }
 
-    # The trained classifier is the one the badge prefers (69.7% held-out vs
-    # 48.2% for the rules). Only export it if Dolly is present; training takes a
-    # few seconds and needs the corpus.
-    Push-Location $repo
+    # bopis_rules.js --- rule-based Stage 1 classifier (fallback)
     try {
-        if (Test-Path 'data\databricks-dolly-15k.jsonl') {
-            $py = Resolve-Python
-            $modelArgs = $py.Args + @(
+        & $py.Exe ($py.Args + @('-m', 'bopis.classify', '--write-js', 'bopis_rules.js')) | Out-Null
+        Write-Ok 'bopis_rules.js updated (rule classifier)'
+    } catch { Write-Warn "Rule classifier export failed: $_" }
+
+    # bopis_model.js --- trained Naive Bayes classifier (preferred, 69.7%)
+    if (Test-Path (Join-Path $repo 'data\databricks-dolly-15k.jsonl')) {
+        try {
+            & $py.Exe ($py.Args + @(
                 '-m', 'bopis.classify_trained',
                 '--data-dir', 'data',
                 '--write-js', 'bopis_model.js'
-            )
-            & $py.Exe @modelArgs | Out-Null
+            )) | Out-Null
             Write-Ok 'bopis_model.js updated (trained classifier, 69.7% held-out)'
-        } else {
-            Write-Warn 'data\databricks-dolly-15k.jsonl not found.'
-            Write-Warn 'Skipping the trained classifier; the badge will use the'
-            Write-Warn 'rule classifier (49.7%). Fetch Dolly with:'
-            Write-Warn '  python -m bopis dataset --data-dir data'
-        }
-    } catch {
-        Write-Warn "Trained-model export failed: $_"
-        Write-Warn 'The badge will fall back to the rule classifier.'
-    } finally {
-        Pop-Location
+        } catch { Write-Warn "Trained classifier export failed: $_" }
+    } else {
+        Write-Warn 'Dolly dataset not found --- skipping trained classifier.'
+        Write-Warn 'Stage 1 badge will use the rule classifier (49.7%).'
     }
 
-    # The profile command reports the feasible space; surface an empty one loudly,
-    # because it is the difference between "the tool works" and "nothing can run".
-    Push-Location $repo
-    try {
-        $profileJs = Get-Content 'bopis_profile.js' -Raw -ErrorAction SilentlyContinue
-        if ($profileJs -and $profileJs -match '"n_feasible"\s*:\s*0\b') {
-            Write-Warn 'FEASIBLE SPACE IS EMPTY (n_feasible: 0).'
-            Write-Warn 'Every configuration is rejected by HW-P0 on this host.'
-            Write-Warn 'Most common cause: not enough FREE system RAM. Reboot,'
-            Write-Warn 'close everything, and re-run. See brief section 7.1.'
-        }
-    } finally {
-        Pop-Location
-    }
+    Pop-Location
 }
 
-# --------------------------------------------------------------------------- #
-# 2. Start llama-server
-# --------------------------------------------------------------------------- #
+# ------ 2. Auto-sync dashboard_data.js ---------------------------------------------------------------------------------------------------------------------------------
+#
+# Picks the newest run directory (timestamp names sort chronologically) and
+# copies its dashboard_data.js to the repo root so the Pareto / convergence
+# panels are pre-loaded. No manual Copy-Item needed.
+#
+Write-Step 'Syncing dashboard_data.js'
+Push-Location $repo
+try {
+    $runsDir = Join-Path $repo 'runs'
+    $dashTarget = Join-Path $repo 'dashboard_data.js'
+    $dashSource = $null
 
-function Wait-ForServer {
-    param([string]$BaseUrl, [int]$TimeoutSec)
+    if (Test-Path $runsDir) {
+        $latestRun = Get-ChildItem -Path $runsDir -Directory |
+                     Sort-Object Name | Select-Object -Last 1
+        if ($latestRun) {
+            $candidate = Join-Path $latestRun.FullName 'dashboard_data.js'
+            if (Test-Path $candidate) { $dashSource = $candidate }
+            else { Write-Warn "Newest run ($($latestRun.Name)) has no dashboard_data.js." }
+        } else { Write-Warn 'No run directories found under runs\.' }
+    } else { Write-Warn 'runs\ directory not found.' }
 
-    $deadline = (Get-Date).AddSeconds($TimeoutSec)
-    $spin = @('|', '/', '-', '\')
-    $i = 0
-    while ((Get-Date) -lt $deadline) {
-        if ($serverProc -and $serverProc.HasExited) {
-            Write-Host ''
-            throw "llama-server exited with code $($serverProc.ExitCode) before becoming ready."
-        }
-        try {
-            $resp = Invoke-WebRequest -Uri "$BaseUrl/health" -TimeoutSec 3 -UseBasicParsing
-            if ($resp.StatusCode -eq 200) { Write-Host ''; return $true }
-        } catch {
-            # Not up yet, or /health not implemented on this llama.cpp build.
-        }
-        Write-Host "`r    waiting for model load $($spin[$i % 4])" -NoNewline
-        $i++
-        Start-Sleep -Milliseconds 700
+    if ($dashSource) {
+        Copy-Item -Path $dashSource -Destination $dashTarget -Force
+        Write-Ok "dashboard_data.js synced from $(Split-Path (Split-Path $dashSource -Parent) -Leaf)"
+    } else {
+        Write-Warn 'Dashboard panels will show "Load a run to...". Use the Load button in the UI.'
     }
-    Write-Host ''
-    return $false
+} catch {
+    Write-Warn "dashboard_data.js sync failed: $_"
+} finally {
+    Pop-Location
 }
 
-$baseUrl = "http://${LlamaHost}:$Port"
+# ------ 3. Start llama-server ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+#
+# Exactly as documented in docs/UI_GUIDE.md --1:
+#
+#   .\tools\cpu\llama-server.exe --model .\models\qwen2.5-1.5b-instruct-q4_k_m.gguf
+#       --host 127.0.0.1 --port 8080 --ctx-size 2048
+#       --n-gpu-layers 0 --threads 4 --parallel 1
+#
+# Port 8080 is hardcoded in bopis.html --- do not change it.
+# GpuLayers 0 is deliberate: MX330 is 3.5x slower than CPU-only on this host.
+#
+$serverProc = $null
+$baseUrl    = "http://${LlamaHost}:${Port}"
 
 if ($canServe) {
     Write-Step 'Starting llama-server'
 
+    $llamaArgs = @(
+        '--model',        $modelPath,
+        '--host',         $LlamaHost,
+        '--port',         "$Port",
+        '--ctx-size',     "$CtxSize",
+        '--n-gpu-layers', "$GpuLayers",
+        '--threads',      "$Threads",
+        '--parallel',     "$Parallel",
+        '--n-predict',    "$MaxTokens"
+    )
+    Write-Host "    $llamaPath $($llamaArgs -join ' ')" -ForegroundColor DarkGray
+
     Push-Location $repo
-    try {
-        if ($Run) {
-            if (-not (Test-Path (Join-Path $Run 'selection.csv'))) {
-                throw "$Run does not contain selection.csv -- not a completed run."
-            }
-            Write-Ok "Deploying x* from $Run"
+    $serverProc = Start-Process -FilePath $llamaPath -ArgumentList $llamaArgs `
+                                -NoNewWindow -PassThru
+    Pop-Location
 
-            $py = Resolve-Python
-            $serveArgs = $py.Args + @(
-                '-m', 'bopis', 'serve',
-                '--run', $Run,
-                '--llama-binary', $LlamaBinary,
-                '--host', $LlamaHost,
-                '--port', "$Port",
-                '--ctx-size', "$CtxSize"
-            )
-            foreach ($variant in $models.Keys) {
-                $serveArgs += @('--model', "$variant=$($models[$variant])")
-            }
-            $serverProc = Start-Process -FilePath $py.Exe -ArgumentList $serveArgs `
-                -NoNewWindow -PassThru
-        } else {
-            # No completed run: launch llama-server directly. This demonstrates
-            # deployment mechanics only -- the configuration is whatever was
-            # passed on the command line, NOT an optimizer result. Do not
-            # describe it to a panel as x*.
-            Write-Warn 'No -Run given: launching a MANUAL configuration.'
-            Write-Warn 'This is not x* and carries no optimizer claim.'
+    Write-Ok "llama-server started (PID $($serverProc.Id))"
+    Write-Host '    Waiting for model to load (1.5B Q4_K_M on CPU ~5-10 s)...' -ForegroundColor DarkGray
 
-            $variant = @($models.Keys)[0]
-            $llamaArgs = @(
-                '--model', $models[$variant],
-                '--host', $LlamaHost,
-                '--port', "$Port",
-                '--ctx-size', "$CtxSize",
-                '--n-gpu-layers', "$GpuLayers",
-                '--threads', "$Threads",
-                '--parallel', "$Parallel",
-                '--n-predict', "$MaxTokens"
-            )
-            if ($Device) { $llamaArgs += @('--device', $Device) }
-            Write-Host "    $LlamaBinary $($llamaArgs -join ' ')" -ForegroundColor DarkGray
-            $serverProc = Start-Process -FilePath $LlamaBinary -ArgumentList $llamaArgs `
-                -NoNewWindow -PassThru
-        }
-    } finally {
-        Pop-Location
-    }
-
-    Write-Ok "Server process started (PID $($serverProc.Id))"
-    Write-Host "    Model load on CPU can take 30-60 s for a 7B model." -ForegroundColor DarkGray
-
-    if (-not (Wait-ForServer -BaseUrl $baseUrl -TimeoutSec $ReadyTimeoutSec)) {
-        Write-Warn "Server did not report ready within $ReadyTimeoutSec s."
-        Write-Warn 'Opening the UI anyway; the first message may fail. If it does,'
-        Write-Warn 'wait and resend rather than restarting.'
+    if (Wait-Http -Url "$baseUrl/health" -TimeoutSec 120 -Proc $serverProc) {
+        Write-Ok "llama-server ready at $baseUrl"
     } else {
-        Write-Ok "Server ready at $baseUrl"
+        Write-Warn "Server did not respond within 120 s. Opening UI anyway --- first message may fail."
     }
+} else {
+    Write-Warn 'No llama-server / model --- chat panel will show "Chatbot unavailable".'
+    Write-Warn 'Dashboard and hardware panels still work.'
 }
 
-# --------------------------------------------------------------------------- #
-# 3. Open the UI
-# --------------------------------------------------------------------------- #
-
+# ------ 4. Start the instrument bridge (python -m bopis ui) ------------------------------------------------------------------
+#
+# Exactly as documented in docs/UI_GUIDE.md --1:
+#
+#   python -m bopis ui          # then open http://127.0.0.1:8090/
+#
+# With LibreHardwareMonitor running as admin (Remote Web Server on):
+#   --- measured CPU-package energy (RAPL, net of calibrated idle)
+# Without it:
+#   --- per-process Mode C estimate (better than the pure in-browser guess)
+#
+# The bridge also provides /api/score (BERTScore) and /api/dolly (random prompt).
+# Idle calibration runs for $IdleSeconds --- leave the machine alone.
+#
 $bridgeProc = $null
-$uiUrl = $null
-if ($StartHwmon) {
-    & (Join-Path $repo 'tools\start-hwmon.ps1') -Install
-}
+$uiUrl      = $null
 
 if ($canServe -and -not $NoBridge) {
-    Write-Step 'Starting the instrument bridge (bopis ui)'
-    Write-Host "    Idle calibration takes $IdleSeconds s -- leave the machine alone." -ForegroundColor DarkGray
+    Write-Step "Starting instrument bridge (bopis ui) on port $UiPort"
+    Write-Host "    Idle calibration: $IdleSeconds s --- do not touch the machine." -ForegroundColor DarkGray
+
     $py = Resolve-Python
     $uiArgs = $py.Args + @(
         '-m', 'bopis', 'ui',
-        '--port', "$UiPort",
-        '--llama-url', $baseUrl,
-        '--idle-seconds', "$IdleSeconds",
-        '--hwmon-url', $HwmonUrl,
-        # Lets the chat run the default / random-search / BOPIS comparison on a
-        # Dolly prompt; model files are found in .\models automatically.
-        '--llama-binary', $LlamaBinary,
-        '--models-dir', (Join-Path $repo 'models')
+        '--port',          "$UiPort",
+        '--llama-url',     $baseUrl,
+        '--idle-seconds',  "$IdleSeconds",
+        '--hwmon-url',     $HwmonUrl,
+        '--llama-binary',  $llamaPath,
+        '--models-dir',    (Join-Path $repo 'models')
     )
-    if ($serverProc -and -not $Run) { $uiArgs += @('--llama-pid', "$($serverProc.Id)") }
+    if ($serverProc) { $uiArgs += @('--llama-pid', "$($serverProc.Id)") }
+
+    Push-Location $repo
     $bridgeProc = Start-Process -FilePath $py.Exe -ArgumentList $uiArgs `
-        -WorkingDirectory $repo -NoNewWindow -PassThru
+                                -WorkingDirectory $repo -NoNewWindow -PassThru
+    Pop-Location
 
-    $deadline = (Get-Date).AddSeconds($IdleSeconds + 60)
-    while ((Get-Date) -lt $deadline -and -not $bridgeProc.HasExited) {
-        try {
-            $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$UiPort/api/status" -TimeoutSec 3 -UseBasicParsing
-            if ($resp.StatusCode -eq 200) { $uiUrl = "http://127.0.0.1:$UiPort/"; break }
-        } catch { }
-        Start-Sleep -Milliseconds 700
-    }
-    if ($uiUrl) {
-        Write-Ok "Bridge ready at $uiUrl"
+    $bridgeUrl = "http://127.0.0.1:$UiPort/api/status"
+    if (Wait-Http -Url $bridgeUrl -TimeoutSec ($IdleSeconds + 60) -Proc $bridgeProc) {
+        $uiUrl = "http://127.0.0.1:$UiPort/"
+        Write-Ok "Bridge ready --- open $uiUrl"
     } else {
-        Write-Warn 'Bridge did not come up; falling back to the bare HTML file.'
-        Write-Warn 'The chat will show an in-browser Mode C estimate and no BERTScore.'
+        Write-Warn 'Bridge did not come up. Falling back to bopis.html (file://).'
+        Write-Warn 'Energy will be in-browser Mode C estimate; BERTScore will be n/a.'
     }
 }
 
+# ------ 5. Open the UI ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 if (-not $NoBrowser) {
-    Write-Step 'Opening the UI'
-    if ($uiUrl) { Start-Process $uiUrl } else { Start-Process (Join-Path $repo 'bopis.html') }
-    Write-Ok 'UI opened'
+    Write-Step 'Opening UI'
+    if ($uiUrl) {
+        Start-Process $uiUrl
+        Write-Ok "Opened $uiUrl  (bridge mode --- measured energy + BERTScore)"
+    } else {
+        Start-Process (Join-Path $repo 'bopis.html')
+        Write-Ok 'Opened bopis.html  (file:// mode --- in-browser Mode C estimate)'
+    }
 }
 
-# --------------------------------------------------------------------------- #
-# 4. Hold until Ctrl+C, then clean up
-# --------------------------------------------------------------------------- #
-
+# ------ Summary ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Write-Host ''
+Write-Host '  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------' -ForegroundColor Green
+Write-Host '  ---  BOPIS demo is live                                  ---' -ForegroundColor Green
 if ($canServe) {
-    Write-Host ''
-    Write-Host '  Demo is live. Chat endpoint:' -ForegroundColor Green
-    Write-Host "    POST $baseUrl/v1/chat/completions" -ForegroundColor DarkGray
-    Write-Host '  Press Ctrl+C to stop the server and exit.' -ForegroundColor Green
-    Write-Host ''
+Write-Host "  ---  llama-server : $baseUrl" -ForegroundColor Green
+}
+if ($uiUrl) {
+Write-Host "  ---  UI bridge    : $uiUrl" -ForegroundColor Green
+} else {
+Write-Host '  ---  UI           : bopis.html (file://)                 ---' -ForegroundColor Green
+}
+Write-Host '  ---                                                      ---' -ForegroundColor Green
+Write-Host '  ---  Press Ctrl+C to stop everything.                    ---' -ForegroundColor Green
+Write-Host '  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------' -ForegroundColor Green
+Write-Host ''
 
+# ------ 6. Hold until Ctrl+C, then clean up ------------------------------------------------------------------------------------------------------------------
+if ($canServe) {
     try {
-        while (-not $serverProc.HasExited) { Start-Sleep -Seconds 1 }
-        Write-Warn "llama-server exited on its own (code $($serverProc.ExitCode))."
-    } finally {
-        if ($bridgeProc -and -not $bridgeProc.HasExited) {
-            try { Stop-Process -Id $bridgeProc.Id -Force -ErrorAction Stop } catch { }
+        while ($true) {
+            if ($serverProc.HasExited) {
+                Write-Warn "llama-server exited on its own (code $($serverProc.ExitCode))."
+                break
+            }
+            Start-Sleep -Seconds 1
         }
-        if ($serverProc -and -not $serverProc.HasExited) {
-            Write-Step 'Stopping llama-server'
-            try {
-                Stop-Process -Id $serverProc.Id -Force -ErrorAction Stop
-                Write-Ok 'Stopped'
-            } catch {
-                Write-Warn "Could not stop PID $($serverProc.Id): $_"
+    } finally {
+        Write-Step 'Shutting down'
+        foreach ($proc in @($bridgeProc, $serverProc)) {
+            if ($proc -and -not $proc.HasExited) {
+                try {
+                    Stop-Process -Id $proc.Id -Force -ErrorAction Stop
+                    Write-Ok "Stopped PID $($proc.Id)"
+                } catch {
+                    Write-Warn "Could not stop PID $($proc.Id): $_"
+                }
             }
         }
     }
 } else {
-    Write-Host ''
-    Write-Host '  UI-only mode. To get a live chat box, re-run with:' -ForegroundColor Yellow
-    Write-Host '    -LlamaBinary <path to llama-server.exe> -Model <path to .gguf>' -ForegroundColor DarkGray
-    Write-Host ''
+    Write-Host '  Running in UI-only mode (no server to watch). Close this window when done.' -ForegroundColor Yellow
 }
