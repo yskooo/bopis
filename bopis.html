@@ -1189,6 +1189,114 @@
             font: 11px 'IBM Plex Mono', monospace;
         }
 
+        .pareto-readout {
+            margin-top: 12px;
+            border: 1px solid #CBD5E0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #FFFFFF;
+        }
+
+        .pareto-readout-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: #F7FAFC;
+            border-bottom: 1px solid #E2E8F0;
+            color: #2D3748;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .pareto-readout-note {
+            color: #718096;
+            font-size: 10px;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .pareto-readout-scroll {
+            max-height: 246px;
+            overflow: auto;
+        }
+
+        .pareto-readout table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'IBM Plex Mono', ui-monospace, monospace;
+            font-size: 10px;
+        }
+
+        .pareto-readout th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            padding: 8px 9px;
+            background: #EDF2F7;
+            color: #4A5568;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 10px;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .pareto-readout th:first-child,
+        .pareto-readout td:first-child {
+            text-align: left;
+        }
+
+        .pareto-readout td {
+            padding: 7px 9px;
+            border-top: 1px solid #EDF2F7;
+            color: #2D3748;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .pareto-readout tbody tr {
+            cursor: pointer;
+            transition: background .12s ease;
+        }
+
+        .pareto-readout tbody tr:hover,
+        .pareto-readout tbody tr.is-xstar {
+            background: #EBF8FF;
+        }
+
+        .pareto-readout tbody tr.is-front td:first-child {
+            color: #087F5B;
+            font-weight: 700;
+        }
+
+        .pareto-readout .front-badge,
+        .pareto-readout .xstar-badge,
+        .pareto-readout .ref-badge {
+            display: inline-block;
+            margin-left: 5px;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .pareto-readout .front-badge { background: #D3F9D8; color: #087F5B; }
+        .pareto-readout .xstar-badge { background: #102A43; color: #FFFFFF; }
+        .pareto-readout .ref-badge { background: #FDE2E2; color: #9B2C2C; }
+
+        .pareto-axis-callout {
+            margin: 8px 0 0;
+            padding: 8px 10px;
+            border-left: 3px solid #3182CE;
+            border-radius: 5px;
+            background: #F7FAFC;
+            color: #4A5568;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
         /* ─ SEARCH LOG ───────────────────────────────────────────────────────────────
    The optimizer's own stdout, in the same card as the chart and driven by the
    same replay clock. A reader who does not trust a 3D scatter plot can watch
@@ -2439,7 +2547,7 @@
                                 <label class="pareto-control-button"
                                     style="cursor:pointer; display:inline-flex; gap:6px; align-items:center;"
                                     title="Label every point with its evaluation number and configuration">
-                                    <input type="checkbox" id="show-labels" onchange="drawPareto3D()" style="margin:0">
+                                    <input type="checkbox" id="show-labels" onchange="drawPareto3D()" style="margin:0" checked>
                                     Labels
                                 </label>
                                 <label class="pareto-control-button"
@@ -2463,6 +2571,33 @@
                             <span><i class="legend-dot"
                                     style="background:#fff; border:2px solid #D53F8C; transform:rotate(45deg); border-radius:1px"></i>Your
                                 chat prompt (diamond)</span>
+                        </div>
+                        <div class="pareto-axis-callout">
+                            <strong>How to read this:</strong> lower energy is better, while speed and quality are
+                            better when higher. The table below is the exact numeric readout; click any row to inspect
+                            that point on the chart.
+                        </div>
+                        <div class="pareto-readout">
+                            <div class="pareto-readout-head">
+                                <span>Pareto numeric readout</span>
+                                <span class="pareto-readout-note">sorted by energy · click a row to inspect</span>
+                            </div>
+                            <div class="pareto-readout-scroll">
+                                <table aria-label="Pareto numeric readout">
+                                    <thead>
+                                        <tr>
+                                            <th>Configuration</th>
+                                            <th>Energy (J) ↓</th>
+                                            <th>Speed (tok/s) ↑</th>
+                                            <th>Quality (F1) ↑</th>
+                                            <th>Iteration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pareto-readout-body">
+                                        <tr><td colspan="5" style="text-align:left;color:#718096;">Load a run to see exact values.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         <details class="run-prompts" id="run-prompts" style="margin-top:10px; font-size:12px;">
                             <summary style="cursor:pointer; font-weight:600; color:#2D3748;">Prompts this run measured
@@ -5678,6 +5813,61 @@
             return `${point.arm === 'random' ? 'r' : '#'}${point.iteration ?? ''} ${parts || point.label || ''}`.trim();
         }
 
+        function renderParetoReadout(points) {
+            const body = document.getElementById('pareto-readout-body');
+            if (!body) return;
+            const rows = points
+                .filter(point => point.arm !== 'chat')
+                .sort((a, b) => a.energy - b.energy)
+                .map(point => {
+                    const key = point.config || (point.reference ? 'reference' : '');
+                    const title = point.reference ? 'Unoptimized default' : pointLabel(point);
+                    const badges = point.selected
+                        ? '<span class="xstar-badge">x*</span>'
+                        : point.reference
+                            ? '<span class="ref-badge">default</span>'
+                            : point.front ? '<span class="front-badge">front</span>' : '';
+                    const rowClass = point.selected ? 'is-xstar' : point.front ? 'is-front' : '';
+                    return `<tr class="${rowClass}" onclick="inspectParetoRow('${encodeURIComponent(key)}')"
+                        title="Click to inspect this configuration">
+                        <td>${escapeHtml(title)}${badges}</td>
+                        <td>${point.energy.toFixed(2)}</td>
+                        <td>${point.speed.toFixed(2)}</td>
+                        <td>${point.quality.toFixed(4)}</td>
+                        <td>${point.iteration == null ? '—' : escapeHtml(String(point.iteration))}</td>
+                    </tr>`;
+                });
+            body.innerHTML = rows.length
+                ? rows.join('')
+                : '<tr><td colspan="5" style="text-align:left;color:#718096;">No numeric points in this replay window.</td></tr>';
+        }
+
+        function inspectParetoRow(encodedKey) {
+            const key = decodeURIComponent(encodedKey || '');
+            const data = chartData();
+            const all = [
+                ...(data?.pareto?.points || []),
+                ...(data?.pareto?.random_points || [])
+            ];
+            let point = all.find(candidate => candidate.config === key);
+            if (!point && data?.reference_point && key === 'reference') {
+                point = {
+                    config: 'reference',
+                    energy_j: data.reference_point.energy_j,
+                    tokens_per_s: data.reference_point.tokens_per_s,
+                    quality_f1: data.reference_point.quality_f1,
+                    label: 'Unoptimized default'
+                };
+            }
+            const output = document.getElementById('pareto-selection');
+            if (!point || !output) return;
+            output.innerHTML = `<strong>${escapeHtml(point.label || point.config || 'Configuration')}</strong>
+                · <b>${Number(point.energy_j).toFixed(2)} J</b>
+                · ${Number(point.tokens_per_s).toFixed(2)} tok/s
+                · F1 ${Number(point.quality_f1).toFixed(4)}
+                <span style="color:#718096;"> · click the chart point for the full configuration</span>`;
+        }
+
         function drawPareto3D() {
             const canvas = document.getElementById('pareto');
             const data = chartData();
@@ -5720,6 +5910,7 @@
             if (!source.length) return;
             const referencePoint = { energy: Number(reference.energy_j), speed: Number(reference.tokens_per_s), quality: Number(reference.quality_f1), reference: true };
             if ([referencePoint.energy, referencePoint.speed, referencePoint.quality].every(Number.isFinite)) source.push(referencePoint);
+            renderParetoReadout(source);
             const values = {
                 energy: source.map(point => point.energy), speed: source.map(point => point.speed), quality: source.map(point => point.quality)
             };
