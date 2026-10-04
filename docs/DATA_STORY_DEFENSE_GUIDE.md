@@ -308,21 +308,28 @@ Yes. Use this sequence:
 
 1. Open the **Optimization Dashboard**.
 2. Load a run or start a study.
-3. Click **Replay search** in the Pareto card.
-4. Let the first seed evaluations appear.
-5. Point to the search log as the guided evaluations appear.
-6. Open the explanation view.
+3. Start at **Methodology trace**. Use the five visible stages to explain
+   constrain, seed, model, acquire, and decide before showing any chart.
+4. Click **Replay search** in the Pareto card.
+5. Let the first seed evaluations appear.
+6. Point to the search log as the guided evaluations appear.
 7. Show the GP section and its `mu`, `sigma`, hyperparameters, LOO metrics,
    and prediction-band coverage.
-8. Show the Expected Improvement table with:
+8. Show the predicted-versus-observed GP diagnostic. Points are pre-evaluation
+   predictions, the diagonal is perfect prediction, and the vertical bars show
+   the stored predictive uncertainty.
+9. Show the Expected Improvement table with:
    - proposed configuration;
    - predicted `mu +- sigma`;
    - EI score;
    - probability of meeting floors, if constrained;
    - measured or simulated energy;
    - prediction error.
-9. Show the convergence chart and Pareto front.
-10. Show the final selection status and whether it is a clean threshold-valid
+10. Show the convergence chart and Pareto front.
+11. Use the Pareto numeric readout table for exact energy, speed, quality, and
+    iteration values; use the 3D surface for trade-off intuition rather than
+    as the only source of numbers.
+12. Show the final selection status and whether it is a clean threshold-valid
     selection or a fallback.
 
 Use this sentence:

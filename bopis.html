@@ -1297,6 +1297,80 @@
             line-height: 1.45;
         }
 
+        .method-trace {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .method-step {
+            position: relative;
+            min-height: 82px;
+            padding: 10px;
+            border: 1px solid #CBD5E0;
+            border-radius: 8px;
+            background: #F7FAFC;
+        }
+
+        .method-step:not(:last-child)::after {
+            content: '→';
+            position: absolute;
+            right: -12px;
+            top: 29px;
+            z-index: 2;
+            color: #3182CE;
+            font-weight: 700;
+        }
+
+        .method-step .num {
+            color: #3182CE;
+            font: 700 10px 'IBM Plex Mono', monospace;
+        }
+
+        .method-step strong {
+            display: block;
+            margin-top: 4px;
+            color: #2D3748;
+            font-size: 12px;
+        }
+
+        .method-step span {
+            display: block;
+            margin-top: 4px;
+            color: #718096;
+            font-size: 10px;
+            line-height: 1.35;
+        }
+
+        .method-note {
+            margin-top: 10px;
+            padding: 9px 11px;
+            border-radius: 6px;
+            background: #EBF8FF;
+            color: #2C5282;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        .gp-diagnostic {
+            margin-top: 12px;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 8px;
+            background: #FFFFFF;
+        }
+
+        .gp-diagnostic canvas {
+            display: block;
+            max-width: 100%;
+        }
+
+        @media (max-width: 850px) {
+            .method-trace { grid-template-columns: 1fr; }
+            .method-step:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -16px; }
+        }
+
         /* ─ SEARCH LOG ───────────────────────────────────────────────────────────────
    The optimizer's own stdout, in the same card as the chart and driven by the
    same replay clock. A reader who does not trust a 3D scatter plot can watch
@@ -2490,6 +2564,18 @@
                 </div>
             </div>
 
+            <div class="app-card">
+                <div class="card-header">Methodology trace — what happens during one BOPIS run</div>
+                <div class="method-trace">
+                    <div class="method-step"><span class="num">01 · DEFINE</span><strong>Constrain</strong><span>Profile hardware and remove configurations it cannot run.</span></div>
+                    <div class="method-step"><span class="num">02 · SEED</span><strong>Observe</strong><span>Evaluate prior-weighted seed configurations on the proxy prompts.</span></div>
+                    <div class="method-step"><span class="num">03 · MODEL</span><strong>Predict</strong><span>Fit the GP surrogate and obtain energy mean μ and uncertainty σ.</span></div>
+                    <div class="method-step"><span class="num">04 · ACQUIRE</span><strong>Choose</strong><span>Use constrained Expected Improvement to select the next trial.</span></div>
+                    <div class="method-step"><span class="num">05 · DECIDE</span><strong>Compare</strong><span>Build the Pareto front, apply floors, and select x*.</span></div>
+                </div>
+                <div class="method-note"><strong>How to demo:</strong> click <b>Replay search</b> after loading a run. The search log follows this trace: seeds first, then GP-guided acquisition, evaluation, update, and Pareto status.</div>
+            </div>
+
             <!-- Research split view: evidence/analysis on the left, the chart and
              the trade-off surface on the right. Collapses to one column below
              1200px so a projector or a laptop screen stays readable. -->
@@ -2513,6 +2599,12 @@
                     <div class="app-card">
                         <div class="card-header">Surrogate reliability — is the GP trustworthy?</div>
                         <div id="surrogate-detail" class="detail-d">Load a run to see surrogate diagnostics.</div>
+                        <div class="gp-diagnostic">
+                            <div class="card-subtext" style="font-size:11px; margin-bottom:5px;">
+                                Predicted versus observed energy · one-step-ahead points use the GP prediction made before evaluation
+                            </div>
+                            <canvas id="gp-diagnostic-chart" width="760" height="260"></canvas>
+                        </div>
                     </div>
 
                 </div>
@@ -2933,6 +3025,7 @@
             renderSelectionDetail(data);
             renderMethodComparison(data);
             renderSurrogateDetail(data);
+            drawGpDiagnostic(data);
             renderSopDashboard(data);
             // The log is rebuilt from the artifacts, then shown in full: the evidence
             // is readable as text on arrival, without having to watch an animation.
@@ -3269,6 +3362,7 @@
          * Improvement probes where the GP is least certain by design.
          */
         function renderSurrogateDetail(data) {
+            window.__drawGpDiagnostic = drawGpDiagnostic;
             const host = document.getElementById('surrogate-detail');
             if (!host) return;
             const s = data.surrogate || {};
@@ -3280,6 +3374,89 @@
             if (!loo.n && !osa.n) {
                 host.textContent = 'This run payload carries no surrogate diagnostics.';
                 return;
+            }
+
+            function drawGpDiagnostic(data) {
+                const canvas = document.getElementById('gp-diagnostic-chart');
+                if (!canvas) return;
+                const points = (data?.surrogate?.points || [])
+                    .map(point => ({
+                        observed: Number(point.energy_j),
+                        predicted: Number(point.mu),
+                        sigma: Number(point.predictive_sigma ?? point.sigma),
+                        iteration: Number(point.iteration)
+                    }))
+                    .filter(point => Number.isFinite(point.observed) && Number.isFinite(point.predicted));
+                const ratio = window.devicePixelRatio || 1;
+                const width = Math.max(300, canvas.parentElement.clientWidth - 16);
+                const height = 260;
+                canvas.width = width * ratio;
+                canvas.height = height * ratio;
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                const ctx = canvas.getContext('2d');
+                ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+                ctx.clearRect(0, 0, width, height);
+                if (!points.length) {
+                    ctx.fillStyle = '#A0AEC0';
+                    ctx.font = '12px IBM Plex Sans, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('No pre-evaluation GP predictions in this run payload.', width / 2, height / 2);
+                    return;
+                }
+                const pad = { l: 56, r: 18, t: 22, b: 42 };
+                const maxValue = Math.max(...points.flatMap(point => [
+                    point.observed,
+                    point.predicted + (Number.isFinite(point.sigma) ? point.sigma : 0)
+                ]), 1);
+                const minValue = Math.min(0, ...points.map(point => Math.min(point.observed, point.predicted)));
+                const span = maxValue - minValue || 1;
+                const px = value => pad.l + (value - minValue) / span * (width - pad.l - pad.r);
+                const py = value => height - pad.b - (value - minValue) / span * (height - pad.t - pad.b);
+                ctx.strokeStyle = '#EDF2F7';
+                ctx.lineWidth = 1;
+                ctx.font = '10px IBM Plex Mono, monospace';
+                ctx.fillStyle = '#718096';
+                ctx.textAlign = 'right';
+                for (let i = 0; i <= 4; i += 1) {
+                    const value = minValue + span * i / 4;
+                    const x = px(value), y = py(value);
+                    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(width - pad.r, y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, height - pad.b); ctx.stroke();
+                    ctx.fillText(value.toFixed(0), pad.l - 6, y + 3);
+                    ctx.textAlign = 'center';
+                    ctx.fillText(value.toFixed(0), x, height - pad.b + 17);
+                    ctx.textAlign = 'right';
+                }
+                ctx.strokeStyle = '#A0AEC0';
+                ctx.setLineDash([5, 4]);
+                ctx.beginPath(); ctx.moveTo(px(minValue), py(minValue)); ctx.lineTo(px(maxValue), py(maxValue)); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.strokeStyle = '#CBD5E0';
+                ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, height - pad.b); ctx.lineTo(width - pad.r, height - pad.b); ctx.stroke();
+                points.forEach(point => {
+                    const x = px(point.observed);
+                    const y = py(point.predicted);
+                    if (Number.isFinite(point.sigma) && point.sigma > 0) {
+                        ctx.strokeStyle = 'rgba(49,130,206,.30)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.moveTo(x, py(point.predicted - point.sigma)); ctx.lineTo(x, py(point.predicted + point.sigma)); ctx.stroke();
+                    }
+                    ctx.fillStyle = '#3182CE';
+                    ctx.strokeStyle = '#1A365D';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                });
+                ctx.fillStyle = '#4A5568';
+                ctx.font = '600 11px IBM Plex Sans, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Observed energy (J)', (pad.l + width - pad.r) / 2, height - 10);
+                ctx.save(); ctx.translate(14, (pad.t + height - pad.b) / 2); ctx.rotate(-Math.PI / 2);
+                ctx.fillText('GP predicted energy (J)', 0, 0); ctx.restore();
+                ctx.textAlign = 'left';
+                ctx.font = '10px IBM Plex Sans, sans-serif';
+                ctx.fillStyle = '#718096';
+                ctx.fillText('diagonal = perfect prediction · bars = ±σ', pad.l, 13);
             }
 
             const verdict = (value, floor, higherIsBetter = true) => {
@@ -3332,6 +3509,12 @@
             by hand. Judge the fit on the leave-one-out column: one-step-ahead scores the
             acquisition function's own high-uncertainty probes and is therefore pessimistic.
         </div>`;
+        }
+
+        function drawGpDiagnostic(data) {
+            if (typeof window.__drawGpDiagnostic === 'function') {
+                window.__drawGpDiagnostic(data);
+            }
         }
 
         function renderSopDashboard(data) {
@@ -4017,7 +4200,7 @@
             // Both canvases size themselves from their parent's clientWidth, which is 0
             // while the panel is display:none. They must be redrawn after the panel
             // becomes visible or they render at the fallback minimum width.
-            if (name === 'tech') setTimeout(() => { drawPareto3D(); drawConvergence(); }, 100);
+            if (name === 'tech') setTimeout(() => { drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA); }, 100);
             if (name === 'configs') renderConfigurations();
             if (name === 'chat') setTimeout(() => { window.__resizeHeroFx && window.__resizeHeroFx(); }, 100);
         }
@@ -4043,7 +4226,7 @@
             positionDock();
             // Both canvases were last sized for a full-width panel; the columns are
             // narrower, so they need a redraw once the grid has laid out.
-            setTimeout(() => { bindParetoControls(); drawPareto3D(); drawConvergence(); window.__resizeHeroFx && window.__resizeHeroFx(); }, 120);
+            setTimeout(() => { bindParetoControls(); drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA); window.__resizeHeroFx && window.__resizeHeroFx(); }, 120);
         }
 
         function exitWorkspace() {
@@ -4322,13 +4505,14 @@
             const row = LOG_ROWS[index];
             if (!row) return;
             stopReplay(false);
-            if (!row.iter) { REPLAY_LIMIT = null; renderSearchLog(null); drawPareto3D(); drawConvergence(); return; }
+            if (!row.iter) { REPLAY_LIMIT = null; renderSearchLog(null); drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA); return; }
 
             REPLAY_LIMIT = row.iter;
             setReplayReadout(`scrubbed to evaluation ${row.iter} / ${LOG_TOTAL}`);
             renderSearchLog(row.iter);
             drawPareto3D();
             drawConvergence();
+            drawGpDiagnostic(RUN_DATA);
 
             const point = row.pointIndex === undefined ? null
                 : (chartData()?.pareto?.points || [])[row.pointIndex];
@@ -4365,7 +4549,7 @@
                 REPLAY_LIMIT = null;
                 setReplayReadout('showing all evaluations');
                 renderSearchLog(null);
-                drawPareto3D(); drawConvergence();
+                drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA);
             }
         }
 
@@ -4393,14 +4577,14 @@
                 // Log and chart are advanced by the same tick: the line and the point
                 // for an evaluation are never out of step.
                 renderSearchLog(REPLAY_LIMIT);
-                drawPareto3D(); drawConvergence();
+                drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA);
                 if (REPLAY_LIMIT >= total) {
                     clearInterval(REPLAY_TIMER); REPLAY_TIMER = null;
                     document.getElementById('replay-btn')?.classList.remove('on');
                     setReplayReadout(`replay complete · ${total} evaluations · showing all`);
                     REPLAY_LIMIT = null;
                     renderSearchLog(null);
-                    drawPareto3D(); drawConvergence();
+                    drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA);
                 }
             }, stepMs);
         }
@@ -6137,7 +6321,7 @@
             drawPareto3D();
         }
 
-        window.addEventListener('resize', () => { positionDock(); bindParetoControls(); drawPareto3D(); drawConvergence(); });
+        window.addEventListener('resize', () => { positionDock(); bindParetoControls(); drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA); });
         setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
     </script>
 
