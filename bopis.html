@@ -1217,6 +1217,94 @@
             text-align: right;
         }
 
+        .pareto-key-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            padding: 10px 12px;
+            background: #FFFFFF;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        .pareto-key-metric {
+            min-width: 0;
+            padding: 8px 10px;
+            border: 1px solid #D8E7F3;
+            border-radius: 7px;
+            background: linear-gradient(180deg, #F7FBFF 0%, #FFFFFF 100%);
+        }
+
+        .pareto-key-metric .metric-label {
+            display: block;
+            color: #64748B;
+            font: 700 9px/1.2 'IBM Plex Sans', sans-serif;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+        }
+
+        .pareto-key-metric .metric-value {
+            display: block;
+            margin-top: 3px;
+            color: #102A43;
+            font: 800 18px/1.1 'IBM Plex Mono', ui-monospace, monospace;
+            letter-spacing: -.03em;
+        }
+
+        .pareto-key-metric .metric-unit {
+            color: #718096;
+            font: 600 10px 'IBM Plex Sans', sans-serif;
+        }
+
+        .pareto-key-metric.is-primary {
+            border-color: #3182CE;
+            box-shadow: inset 3px 0 #3182CE;
+        }
+
+        .pareto-key-metric.is-primary .metric-value {
+            color: #1D4ED8;
+        }
+
+        .pareto-colorbar {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 8px 12px 0;
+            color: #4A5568;
+            font: 600 10px 'IBM Plex Sans', sans-serif;
+        }
+
+        .pareto-colorbar-title {
+            min-width: 108px;
+            color: #2D3748;
+            font-weight: 700;
+        }
+
+        .pareto-colorbar-scale {
+            flex: 1;
+            min-width: 120px;
+            max-width: 300px;
+        }
+
+        .pareto-colorbar-gradient {
+            height: 11px;
+            border: 1px solid rgba(16, 42, 67, .25);
+            border-radius: 3px;
+            background: linear-gradient(90deg, #440154 0%, #31688E 25%, #35B779 50%, #A0DA39 75%, #FDE725 100%);
+        }
+
+        .pareto-colorbar-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2px;
+            color: #718096;
+            font: 10px 'IBM Plex Mono', ui-monospace, monospace;
+        }
+
+        .pareto-colorbar-note {
+            color: #718096;
+            font-weight: 500;
+        }
+
         .pareto-readout-scroll {
             max-height: 246px;
             overflow: auto;
@@ -1238,6 +1326,7 @@
             color: #4A5568;
             font-family: 'IBM Plex Sans', sans-serif;
             font-size: 10px;
+            letter-spacing: .035em;
             text-align: right;
             white-space: nowrap;
         }
@@ -1248,11 +1337,22 @@
         }
 
         .pareto-readout td {
-            padding: 7px 9px;
+            padding: 8px 9px;
             border-top: 1px solid #EDF2F7;
             color: #2D3748;
             text-align: right;
             white-space: nowrap;
+        }
+
+        .pareto-readout td.metric-number {
+            color: #102A43;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+        }
+
+        .pareto-readout td.metric-energy {
+            color: #1D4ED8;
         }
 
         .pareto-readout tbody tr {
@@ -1367,6 +1467,7 @@
         }
 
         @media (max-width: 850px) {
+            .pareto-key-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .method-trace { grid-template-columns: 1fr; }
             .method-step:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -16px; }
         }
@@ -2542,15 +2643,18 @@
                                 <option value="sim">Quick: simulated energy (about a minute)</option>
                                 <option value="real">Real: llama-server on this laptop (slow)</option>
                             </select></label>
-                        <label>Evaluations <input id="study-iterations" type="number" min="4" max="60" value="30"
+                        <label title="Number of configurations tested by BOPIS and Random Search.">Search evaluations
+                            <input id="study-iterations" type="number" min="4" max="60" value="30"
                                 style="width:56px"></label>
-                        <label>Proxy prompts <input id="study-proxy" type="number" min="8" max="100" value="20"
+                        <label title="Prompts reused for every configuration during the fast search loop.">Proxy prompts
+                            <input id="study-proxy" type="number" min="8" max="100" value="20"
                                 style="width:56px"></label>
                         <button class="btn-action" onclick="startStudy()">Start</button>
                         <button class="btn-action" onclick="stopStudy()">Stop</button>
                     </div>
-                    <div id="study-note" style="margin-top:6px; color:#4A5568;">Starts <code>python -m bopis run</code>
-                        in the background.
+                    <div id="study-note" style="margin-top:6px; color:#4A5568;">Starts a quick search-only study:
+                        each tested configuration is averaged over the same proxy prompts. This is for methodology
+                        demonstration; a formal Chapter 4/5 conclusion requires the full validation stage.
                         Live mode then streams each evaluation into the chart and the search log as it is measured.
                     </div>
                 </div>
@@ -2627,6 +2731,17 @@
                             <canvas id="pareto" width="800" height="420" style="max-width:100%"></canvas>
                             <span class="pareto-hint">Drag to rotate · wheel to zoom</span>
                         </div>
+                        <div class="pareto-colorbar" aria-label="Surface color scale for quality">
+                            <span class="pareto-colorbar-title">Surface color = Quality (F1)</span>
+                            <div class="pareto-colorbar-scale">
+                                <div class="pareto-colorbar-gradient"></div>
+                                <div class="pareto-colorbar-labels">
+                                    <span id="pareto-quality-low">low</span>
+                                    <span id="pareto-quality-high">high</span>
+                                </div>
+                            </div>
+                            <span class="pareto-colorbar-note">purple → yellow = lower → higher quality</span>
+                        </div>
                         <div class="pareto-controls">
                             <div class="pareto-selection" id="pareto-selection">Click a point to inspect its
                                 configuration.</div>
@@ -2657,7 +2772,7 @@
                             <span><i class="legend-dot" style="background:#000000"></i>Measured point</span>
                             <span><i class="legend-dot" style="background:#2A788E"></i>Pareto front</span>
                             <span><i class="legend-dot" style="background:#A0DA39"></i>Higher quality</span>
-                            <span><i class="legend-dot" style="background:#E53E3E"></i>Default reference</span>
+                            <span><i class="legend-dot" style="background:#E53E3E"></i>Baseline reference</span>
                             <span><i class="legend-dot" style="background:#B7791F; border-radius:2px"></i>Random search
                                 (square)</span>
                             <span><i class="legend-dot"
@@ -2673,6 +2788,28 @@
                             <div class="pareto-readout-head">
                                 <span>Pareto numeric readout</span>
                                 <span class="pareto-readout-note">sorted by energy · click a row to inspect</span>
+                            </div>
+                            <div class="pareto-key-metrics" id="pareto-key-metrics" aria-label="Selected configuration key metrics">
+                                <div class="pareto-key-metric is-primary">
+                                    <span class="metric-label">Selected energy</span>
+                                    <span class="metric-value">—</span>
+                                    <span class="metric-unit">joules / prompt</span>
+                                </div>
+                                <div class="pareto-key-metric">
+                                    <span class="metric-label">Selected speed</span>
+                                    <span class="metric-value">—</span>
+                                    <span class="metric-unit">tokens / second</span>
+                                </div>
+                                <div class="pareto-key-metric">
+                                    <span class="metric-label">Selected quality</span>
+                                    <span class="metric-value">—</span>
+                                    <span class="metric-unit">BERTScore F1</span>
+                                </div>
+                                <div class="pareto-key-metric">
+                                    <span class="metric-label">Selected iteration</span>
+                                    <span class="metric-value">—</span>
+                                    <span class="metric-unit">search evaluation</span>
+                                </div>
                             </div>
                             <div class="pareto-readout-scroll">
                                 <table aria-label="Pareto numeric readout">
@@ -3182,15 +3319,19 @@
                 if (!response.ok) throw new Error((await response.json()).error || `HTTP ${response.status}`);
                 RUN_PROMPTS = await response.json();
             } catch (error) {
-                body.textContent = BRIDGE ? `No prompt sample recorded for ${run}.` : 'Start python -m bopis ui to list the prompts.';
+                body.textContent = location.protocol === 'file:'
+                    ? 'Start python -m bopis ui to load the selected proxy prompts from this run.'
+                    : `No prompt sample recorded for ${run}.`;
                 return;
             }
             const proxy = RUN_PROMPTS.proxy || [];
             const counts = {};
             proxy.forEach(p => { counts[p.task_type] = (counts[p.task_type] || 0) + 1; });
             if (summary) summary.textContent = `Prompts this run measured on: ${proxy.length} proxy prompts (of a ${RUN_PROMPTS.n_sample}-prompt sample)`;
-            body.innerHTML = `<div style="margin-bottom:6px;">Every point on the chart is one configuration's <b>mean</b> energy, speed and BERTScore F1
-            over these same prompts, so points are comparable. Task mix: ${Object.entries(counts).map(([k, v]) => `${escapeHtml(k)} ${v}`).join(' · ')}.</div>
+            body.innerHTML = `<div style="margin-bottom:6px;">Source: <code>runs/${escapeHtml(run)}/dataset/sample_*.csv</code>.
+            The rows marked <code>in_proxy_subset=True</code> are the selected prompts. Every point on the chart is one configuration's
+            <b>mean</b> energy, speed and BERTScore F1 over these same prompts, so points are comparable.
+            Task mix: ${Object.entries(counts).map(([k, v]) => `${escapeHtml(k)} ${v}`).join(' · ')}.</div>
         <ol style="margin:0; padding-left:20px; max-height:220px; overflow:auto;">
         ${proxy.map(p => `<li><code>${escapeHtml(p.prompt_id)}</code> <span style="color:#718096;">${escapeHtml(p.task_type)} · ~${escapeHtml(p.prompt_tokens || '?')} tok</span>
             ${p.instruction ? `: ${escapeHtml(p.instruction.length > 140 ? p.instruction.slice(0, 139) + '…' : p.instruction)}` : ' <i style="color:#A0AEC0;">(synthetic, no text)</i>'}</li>`).join('')}
@@ -3381,7 +3522,7 @@
                 if (!canvas) return;
                 const points = (data?.surrogate?.points || [])
                     .map(point => ({
-                        observed: Number(point.energy_j),
+                        observed: Number(point.measured ?? point.energy_j),
                         predicted: Number(point.mu),
                         sigma: Number(point.predictive_sigma ?? point.sigma),
                         iteration: Number(point.iteration)
@@ -3521,7 +3662,13 @@
             const host = document.getElementById('sop-validation-dashboard');
             if (!host) return;
             if (!data || !data.statistical_tests) {
-                host.innerHTML = `<div style="text-align:center; padding:40px; color:#94a3b8; font-style:italic;">Awaiting SOP Validation Data... (Run a complete study to generate tests)</div>`;
+                const reason = data?.meta?.validated === false
+                    ? 'This run was saved without the full validation stage (for example, --skip-validation).'
+                    : 'Run a complete study to generate the statistical tests.';
+                host.innerHTML = `<div style="text-align:center; padding:32px; color:#94a3b8; font-style:italic;">
+                    <div style="font-size:16px; color:#cbd5e1; font-style:normal; font-weight:700; margin-bottom:8px;">SOP validation not available for this run</div>
+                    <div>${escapeHtml(reason)}</div>
+                </div>`;
                 return;
             }
 
@@ -3799,8 +3946,9 @@
                         feasible of ${escapeHtml(String(space.n_unconstrained ?? 768))} total</span>
                 </div>
                 <div class="cfg-row">
-                    <span class="cfg-k">Unoptimized default</span>
-                    <span class="cfg-v"><code>${escapeHtml(def.key || 'n/a')}</code></span>
+                    <span class="cfg-k">Baseline reference</span>
+                    <span class="cfg-v"><code>${escapeHtml(def.key || 'n/a')}</code>
+                        <span style="color:#A0AEC0; font-weight:400">comparison only</span></span>
                 </div>
             </div>
             <div style="flex:1 1 300px; min-width:280px">
@@ -4838,7 +4986,7 @@
                             : 'also on the front and meets the floors, but saves less energy than x*');
                 });
             add(rsPick, 'Random search pick', 'Baseline', `what random search found with the same budget (${(RUN_DATA.random_search_selection || {}).status || ''})`);
-            add(def, 'Unoptimized default', 'Reference', 'what a user who optimized nothing would run; every ratio above is relative to it');
+            add(def, 'Baseline reference', 'Reference', 'the unoptimized configuration measured outside the search budgets; every ratio above is relative to it');
             // The default is measured in Stage 0, outside the search, so its numbers
             // live in reference_point rather than among the searched points.
             const defOption = options.find(o => o.key === def);
@@ -4982,7 +5130,7 @@
             body.innerHTML = `
         <div class="plain"><b>The question BOPIS answers:</b> on <i>this</i> machine, which combination of model,
             precision and runtime settings uses the least energy while keeping answer quality at least
-            ${num(RUN_DATA.thresholds?.qrr, 0)}% and speed at least ${num(RUN_DATA.thresholds?.srr, 0)}% of an unoptimized default?
+            ${num(RUN_DATA.thresholds?.qrr, 0)}% and speed at least ${num(RUN_DATA.thresholds?.srr, 0)}% of the baseline reference?
             Its answer was <code>${escapeHtml(xstar || 'none')}</code> —
             ${escapeHtml(describeCfg(parseCfgKey(xstar)))} (status: <b>${escapeHtml((RUN_DATA.selection || {}).status || '')}</b>).
             Measuring every option would take ${space.n_feasible} evaluations; BOPIS used ${steps.length}.</div>
@@ -5636,7 +5784,7 @@
         <div id="${compareId}"></div>`;
         }
 
-        const CONDITION_LABEL = { unoptimized: 'Unoptimized default', random_search: 'Random search pick', bopis: 'BOPIS x*' };
+        const CONDITION_LABEL = { unoptimized: 'Baseline reference', random_search: 'Random search pick', bopis: 'BOPIS x*' };
 
         function compareAnalysisHtml(rows) {
             const byCondition = Object.fromEntries(rows.filter(row => !row.error).map(row => [row.condition, row]));
@@ -6000,12 +6148,29 @@
         function renderParetoReadout(points) {
             const body = document.getElementById('pareto-readout-body');
             if (!body) return;
-            const rows = points
+            const visiblePoints = points
                 .filter(point => point.arm !== 'chat')
                 .sort((a, b) => a.energy - b.energy)
+            const selected = visiblePoints.find(point => point.selected) || visiblePoints[0];
+            const metrics = document.getElementById('pareto-key-metrics');
+            if (metrics) {
+                const values = selected ? [
+                    [selected.energy.toFixed(2), 'joules / prompt'],
+                    [selected.speed.toFixed(2), 'tokens / second'],
+                    [selected.quality.toFixed(4), 'BERTScore F1'],
+                    [selected.iteration == null ? '—' : String(selected.iteration), 'search evaluation']
+                ] : [['—', 'joules / prompt'], ['—', 'tokens / second'], ['—', 'BERTScore F1'], ['—', 'search evaluation']];
+                metrics.innerHTML = values.map((entry, index) => `
+                    <div class="pareto-key-metric${index === 0 ? ' is-primary' : ''}">
+                        <span class="metric-label">${['Selected energy', 'Selected speed', 'Selected quality', 'Selected iteration'][index]}</span>
+                        <span class="metric-value">${escapeHtml(entry[0])}</span>
+                        <span class="metric-unit">${entry[1]}</span>
+                    </div>`).join('');
+            }
+            const rows = visiblePoints
                 .map(point => {
                     const key = point.config || (point.reference ? 'reference' : '');
-                    const title = point.reference ? 'Unoptimized default' : pointLabel(point);
+                    const title = point.reference ? 'Baseline reference' : pointLabel(point);
                     const badges = point.selected
                         ? '<span class="xstar-badge">x*</span>'
                         : point.reference
@@ -6015,10 +6180,10 @@
                     return `<tr class="${rowClass}" onclick="inspectParetoRow('${encodeURIComponent(key)}')"
                         title="Click to inspect this configuration">
                         <td>${escapeHtml(title)}${badges}</td>
-                        <td>${point.energy.toFixed(2)}</td>
-                        <td>${point.speed.toFixed(2)}</td>
-                        <td>${point.quality.toFixed(4)}</td>
-                        <td>${point.iteration == null ? '—' : escapeHtml(String(point.iteration))}</td>
+                        <td class="metric-number metric-energy">${point.energy.toFixed(2)}</td>
+                        <td class="metric-number">${point.speed.toFixed(2)}</td>
+                        <td class="metric-number">${point.quality.toFixed(4)}</td>
+                        <td class="metric-number">${point.iteration == null ? '—' : escapeHtml(String(point.iteration))}</td>
                     </tr>`;
                 });
             body.innerHTML = rows.length
@@ -6040,7 +6205,7 @@
                     energy_j: data.reference_point.energy_j,
                     tokens_per_s: data.reference_point.tokens_per_s,
                     quality_f1: data.reference_point.quality_f1,
-                    label: 'Unoptimized default'
+                    label: 'Baseline reference'
                 };
             }
             const output = document.getElementById('pareto-selection');
@@ -6103,6 +6268,10 @@
                 return { lo, hi, span: hi - lo || 1 };
             };
             const bounds = { energy: range('energy'), speed: range('speed'), quality: range('quality') };
+            const qualityLow = document.getElementById('pareto-quality-low');
+            const qualityHigh = document.getElementById('pareto-quality-high');
+            if (qualityLow) qualityLow.textContent = `${bounds.quality.lo.toFixed(3)} F1`;
+            if (qualityHigh) qualityHigh.textContent = `${bounds.quality.hi.toFixed(3)} F1`;
             const ratio = window.devicePixelRatio || 1;
             const width = Math.max(320, canvas.parentElement.clientWidth - 32);
             const height = Math.max(320, Math.min(460, width * 0.58));
