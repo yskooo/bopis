@@ -1,17 +1,17 @@
 window.BOPIS_PROFILE = {
-  "generated_utc": "2026-10-04T23:36:34.586413+00:00",
+  "generated_utc": "2026-10-05T07:40:09.528367+00:00",
   "host_profile": {
     "cpu_model": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
     "physical_cores": 4,
     "logical_cores": 8,
     "ram_total_bytes": 16948453376,
-    "ram_available_bytes": 3222540288,
+    "ram_available_bytes": 496193536,
     "is_wsl": false,
     "telemetry_source": "kernel32",
     "gpu_available": true,
     "gpu_name": "NVIDIA GeForce MX330",
     "vram_total_bytes": 2147483648,
-    "vram_free_bytes": 1774833664,
+    "vram_free_bytes": 1787023360,
     "compute_capability": "6.1",
     "driver_version": "528.96",
     "cuda_driver_version": "12.0",
@@ -47,35 +47,38 @@ window.BOPIS_PROFILE = {
     "ram_total_gib": 15.78
   },
   "configuration_space": {
-    "n_feasible": 208,
-    "n_rejected": 176,
+    "n_feasible": 64,
+    "n_rejected": 320,
     "rejected_by_rule": {
-      "HW-P1": 64,
-      "HW-P0": 112
+      "HW-P0": 256,
+      "HW-P1": 64
     },
     "n_unconstrained": 2304,
     "precision_variants_present": [
-      "F16",
       "Q8_0",
       "Q4_K_M"
     ],
     "models_present": [
       "qwen2.5-0.5b",
-      "qwen2.5-1.5b",
-      "qwen2.5-3b"
+      "qwen2.5-1.5b"
     ],
     "model_precision_pairs": [
-      "qwen2.5-0.5b:F16",
       "qwen2.5-0.5b:Q4_K_M",
       "qwen2.5-0.5b:Q8_0",
-      "qwen2.5-1.5b:F16",
-      "qwen2.5-1.5b:Q4_K_M",
-      "qwen2.5-1.5b:Q8_0",
-      "qwen2.5-3b:Q4_K_M",
-      "qwen2.5-3b:Q8_0"
+      "qwen2.5-1.5b:Q4_K_M"
     ]
   },
   "rejections": [
+    {
+      "config": "qwen2.5-0.5b_t128_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.94 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t128_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.94 GiB exceeds 0.46 GiB available system RAM"
+    },
     {
       "config": "qwen2.5-0.5b_t128_b1_F16_g14_c2",
       "rule": "HW-P1",
@@ -85,6 +88,26 @@ window.BOPIS_PROFILE = {
       "config": "qwen2.5-0.5b_t128_b1_F16_g14_c4",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
+    },
+    {
+      "config": "qwen2.5-0.5b_t128_b1_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.51 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t128_b1_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.51 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t128_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.97 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t128_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.97 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-0.5b_t128_b2_F16_g14_c2",
@@ -97,6 +120,26 @@ window.BOPIS_PROFILE = {
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
     },
     {
+      "config": "qwen2.5-0.5b_t128_b2_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.54 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t128_b2_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.54 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t256_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.94 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t256_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.94 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
       "config": "qwen2.5-0.5b_t256_b1_F16_g14_c2",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
@@ -105,6 +148,26 @@ window.BOPIS_PROFILE = {
       "config": "qwen2.5-0.5b_t256_b1_F16_g14_c4",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
+    },
+    {
+      "config": "qwen2.5-0.5b_t256_b1_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.51 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t256_b1_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.51 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t256_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.97 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t256_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.97 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-0.5b_t256_b2_F16_g14_c2",
@@ -117,6 +180,26 @@ window.BOPIS_PROFILE = {
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
     },
     {
+      "config": "qwen2.5-0.5b_t256_b2_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.54 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t256_b2_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.54 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t512_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.94 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t512_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.94 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
       "config": "qwen2.5-0.5b_t512_b1_F16_g14_c2",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
@@ -125,6 +208,26 @@ window.BOPIS_PROFILE = {
       "config": "qwen2.5-0.5b_t512_b1_F16_g14_c4",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
+    },
+    {
+      "config": "qwen2.5-0.5b_t512_b1_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.51 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t512_b1_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.51 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t512_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.97 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t512_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.97 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-0.5b_t512_b2_F16_g14_c2",
@@ -137,6 +240,26 @@ window.BOPIS_PROFILE = {
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
     },
     {
+      "config": "qwen2.5-0.5b_t512_b2_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.54 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t512_b2_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.54 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t1024_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.94 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t1024_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.94 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
       "config": "qwen2.5-0.5b_t1024_b1_F16_g14_c2",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
@@ -145,6 +268,26 @@ window.BOPIS_PROFILE = {
       "config": "qwen2.5-0.5b_t1024_b1_F16_g14_c4",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
+    },
+    {
+      "config": "qwen2.5-0.5b_t1024_b1_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.51 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t1024_b1_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.51 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t1024_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.97 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t1024_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.97 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-0.5b_t1024_b2_F16_g14_c2",
@@ -157,6 +300,26 @@ window.BOPIS_PROFILE = {
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
     },
     {
+      "config": "qwen2.5-0.5b_t1024_b2_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.54 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-0.5b_t1024_b2_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.54 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 2.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 2.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
       "config": "qwen2.5-1.5b_t128_b1_F16_g14_c2",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
@@ -165,6 +328,46 @@ window.BOPIS_PROFILE = {
       "config": "qwen2.5-1.5b_t128_b1_F16_g14_c4",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b1_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.58 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b1_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.58 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b1_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b1_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 2.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 2.98 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-1.5b_t128_b2_F16_g14_c2",
@@ -177,6 +380,46 @@ window.BOPIS_PROFILE = {
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
     },
     {
+      "config": "qwen2.5-1.5b_t128_b2_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.63 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b2_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.63 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b2_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b2_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t128_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 2.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 2.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
       "config": "qwen2.5-1.5b_t256_b1_F16_g14_c2",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
@@ -185,6 +428,46 @@ window.BOPIS_PROFILE = {
       "config": "qwen2.5-1.5b_t256_b1_F16_g14_c4",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b1_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.58 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b1_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.58 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b1_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b1_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 2.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 2.98 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-1.5b_t256_b2_F16_g14_c2",
@@ -197,6 +480,46 @@ window.BOPIS_PROFILE = {
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
     },
     {
+      "config": "qwen2.5-1.5b_t256_b2_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.63 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b2_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.63 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b2_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b2_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t256_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 2.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 2.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
       "config": "qwen2.5-1.5b_t512_b1_F16_g14_c2",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
@@ -205,6 +528,46 @@ window.BOPIS_PROFILE = {
       "config": "qwen2.5-1.5b_t512_b1_F16_g14_c4",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b1_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.58 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b1_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.58 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b1_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b1_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 2.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 2.98 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-1.5b_t512_b2_F16_g14_c2",
@@ -217,6 +580,46 @@ window.BOPIS_PROFILE = {
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
     },
     {
+      "config": "qwen2.5-1.5b_t512_b2_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.63 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b2_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.63 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b2_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b2_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t512_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 2.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 2.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
       "config": "qwen2.5-1.5b_t1024_b1_F16_g14_c2",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
@@ -225,6 +628,46 @@ window.BOPIS_PROFILE = {
       "config": "qwen2.5-1.5b_t1024_b1_F16_g14_c4",
       "rule": "HW-P1",
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b1_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.58 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b1_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.58 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b1_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b1_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.92 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 2.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 2.98 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-1.5b_t1024_b2_F16_g14_c2",
@@ -237,14 +680,44 @@ window.BOPIS_PROFILE = {
       "detail": "F16 is not permitted for GPU offload on 2.00 GiB VRAM (g=14); at g=0 the weights stay in system RAM and this rule does not apply"
     },
     {
+      "config": "qwen2.5-1.5b_t1024_b2_Q8_0_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.63 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b2_Q8_0_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.63 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b2_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b2_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.76 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 0.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-1.5b_t1024_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 0.98 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
       "config": "qwen2.5-3b_t128_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b1_F16_g14_c2",
@@ -259,22 +732,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t128_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 3.13 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.13 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 3.13 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.13 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b1_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b1_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.81 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.81 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b1_Q4_K_M_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b1_Q4_K_M_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b2_F16_g14_c2",
@@ -289,22 +792,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t128_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 3.20 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.20 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 3.20 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.20 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b2_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b2_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.88 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.88 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b2_Q4_K_M_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t128_b2_Q4_K_M_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b1_F16_g14_c2",
@@ -319,22 +852,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t256_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 3.13 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.13 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 3.13 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.13 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b1_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b1_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.81 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.81 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b1_Q4_K_M_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b1_Q4_K_M_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b2_F16_g14_c2",
@@ -349,22 +912,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t256_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 3.20 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.20 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 3.20 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.20 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b2_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b2_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.88 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.88 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b2_Q4_K_M_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t256_b2_Q4_K_M_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b1_F16_g14_c2",
@@ -379,22 +972,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t512_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 3.13 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.13 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 3.13 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.13 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b1_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b1_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.81 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.81 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b1_Q4_K_M_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b1_Q4_K_M_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b2_F16_g14_c2",
@@ -409,22 +1032,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t512_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 3.20 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.20 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 3.20 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.20 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b2_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b2_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.88 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.88 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b2_Q4_K_M_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t512_b2_Q4_K_M_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b1_F16_g14_c2",
@@ -439,22 +1092,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t1024_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 3.13 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.13 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 3.13 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.13 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b1_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b1_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.81 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.81 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b1_Q4_K_M_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b1_Q4_K_M_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b2_F16_g14_c2",
@@ -469,22 +1152,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t1024_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 3.20 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.20 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 3.20 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 3.20 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b2_Q8_0_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b2_Q8_0_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.87 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.88 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.88 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b2_Q4_K_M_g14_c2",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-3b_t1024_b2_Q4_K_M_g14_c4",
+      "rule": "HW-P0",
+      "detail": "host share 1.06 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g14_c2",
@@ -499,52 +1212,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-7b_t128_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q8_0_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q8_0_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.39 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.39 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q4_K_M_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q4_K_M_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g14_c2",
@@ -559,52 +1272,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-7b_t128_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q8_0_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q8_0_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.50 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.50 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q4_K_M_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q4_K_M_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g14_c2",
@@ -619,52 +1332,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-7b_t256_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q8_0_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q8_0_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.39 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.39 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q4_K_M_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q4_K_M_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_F16_g14_c2",
@@ -679,52 +1392,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-7b_t256_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q8_0_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q8_0_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.50 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.50 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q4_K_M_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q4_K_M_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_F16_g14_c2",
@@ -739,52 +1452,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-7b_t512_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q8_0_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q8_0_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.39 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.39 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q4_K_M_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q4_K_M_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_F16_g14_c2",
@@ -799,52 +1512,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-7b_t512_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q8_0_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q8_0_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.50 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.50 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q4_K_M_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q4_K_M_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_F16_g14_c2",
@@ -859,52 +1572,52 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-7b_t1024_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q8_0_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q8_0_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.88 GiB (Q8_0, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.39 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.39 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q4_K_M_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q4_K_M_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.25 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_F16_g14_c2",
@@ -919,42 +1632,42 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-7b_t1024_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q8_0_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q8_0_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 3.99 GiB (Q8_0, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.50 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 4.50 GiB exceeds 3.00 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 0.46 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q4_K_M_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q4_K_M_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.65 GiB available VRAM"
+      "detail": "GPU share 2.36 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.66 GiB available VRAM"
     }
   ],
   "requirements": [
@@ -966,9 +1679,9 @@ window.BOPIS_PROFILE = {
       "kv_cache_gib": 0.0234375,
       "cpu_only_ram_gib": 1.8637309074401855,
       "full_gpu_vram_gib": 1.8637309074401855,
-      "cpu_only_verdict": "fits",
+      "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.0
+      "shortfall_gib": 1.4016146659851074
     },
     {
       "model": "qwen2.5-0.5b",
@@ -978,9 +1691,9 @@ window.BOPIS_PROFILE = {
       "kv_cache_gib": 0.0234375,
       "cpu_only_ram_gib": 0.9435842037200928,
       "full_gpu_vram_gib": 0.9435842037200928,
-      "cpu_only_verdict": "fits",
+      "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.0
+      "shortfall_gib": 0.48146796226501465
     },
     {
       "model": "qwen2.5-0.5b",
@@ -990,9 +1703,9 @@ window.BOPIS_PROFILE = {
       "kv_cache_gib": 0.0234375,
       "cpu_only_ram_gib": 0.5122654363512993,
       "full_gpu_vram_gib": 0.5122654363512993,
-      "cpu_only_verdict": "fits",
+      "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.0
+      "shortfall_gib": 0.05014919489622116
     },
     {
       "model": "qwen2.5-0.5b",
@@ -1016,7 +1729,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 5.791634559631348,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 2.790410041809082
+      "shortfall_gib": 5.3295183181762695
     },
     {
       "model": "qwen2.5-1.5b",
@@ -1026,9 +1739,9 @@ window.BOPIS_PROFILE = {
       "kv_cache_gib": 0.0546875,
       "cpu_only_ram_gib": 2.923161029815674,
       "full_gpu_vram_gib": 2.923161029815674,
-      "cpu_only_verdict": "fits",
+      "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 0.0
+      "shortfall_gib": 2.4610447883605957
     },
     {
       "model": "qwen2.5-1.5b",
@@ -1038,9 +1751,9 @@ window.BOPIS_PROFILE = {
       "kv_cache_gib": 0.0546875,
       "cpu_only_ram_gib": 1.5785640627145767,
       "full_gpu_vram_gib": 1.5785640627145767,
-      "cpu_only_verdict": "fits",
+      "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.0
+      "shortfall_gib": 1.1164478212594986
     },
     {
       "model": "qwen2.5-1.5b",
@@ -1050,9 +1763,9 @@ window.BOPIS_PROFILE = {
       "kv_cache_gib": 0.0546875,
       "cpu_only_ram_gib": 0.9206079468131065,
       "full_gpu_vram_gib": 0.9206079468131065,
-      "cpu_only_verdict": "fits",
+      "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.0
+      "shortfall_gib": 0.4584917053580284
     },
     {
       "model": "qwen2.5-3b",
@@ -1064,7 +1777,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 11.581459522247314,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 8.580235004425049
+      "shortfall_gib": 11.119343280792236
     },
     {
       "model": "qwen2.5-3b",
@@ -1076,7 +1789,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 5.825886011123657,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 2.8246614933013916
+      "shortfall_gib": 5.363769769668579
     },
     {
       "model": "qwen2.5-3b",
@@ -1088,7 +1801,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 3.127960927784443,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 0.12673640996217728
+      "shortfall_gib": 2.6658446863293648
     },
     {
       "model": "qwen2.5-3b",
@@ -1098,9 +1811,9 @@ window.BOPIS_PROFILE = {
       "kv_cache_gib": 0.0703125,
       "cpu_only_ram_gib": 1.807776253670454,
       "full_gpu_vram_gib": 1.807776253670454,
-      "cpu_only_verdict": "fits",
+      "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.0
+      "shortfall_gib": 1.345660012215376
     },
     {
       "model": "qwen2.5-7b",
@@ -1112,7 +1825,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 28.496087074279785,
       "cpu_only_verdict": "needs more RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 25.49486255645752
+      "shortfall_gib": 28.033970832824707
     },
     {
       "model": "qwen2.5-7b",
@@ -1124,7 +1837,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 14.302731037139893,
       "cpu_only_verdict": "needs more RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 11.301506519317627
+      "shortfall_gib": 13.840614795684814
     },
     {
       "model": "qwen2.5-7b",
@@ -1136,7 +1849,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 7.649595394730568,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 4.648370876908302
+      "shortfall_gib": 7.18747915327549
     },
     {
       "model": "qwen2.5-7b",
@@ -1148,218 +1861,74 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 4.393994353711605,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 1.3927698358893394
+      "shortfall_gib": 3.931878112256527
     }
   ],
   "feasible": [
-    "qwen2.5-0.5b_t128_b1_F16_g0_c2",
-    "qwen2.5-0.5b_t128_b1_F16_g0_c4",
-    "qwen2.5-0.5b_t128_b1_Q8_0_g0_c2",
-    "qwen2.5-0.5b_t128_b1_Q8_0_g0_c4",
     "qwen2.5-0.5b_t128_b1_Q8_0_g14_c2",
     "qwen2.5-0.5b_t128_b1_Q8_0_g14_c4",
     "qwen2.5-0.5b_t128_b1_Q4_K_M_g0_c2",
     "qwen2.5-0.5b_t128_b1_Q4_K_M_g0_c4",
     "qwen2.5-0.5b_t128_b1_Q4_K_M_g14_c2",
     "qwen2.5-0.5b_t128_b1_Q4_K_M_g14_c4",
-    "qwen2.5-0.5b_t128_b2_F16_g0_c2",
-    "qwen2.5-0.5b_t128_b2_F16_g0_c4",
-    "qwen2.5-0.5b_t128_b2_Q8_0_g0_c2",
-    "qwen2.5-0.5b_t128_b2_Q8_0_g0_c4",
     "qwen2.5-0.5b_t128_b2_Q8_0_g14_c2",
     "qwen2.5-0.5b_t128_b2_Q8_0_g14_c4",
     "qwen2.5-0.5b_t128_b2_Q4_K_M_g0_c2",
     "qwen2.5-0.5b_t128_b2_Q4_K_M_g0_c4",
     "qwen2.5-0.5b_t128_b2_Q4_K_M_g14_c2",
     "qwen2.5-0.5b_t128_b2_Q4_K_M_g14_c4",
-    "qwen2.5-0.5b_t256_b1_F16_g0_c2",
-    "qwen2.5-0.5b_t256_b1_F16_g0_c4",
-    "qwen2.5-0.5b_t256_b1_Q8_0_g0_c2",
-    "qwen2.5-0.5b_t256_b1_Q8_0_g0_c4",
     "qwen2.5-0.5b_t256_b1_Q8_0_g14_c2",
     "qwen2.5-0.5b_t256_b1_Q8_0_g14_c4",
     "qwen2.5-0.5b_t256_b1_Q4_K_M_g0_c2",
     "qwen2.5-0.5b_t256_b1_Q4_K_M_g0_c4",
     "qwen2.5-0.5b_t256_b1_Q4_K_M_g14_c2",
     "qwen2.5-0.5b_t256_b1_Q4_K_M_g14_c4",
-    "qwen2.5-0.5b_t256_b2_F16_g0_c2",
-    "qwen2.5-0.5b_t256_b2_F16_g0_c4",
-    "qwen2.5-0.5b_t256_b2_Q8_0_g0_c2",
-    "qwen2.5-0.5b_t256_b2_Q8_0_g0_c4",
     "qwen2.5-0.5b_t256_b2_Q8_0_g14_c2",
     "qwen2.5-0.5b_t256_b2_Q8_0_g14_c4",
     "qwen2.5-0.5b_t256_b2_Q4_K_M_g0_c2",
     "qwen2.5-0.5b_t256_b2_Q4_K_M_g0_c4",
     "qwen2.5-0.5b_t256_b2_Q4_K_M_g14_c2",
     "qwen2.5-0.5b_t256_b2_Q4_K_M_g14_c4",
-    "qwen2.5-0.5b_t512_b1_F16_g0_c2",
-    "qwen2.5-0.5b_t512_b1_F16_g0_c4",
-    "qwen2.5-0.5b_t512_b1_Q8_0_g0_c2",
-    "qwen2.5-0.5b_t512_b1_Q8_0_g0_c4",
     "qwen2.5-0.5b_t512_b1_Q8_0_g14_c2",
     "qwen2.5-0.5b_t512_b1_Q8_0_g14_c4",
     "qwen2.5-0.5b_t512_b1_Q4_K_M_g0_c2",
     "qwen2.5-0.5b_t512_b1_Q4_K_M_g0_c4",
     "qwen2.5-0.5b_t512_b1_Q4_K_M_g14_c2",
     "qwen2.5-0.5b_t512_b1_Q4_K_M_g14_c4",
-    "qwen2.5-0.5b_t512_b2_F16_g0_c2",
-    "qwen2.5-0.5b_t512_b2_F16_g0_c4",
-    "qwen2.5-0.5b_t512_b2_Q8_0_g0_c2",
-    "qwen2.5-0.5b_t512_b2_Q8_0_g0_c4",
     "qwen2.5-0.5b_t512_b2_Q8_0_g14_c2",
     "qwen2.5-0.5b_t512_b2_Q8_0_g14_c4",
     "qwen2.5-0.5b_t512_b2_Q4_K_M_g0_c2",
     "qwen2.5-0.5b_t512_b2_Q4_K_M_g0_c4",
     "qwen2.5-0.5b_t512_b2_Q4_K_M_g14_c2",
     "qwen2.5-0.5b_t512_b2_Q4_K_M_g14_c4",
-    "qwen2.5-0.5b_t1024_b1_F16_g0_c2",
-    "qwen2.5-0.5b_t1024_b1_F16_g0_c4",
-    "qwen2.5-0.5b_t1024_b1_Q8_0_g0_c2",
-    "qwen2.5-0.5b_t1024_b1_Q8_0_g0_c4",
     "qwen2.5-0.5b_t1024_b1_Q8_0_g14_c2",
     "qwen2.5-0.5b_t1024_b1_Q8_0_g14_c4",
     "qwen2.5-0.5b_t1024_b1_Q4_K_M_g0_c2",
     "qwen2.5-0.5b_t1024_b1_Q4_K_M_g0_c4",
     "qwen2.5-0.5b_t1024_b1_Q4_K_M_g14_c2",
     "qwen2.5-0.5b_t1024_b1_Q4_K_M_g14_c4",
-    "qwen2.5-0.5b_t1024_b2_F16_g0_c2",
-    "qwen2.5-0.5b_t1024_b2_F16_g0_c4",
-    "qwen2.5-0.5b_t1024_b2_Q8_0_g0_c2",
-    "qwen2.5-0.5b_t1024_b2_Q8_0_g0_c4",
     "qwen2.5-0.5b_t1024_b2_Q8_0_g14_c2",
     "qwen2.5-0.5b_t1024_b2_Q8_0_g14_c4",
     "qwen2.5-0.5b_t1024_b2_Q4_K_M_g0_c2",
     "qwen2.5-0.5b_t1024_b2_Q4_K_M_g0_c4",
     "qwen2.5-0.5b_t1024_b2_Q4_K_M_g14_c2",
     "qwen2.5-0.5b_t1024_b2_Q4_K_M_g14_c4",
-    "qwen2.5-1.5b_t128_b1_F16_g0_c2",
-    "qwen2.5-1.5b_t128_b1_F16_g0_c4",
-    "qwen2.5-1.5b_t128_b1_Q8_0_g0_c2",
-    "qwen2.5-1.5b_t128_b1_Q8_0_g0_c4",
-    "qwen2.5-1.5b_t128_b1_Q8_0_g14_c2",
-    "qwen2.5-1.5b_t128_b1_Q8_0_g14_c4",
-    "qwen2.5-1.5b_t128_b1_Q4_K_M_g0_c2",
-    "qwen2.5-1.5b_t128_b1_Q4_K_M_g0_c4",
     "qwen2.5-1.5b_t128_b1_Q4_K_M_g14_c2",
     "qwen2.5-1.5b_t128_b1_Q4_K_M_g14_c4",
-    "qwen2.5-1.5b_t128_b2_F16_g0_c2",
-    "qwen2.5-1.5b_t128_b2_F16_g0_c4",
-    "qwen2.5-1.5b_t128_b2_Q8_0_g0_c2",
-    "qwen2.5-1.5b_t128_b2_Q8_0_g0_c4",
-    "qwen2.5-1.5b_t128_b2_Q8_0_g14_c2",
-    "qwen2.5-1.5b_t128_b2_Q8_0_g14_c4",
-    "qwen2.5-1.5b_t128_b2_Q4_K_M_g0_c2",
-    "qwen2.5-1.5b_t128_b2_Q4_K_M_g0_c4",
     "qwen2.5-1.5b_t128_b2_Q4_K_M_g14_c2",
     "qwen2.5-1.5b_t128_b2_Q4_K_M_g14_c4",
-    "qwen2.5-1.5b_t256_b1_F16_g0_c2",
-    "qwen2.5-1.5b_t256_b1_F16_g0_c4",
-    "qwen2.5-1.5b_t256_b1_Q8_0_g0_c2",
-    "qwen2.5-1.5b_t256_b1_Q8_0_g0_c4",
-    "qwen2.5-1.5b_t256_b1_Q8_0_g14_c2",
-    "qwen2.5-1.5b_t256_b1_Q8_0_g14_c4",
-    "qwen2.5-1.5b_t256_b1_Q4_K_M_g0_c2",
-    "qwen2.5-1.5b_t256_b1_Q4_K_M_g0_c4",
     "qwen2.5-1.5b_t256_b1_Q4_K_M_g14_c2",
     "qwen2.5-1.5b_t256_b1_Q4_K_M_g14_c4",
-    "qwen2.5-1.5b_t256_b2_F16_g0_c2",
-    "qwen2.5-1.5b_t256_b2_F16_g0_c4",
-    "qwen2.5-1.5b_t256_b2_Q8_0_g0_c2",
-    "qwen2.5-1.5b_t256_b2_Q8_0_g0_c4",
-    "qwen2.5-1.5b_t256_b2_Q8_0_g14_c2",
-    "qwen2.5-1.5b_t256_b2_Q8_0_g14_c4",
-    "qwen2.5-1.5b_t256_b2_Q4_K_M_g0_c2",
-    "qwen2.5-1.5b_t256_b2_Q4_K_M_g0_c4",
     "qwen2.5-1.5b_t256_b2_Q4_K_M_g14_c2",
     "qwen2.5-1.5b_t256_b2_Q4_K_M_g14_c4",
-    "qwen2.5-1.5b_t512_b1_F16_g0_c2",
-    "qwen2.5-1.5b_t512_b1_F16_g0_c4",
-    "qwen2.5-1.5b_t512_b1_Q8_0_g0_c2",
-    "qwen2.5-1.5b_t512_b1_Q8_0_g0_c4",
-    "qwen2.5-1.5b_t512_b1_Q8_0_g14_c2",
-    "qwen2.5-1.5b_t512_b1_Q8_0_g14_c4",
-    "qwen2.5-1.5b_t512_b1_Q4_K_M_g0_c2",
-    "qwen2.5-1.5b_t512_b1_Q4_K_M_g0_c4",
     "qwen2.5-1.5b_t512_b1_Q4_K_M_g14_c2",
     "qwen2.5-1.5b_t512_b1_Q4_K_M_g14_c4",
-    "qwen2.5-1.5b_t512_b2_F16_g0_c2",
-    "qwen2.5-1.5b_t512_b2_F16_g0_c4",
-    "qwen2.5-1.5b_t512_b2_Q8_0_g0_c2",
-    "qwen2.5-1.5b_t512_b2_Q8_0_g0_c4",
-    "qwen2.5-1.5b_t512_b2_Q8_0_g14_c2",
-    "qwen2.5-1.5b_t512_b2_Q8_0_g14_c4",
-    "qwen2.5-1.5b_t512_b2_Q4_K_M_g0_c2",
-    "qwen2.5-1.5b_t512_b2_Q4_K_M_g0_c4",
     "qwen2.5-1.5b_t512_b2_Q4_K_M_g14_c2",
     "qwen2.5-1.5b_t512_b2_Q4_K_M_g14_c4",
-    "qwen2.5-1.5b_t1024_b1_F16_g0_c2",
-    "qwen2.5-1.5b_t1024_b1_F16_g0_c4",
-    "qwen2.5-1.5b_t1024_b1_Q8_0_g0_c2",
-    "qwen2.5-1.5b_t1024_b1_Q8_0_g0_c4",
-    "qwen2.5-1.5b_t1024_b1_Q8_0_g14_c2",
-    "qwen2.5-1.5b_t1024_b1_Q8_0_g14_c4",
-    "qwen2.5-1.5b_t1024_b1_Q4_K_M_g0_c2",
-    "qwen2.5-1.5b_t1024_b1_Q4_K_M_g0_c4",
     "qwen2.5-1.5b_t1024_b1_Q4_K_M_g14_c2",
     "qwen2.5-1.5b_t1024_b1_Q4_K_M_g14_c4",
-    "qwen2.5-1.5b_t1024_b2_F16_g0_c2",
-    "qwen2.5-1.5b_t1024_b2_F16_g0_c4",
-    "qwen2.5-1.5b_t1024_b2_Q8_0_g0_c2",
-    "qwen2.5-1.5b_t1024_b2_Q8_0_g0_c4",
-    "qwen2.5-1.5b_t1024_b2_Q8_0_g14_c2",
-    "qwen2.5-1.5b_t1024_b2_Q8_0_g14_c4",
-    "qwen2.5-1.5b_t1024_b2_Q4_K_M_g0_c2",
-    "qwen2.5-1.5b_t1024_b2_Q4_K_M_g0_c4",
     "qwen2.5-1.5b_t1024_b2_Q4_K_M_g14_c2",
-    "qwen2.5-1.5b_t1024_b2_Q4_K_M_g14_c4",
-    "qwen2.5-3b_t128_b1_Q8_0_g14_c2",
-    "qwen2.5-3b_t128_b1_Q8_0_g14_c4",
-    "qwen2.5-3b_t128_b1_Q4_K_M_g0_c2",
-    "qwen2.5-3b_t128_b1_Q4_K_M_g0_c4",
-    "qwen2.5-3b_t128_b1_Q4_K_M_g14_c2",
-    "qwen2.5-3b_t128_b1_Q4_K_M_g14_c4",
-    "qwen2.5-3b_t128_b2_Q8_0_g14_c2",
-    "qwen2.5-3b_t128_b2_Q8_0_g14_c4",
-    "qwen2.5-3b_t128_b2_Q4_K_M_g0_c2",
-    "qwen2.5-3b_t128_b2_Q4_K_M_g0_c4",
-    "qwen2.5-3b_t128_b2_Q4_K_M_g14_c2",
-    "qwen2.5-3b_t128_b2_Q4_K_M_g14_c4",
-    "qwen2.5-3b_t256_b1_Q8_0_g14_c2",
-    "qwen2.5-3b_t256_b1_Q8_0_g14_c4",
-    "qwen2.5-3b_t256_b1_Q4_K_M_g0_c2",
-    "qwen2.5-3b_t256_b1_Q4_K_M_g0_c4",
-    "qwen2.5-3b_t256_b1_Q4_K_M_g14_c2",
-    "qwen2.5-3b_t256_b1_Q4_K_M_g14_c4",
-    "qwen2.5-3b_t256_b2_Q8_0_g14_c2",
-    "qwen2.5-3b_t256_b2_Q8_0_g14_c4",
-    "qwen2.5-3b_t256_b2_Q4_K_M_g0_c2",
-    "qwen2.5-3b_t256_b2_Q4_K_M_g0_c4",
-    "qwen2.5-3b_t256_b2_Q4_K_M_g14_c2",
-    "qwen2.5-3b_t256_b2_Q4_K_M_g14_c4",
-    "qwen2.5-3b_t512_b1_Q8_0_g14_c2",
-    "qwen2.5-3b_t512_b1_Q8_0_g14_c4",
-    "qwen2.5-3b_t512_b1_Q4_K_M_g0_c2",
-    "qwen2.5-3b_t512_b1_Q4_K_M_g0_c4",
-    "qwen2.5-3b_t512_b1_Q4_K_M_g14_c2",
-    "qwen2.5-3b_t512_b1_Q4_K_M_g14_c4",
-    "qwen2.5-3b_t512_b2_Q8_0_g14_c2",
-    "qwen2.5-3b_t512_b2_Q8_0_g14_c4",
-    "qwen2.5-3b_t512_b2_Q4_K_M_g0_c2",
-    "qwen2.5-3b_t512_b2_Q4_K_M_g0_c4",
-    "qwen2.5-3b_t512_b2_Q4_K_M_g14_c2",
-    "qwen2.5-3b_t512_b2_Q4_K_M_g14_c4",
-    "qwen2.5-3b_t1024_b1_Q8_0_g14_c2",
-    "qwen2.5-3b_t1024_b1_Q8_0_g14_c4",
-    "qwen2.5-3b_t1024_b1_Q4_K_M_g0_c2",
-    "qwen2.5-3b_t1024_b1_Q4_K_M_g0_c4",
-    "qwen2.5-3b_t1024_b1_Q4_K_M_g14_c2",
-    "qwen2.5-3b_t1024_b1_Q4_K_M_g14_c4",
-    "qwen2.5-3b_t1024_b2_Q8_0_g14_c2",
-    "qwen2.5-3b_t1024_b2_Q8_0_g14_c4",
-    "qwen2.5-3b_t1024_b2_Q4_K_M_g0_c2",
-    "qwen2.5-3b_t1024_b2_Q4_K_M_g0_c4",
-    "qwen2.5-3b_t1024_b2_Q4_K_M_g14_c2",
-    "qwen2.5-3b_t1024_b2_Q4_K_M_g14_c4"
+    "qwen2.5-1.5b_t1024_b2_Q4_K_M_g14_c4"
   ],
   "cpu_only": false,
   "models": {
