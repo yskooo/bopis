@@ -1,5 +1,8 @@
 # BOPIS docs — start here
 
+The defense-ready [initial results and instruments](INITIAL_RESULTS.md) report
+is generated from a selected run by `tools\initial_results.py`.
+
 **Written for:** the BOPIS thesis team.
 
 Five documents, in the order you probably want them.
