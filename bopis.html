@@ -1882,14 +1882,7 @@
             }
         }
 
-        .hw-widget-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 5px 0;
-            border-bottom: 1px solid #F1F4F6;
-            font-size: 11.5px;
-        }
+
 
         .hw-widget-row:last-of-type {
             border-bottom: none;
@@ -1914,6 +1907,73 @@
             padding-top: 8px;
             border-top: 1px solid #F1F4F6;
             line-height: 1.5;
+        }
+
+        /* Re-probe button inside the HW dropdown */
+        .hw-probe-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            margin-top: 10px;
+            padding: 7px 10px;
+            background: #F0F4FF;
+            border: 1px solid #C7D2FE;
+            border-radius: 7px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #3730A3;
+            cursor: pointer;
+            transition: background .15s, border-color .15s, transform .1s;
+        }
+        .hw-probe-btn:hover { background: #E0E7FF; border-color: #A5B4FC; }
+        .hw-probe-btn:active { transform: scale(0.97); }
+        .hw-probe-btn.scanning {
+            background: #EFF6FF;
+            color: #1D4ED8;
+            animation: hwProbePulse 1s ease-in-out infinite;
+        }
+        @keyframes hwProbePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.55; }
+        }
+        .hw-probe-icon { font-size: 13px; }
+
+        /* Scan progress bar */
+        .hw-scan-bar {
+            display: none;
+            height: 3px;
+            background: #E2E8F0;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .hw-scan-bar.active { display: block; }
+        .hw-scan-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #6366F1, #38BDF8);
+            border-radius: 2px;
+            transition: width .35s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* Row reveal animation */
+        .hw-widget-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #F1F4F6;
+            font-size: 11.5px;
+            transition: opacity .3s, transform .3s;
+        }
+        .hw-widget-row.probe-hidden {
+            opacity: 0;
+            transform: translateX(-6px);
+        }
+        .hw-widget-row.probe-reveal {
+            opacity: 1;
+            transform: translateX(0);
         }
 
         @media (max-width: 720px) {
@@ -2983,6 +3043,13 @@
                             unavailable</strong></div>
                     <p id="runtime-status" class="hw-widget-note"><strong>Live chatbot ready.</strong> llama.cpp
                         endpoint connected.</p>
+                    <!-- Scan bar -->
+                    <div class="hw-scan-bar" id="hw-scan-bar"><div class="hw-scan-fill" id="hw-scan-fill"></div></div>
+                    <!-- Re-probe button -->
+                    <button class="hw-probe-btn" id="hw-probe-btn" type="button" onclick="probeHardware()">
+                        <span class="hw-probe-icon">&#128269;</span>
+                        <span id="hw-probe-label">Re-probe hardware</span>
+                    </button>
                 </div>
             </div>
 
@@ -4665,6 +4732,63 @@
         function toggleHwWidget() {
             document.getElementById('hw-widget-panel')?.classList.toggle('open');
             document.getElementById('hw-widget')?.classList.toggle('open');
+        }
+
+        /* ── Hardware probe animation ────────────────────────────────────────────
+         * Theatrically re-reveals the hardware rows one by one, reading the data
+         * that BOPIS_PROFILE already loaded. No backend call — pure demo polish.
+         */
+        function probeHardware() {
+            const btn = document.getElementById('hw-probe-btn');
+            const label = document.getElementById('hw-probe-label');
+            const scanBar = document.getElementById('hw-scan-bar');
+            const fill = document.getElementById('hw-scan-fill');
+            if (!btn || btn.classList.contains('scanning')) return;
+
+            const rows = document.querySelectorAll('#hw-widget-panel .hw-widget-row');
+
+            // Phase 1 — scanning
+            btn.classList.add('scanning');
+            label.textContent = 'Scanning…';
+            scanBar.classList.add('active');
+            fill.style.width = '0%';
+
+            // Hide all rows
+            rows.forEach(r => r.classList.add('probe-hidden'));
+
+            // Animate scan bar to 40%
+            requestAnimationFrame(() => { fill.style.width = '40%'; });
+
+            // Phase 2 — detect (stagger rows in one by one)
+            const STAGGER = 160; // ms between each row
+            const detectStart = 600;
+
+            rows.forEach((row, i) => {
+                setTimeout(() => {
+                    row.classList.remove('probe-hidden');
+                    row.classList.add('probe-reveal');
+                    // Advance scan bar proportionally
+                    const progress = 40 + ((i + 1) / rows.length) * 50;
+                    fill.style.width = progress + '%';
+                }, detectStart + i * STAGGER);
+            });
+
+            // Phase 3 — done
+            const totalTime = detectStart + rows.length * STAGGER + 200;
+            setTimeout(() => {
+                fill.style.width = '100%';
+            }, totalTime - 200);
+            setTimeout(() => {
+                btn.classList.remove('scanning');
+                label.textContent = 'Re-probe hardware';
+                btn.innerHTML = '<span class="hw-probe-icon">&#10003;</span><span id="hw-probe-label">Profile refreshed</span>';
+                scanBar.classList.remove('active');
+                fill.style.width = '0%';
+                // Reset button text after 2s
+                setTimeout(() => {
+                    btn.innerHTML = '<span class="hw-probe-icon">&#128269;</span><span id="hw-probe-label">Re-probe hardware</span>';
+                }, 2000);
+            }, totalTime + 100);
         }
         document.addEventListener('click', event => {
             const widget = document.getElementById('hw-widget');
