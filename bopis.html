@@ -1909,25 +1909,30 @@
             line-height: 1.5;
         }
 
-        /* Re-probe button inside the HW dropdown */
+        /* Hardware scan button inside the HW dropdown */
         .hw-probe-btn {
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
+            gap: 8px;
             width: 100%;
-            margin-top: 10px;
-            padding: 7px 10px;
-            background: #F0F4FF;
-            border: 1px solid #C7D2FE;
-            border-radius: 7px;
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #4F46E5, #3B82F6);
+            border: none;
+            border-radius: 8px;
             font-size: 11.5px;
             font-weight: 600;
-            color: #3730A3;
+            color: #FFFFFF;
             cursor: pointer;
-            transition: background .15s, border-color .15s, transform .1s;
+            transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
         }
-        .hw-probe-btn:hover { background: #E0E7FF; border-color: #A5B4FC; }
-        .hw-probe-btn:active { transform: scale(0.97); }
+        .hw-probe-btn:hover { 
+            opacity: 0.9;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+        .hw-probe-btn:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2); }
         .hw-probe-btn.scanning {
             background: #EFF6FF;
             color: #1D4ED8;
@@ -3045,10 +3050,10 @@
                         endpoint connected.</p>
                     <!-- Scan bar -->
                     <div class="hw-scan-bar" id="hw-scan-bar"><div class="hw-scan-fill" id="hw-scan-fill"></div></div>
-                    <!-- Re-probe button -->
+                    <!-- Hardware scan button -->
                     <button class="hw-probe-btn" id="hw-probe-btn" type="button" onclick="probeHardware()">
                         <span class="hw-probe-icon">&#128269;</span>
-                        <span id="hw-probe-label">Re-probe hardware</span>
+                        <span id="hw-probe-label">Run Hardware Scan</span>
                     </button>
                 </div>
             </div>
@@ -4780,13 +4785,13 @@
             }, totalTime - 200);
             setTimeout(() => {
                 btn.classList.remove('scanning');
-                label.textContent = 'Re-probe hardware';
-                btn.innerHTML = '<span class="hw-probe-icon">&#10003;</span><span id="hw-probe-label">Profile refreshed</span>';
+                label.textContent = 'Run Hardware Scan';
+                btn.innerHTML = '<span class="hw-probe-icon" style="color:#A7F3D0;">&#10003;</span><span id="hw-probe-label">Profile refreshed</span>';
                 scanBar.classList.remove('active');
                 fill.style.width = '0%';
                 // Reset button text after 2s
                 setTimeout(() => {
-                    btn.innerHTML = '<span class="hw-probe-icon">&#128269;</span><span id="hw-probe-label">Re-probe hardware</span>';
+                    btn.innerHTML = '<span class="hw-probe-icon">&#128269;</span><span id="hw-probe-label">Run Hardware Scan</span>';
                 }, 2000);
             }, totalTime + 100);
         }
