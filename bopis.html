@@ -1980,7 +1980,7 @@
         .hw-scan-fill {
             height: 100%;
             width: 0%;
-            background: #486581;
+            background: #3182CE;
             border-radius: 2px;
             transition: width .35s cubic-bezier(.4,0,.2,1);
         }
@@ -2764,9 +2764,7 @@
         /* Final product pass: calmer surfaces, stronger hierarchy, and compact
            controls that remain easy to scan while the app is in landing mode. */
         body {
-            background:
-                radial-gradient(circle at 76% 18%, rgba(12, 140, 155, .07), transparent 28rem),
-                linear-gradient(135deg, #F7FBFA 0%, #F1F6F5 100%);
+            background: #F1F6F5;
         }
 
         .main-area {
@@ -3057,17 +3055,17 @@
                     <span class="hw-widget-chevron">▾</span>
                 </button>
                 <div class="hw-widget-panel" id="hw-widget-panel">
-                    <div class="hw-widget-row"><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong>
+                    <div class="hw-widget-row probe-hidden"><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong>
                     </div>
-                    <div class="hw-widget-row"><span>RAM</span><strong data-summary="ram">Profile unavailable</strong>
+                    <div class="hw-widget-row probe-hidden"><span>RAM</span><strong data-summary="ram">Profile unavailable</strong>
                     </div>
-                    <div class="hw-widget-row"><span>GPU / VRAM</span><strong data-summary="gpu">Profile
+                    <div class="hw-widget-row probe-hidden"><span>GPU / VRAM</span><strong data-summary="gpu">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row"><span>Feasible space</span><strong data-summary="space">Profile
+                    <div class="hw-widget-row probe-hidden"><span>Feasible space</span><strong data-summary="space">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row"><span>Energy</span><strong data-summary="energy">Profile
+                    <div class="hw-widget-row probe-hidden"><span>Energy</span><strong data-summary="energy">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row"><span>Timestamp</span><strong data-summary="timestamp">Profile
+                    <div class="hw-widget-row probe-hidden"><span>Timestamp</span><strong data-summary="timestamp">Profile
                             unavailable</strong></div>
                     <p id="runtime-status" class="hw-widget-note"><strong>Live chatbot ready.</strong> llama.cpp
                         endpoint connected.</p>
@@ -3264,10 +3262,14 @@
                                             <th>Speed (tok/s) ↑</th>
                                             <th>Quality (F1) ↑</th>
                                             <th>Iteration</th>
+                                            <th>CPU</th>
+                                            <th>GPU</th>
+                                            <th>RAM</th>
+                                            <th>VRAM</th>
                                         </tr>
                                     </thead>
                                     <tbody id="pareto-readout-body">
-                                        <tr><td colspan="5" style="text-align:left;color:#718096;">Load a run to see exact values.</td></tr>
+                                        <tr><td colspan="9" style="text-align:left;color:#718096;">Load a run to see exact values.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -6190,7 +6192,11 @@
                     energy: energy.joules,
                     speed: decodeSeconds > 0 ? generatedTokens / decodeSeconds : NaN,
                     text: reference.instruction || txt,
-                    config: DEPLOYED_KEY
+                    config: DEPLOYED_KEY,
+                    cpu_percent: envelope.energy?.process_cpu_percent,
+                    gpu_percent: envelope.energy?.gpu_percent_mean,
+                    memory_mib: envelope.energy?.memory_mib_mean,
+                    vram_mib: envelope.energy?.vram_mib_mean
                 });
             } catch (error) {
                 clearInterval(liveUtilTimer);
@@ -6298,7 +6304,7 @@
                 : `Mode C estimate from llama-server's CPU time `
                 + `(${Number(energy.process_cpu_percent || 0).toFixed(0)}% of the CPU, `
                 + `${energy.cpu_attribution}). ${energy.caveat}`;
-            const resources = ` &middot; CPU: ${(Number(energy.cpu_percent) * 100 || 0).toFixed(1)}% `
+            const resources = ` &middot; CPU: ${(Number(energy.process_cpu_percent) * 100 || 0).toFixed(1)}% `
                 + `&middot; RAM: ${Number(energy.memory_mib_mean || 0).toFixed(0)}MB `
                 + `&middot; GPU: ${(Number(energy.gpu_percent_mean) || 0).toFixed(1)}% `
                 + `&middot; VRAM: ${Number(energy.vram_mib_mean || 0).toFixed(0)}MB`;
@@ -6455,7 +6461,7 @@
                 <td class="${e.measured ? 'meas' : 'est'}">${e.measured ? '' : '~'}${num(e.energy_j, 1)} J</td>
                 <td>${num(row.tokens_per_s, 1)} tok/s</td>
                 <td>${num(q.quality_f1, 3)}</td>
-                <td>${num((e.cpu_percent || 0) * 100, 1)}%</td>
+                <td>${num((e.process_cpu_percent || 0) * 100, 1)}%</td>
                 <td>${num(e.gpu_percent_mean || 0, 1)}%</td>
                 <td>${num(e.memory_mib_mean || 0, 0)}MB</td>
                 <td><details><summary>${num(row.n_generated_tokens, 0)} tok</summary>${renderMarkdown(row.text || '')}</details></td>
@@ -6746,6 +6752,10 @@
                         <td class="metric-number">${point.speed.toFixed(2)}</td>
                         <td class="metric-number">${point.quality.toFixed(4)}</td>
                         <td class="metric-number">${point.iteration == null ? '—' : escapeHtml(String(point.iteration))}</td>
+                        <td class="metric-number">${point.cpu_percent != null ? num(point.cpu_percent * 100, 1) + '%' : '—'}</td>
+                        <td class="metric-number">${point.gpu_percent != null ? num(point.gpu_percent, 1) + '%' : '—'}</td>
+                        <td class="metric-number">${point.memory_mib != null ? num(point.memory_mib, 0) + 'MB' : '—'}</td>
+                        <td class="metric-number">${point.vram_mib != null ? num(point.vram_mib, 0) + 'MB' : '—'}</td>
                     </tr>`;
                 });
             body.innerHTML = rows.length

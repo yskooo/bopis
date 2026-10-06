@@ -512,26 +512,37 @@ class Instruments:
             else:
                 pid = self.llama_pid()
                 target = self.llama_url
-            sampler = TelemetrySampler(
-                device=None,
-                pid=pid,
-                estimator_budget=None if self.measuring else self.budget,
-                logical_cores=os.cpu_count(),
-                cpu_power_source=self.source,
-                p_cpu_idle_w=float(self.idle.get("p_cpu_idle_w") or 0.0),
-            )
-            request = urllib.request.Request(
-                target + "/v1/chat/completions",
-                data=body,
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            sampler.start()
-            try:
-                with urllib.request.urlopen(request, timeout=600) as resp:
-                    payload = json.loads(resp.read().decode("utf-8"))
-            finally:
-                window = sampler.stop()
+            from bopis.monitor.nvml import Nvml
+            from contextlib import ExitStack
+            
+            with ExitStack() as stack:
+                device = None
+                try:
+                    nv = stack.enter_context(Nvml.open())
+                    device = nv.device(0)
+                except Exception:
+                    pass
+
+                sampler = TelemetrySampler(
+                    device=device,
+                    pid=pid,
+                    estimator_budget=None if self.measuring else self.budget,
+                    logical_cores=os.cpu_count(),
+                    cpu_power_source=self.source,
+                    p_cpu_idle_w=float(self.idle.get("p_cpu_idle_w") or 0.0),
+                )
+                request = urllib.request.Request(
+                    target + "/v1/chat/completions",
+                    data=body,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                sampler.start()
+                try:
+                    with urllib.request.urlopen(request, timeout=600) as resp:
+                        payload = json.loads(resp.read().decode("utf-8"))
+                finally:
+                    window = sampler.stop()
         return {
             "completion": payload,
             "energy": self._energy_summary(window, pid),
@@ -541,6 +552,17 @@ class Instruments:
     def _energy_summary(self, window, pid: Optional[int]) -> Dict[str, object]:
         measured = window.energy_method == EnergyMethod.RAPL_HWMON_POWER_INTEGRATION
         joules = window.energy_j
+        
+        mem_mib = window.memory_mib_mean
+        if pid:
+            try:
+                from bopis.monitor.platform_os import process_memory_bytes
+                proc_mem = process_memory_bytes(pid)
+                if proc_mem is not None:
+                    mem_mib = proc_mem / (1024 * 1024)
+            except Exception:
+                pass
+                
         return {
             "measured": measured,
             "method": window.energy_method,
@@ -559,7 +581,7 @@ class Instruments:
             "gpu_percent_mean": window.gpu_percent_mean,
             "vram_mib_mean": window.vram_mib_mean,
             "cpu_percent": window.cpu_percent,
-            "memory_mib_mean": window.memory_mib_mean,
+            "memory_mib_mean": mem_mib,
             "llama_pid": pid,
             "basis": window.energy_basis,
             "cost_php": (
