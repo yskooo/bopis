@@ -1127,14 +1127,14 @@
 
         .pareto-viewport {
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             border-radius: 8px;
             background: linear-gradient(145deg, #fbfdff, #f4f8fc);
         }
 
         .pareto-viewport canvas {
-            cursor: grab;
             touch-action: none;
+            border-radius: 8px;
         }
 
         .pareto-viewport canvas:active {
@@ -3069,8 +3069,17 @@
                         </div>
                         <div id="dashboard-status" class="note info chart-status">Loading generated run data...</div>
                         <div class="chart-container pareto-viewport">
-                            <canvas id="pareto" width="800" height="420" style="max-width:100%"></canvas>
+                            <canvas id="pareto" width="1100" height="520" style="max-width:100%; cursor:crosshair"></canvas>
                             <span class="pareto-hint">Drag to rotate · wheel to zoom</span>
+                            <div id="pareto-tooltip" style="
+                                display:none; position:absolute; pointer-events:none;
+                                background:rgba(16,34,67,0.97); color:#E2E8F0;
+                                border:1px solid #2D4A7A; border-radius:8px;
+                                padding:10px 13px; max-width:280px; min-width:180px;
+                                font-size:12px; line-height:1.6; z-index:10;
+                                box-shadow:0 4px 20px rgba(0,0,0,0.45);
+                                backdrop-filter:blur(4px);
+                            "></div>
                         </div>
                         <div class="pareto-colorbar" aria-label="Surface color scale for quality">
                             <span class="pareto-colorbar-title">Surface color = Quality (F1)</span>
@@ -6779,18 +6788,73 @@
             if (!canvas || canvas._paretoControlsBound) return;
             canvas._paretoControlsBound = true;
             let lastX = 0, lastY = 0, downX = 0, downY = 0;
-            canvas.addEventListener('pointerdown', event => { canvas._pareto3d.dragging = true; lastX = downX = event.clientX; lastY = downY = event.clientY; canvas.setPointerCapture(event.pointerId); });
+            canvas.style.cursor = 'grab';
+            canvas.addEventListener('pointerdown', event => {
+                canvas._pareto3d.dragging = true;
+                canvas.style.cursor = 'grabbing';
+                lastX = downX = event.clientX; lastY = downY = event.clientY;
+                canvas.setPointerCapture(event.pointerId);
+            });
+
+            /* Merged pointermove: drag-rotation + hover tooltip. */
+            const tooltip = document.getElementById('pareto-tooltip');
+            const viewport = canvas.parentElement;
             canvas.addEventListener('pointermove', event => {
-                if (!canvas._pareto3d?.dragging) return;
-                canvas._pareto3d.yaw += (event.clientX - lastX) * 0.012;
-                canvas._pareto3d.pitch = Math.max(-1.15, Math.min(1.15, canvas._pareto3d.pitch + (event.clientY - lastY) * 0.012));
-                lastX = event.clientX; lastY = event.clientY; drawPareto3D();
+                if (canvas._pareto3d?.dragging) {
+                    canvas._pareto3d.yaw += (event.clientX - lastX) * 0.012;
+                    canvas._pareto3d.pitch = Math.max(-1.15, Math.min(1.15, canvas._pareto3d.pitch + (event.clientY - lastY) * 0.012));
+                    lastX = event.clientX; lastY = event.clientY;
+                    drawPareto3D();
+                    if (tooltip) tooltip.style.display = 'none';
+                    return;
+                }
+                /* --- Hover tooltip --- */
+                const rect = canvas.getBoundingClientRect();
+                const mx = event.clientX - rect.left, my = event.clientY - rect.top;
+                const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+                const cx = mx * scaleX, cy = my * scaleY;
+                const hit = (canvas._paretoHitTargets || [])
+                    .map(item => ({ item, dist: Math.hypot(item.x - cx, item.y - cy) }))
+                    .filter(c => c.dist <= c.item.radius + 6)
+                    .sort((a, b) => a.dist - b.dist)[0];
+                if (!tooltip) return;
+                if (!hit) { tooltip.style.display = 'none'; canvas.style.cursor = 'grab'; return; }
+                canvas.style.cursor = 'pointer';
+                const p = hit.item.point;
+                const badge = p.selected ? '<span style="color:#68D391;font-weight:700">x* &#9733; BOPIS pick</span>'
+                    : p.reference ? '<span style="color:#FC8181;font-weight:700">&#9679; default</span>'
+                    : p.arm === 'random' ? '<span style="color:#F6AD55">random search</span>'
+                    : p.front ? '<span style="color:#63B3ED">pareto front</span>' : '';
+                const key = p.label || p.config || '';
+                tooltip.innerHTML = [
+                    badge ? `<div style="margin-bottom:5px">${badge}</div>` : '',
+                    `<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#90CDF4;margin-bottom:6px;word-break:break-all">${key}</div>`,
+                    `<div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:11px">`,
+                    `<span style="color:#A0AEC0">Energy</span><span style="color:#FBD38D;font-weight:600">${p.energy.toFixed(2)} J</span>`,
+                    `<span style="color:#A0AEC0">Speed</span><span style="color:#9AE6B4;font-weight:600">${p.speed.toFixed(2)} tok/s</span>`,
+                    `<span style="color:#A0AEC0">Quality F1</span><span style="color:#B794F4;font-weight:600">${p.quality.toFixed(4)}</span>`,
+                    p.iteration != null ? `<span style="color:#A0AEC0">Iteration</span><span>${p.iteration}</span>` : '',
+                    `</div>`
+                ].join('');
+                /* Position relative to the viewport container, clamp to edges. */
+                const vrect = viewport.getBoundingClientRect();
+                let tx = event.clientX - vrect.left + 14;
+                let ty = event.clientY - vrect.top + 14;
+                tooltip.style.display = 'block';
+                const tw = tooltip.offsetWidth || 240;
+                const th = tooltip.offsetHeight || 120;
+                if (tx + tw > vrect.width - 8) tx = event.clientX - vrect.left - tw - 14;
+                if (ty + th > vrect.height - 8) ty = event.clientY - vrect.top - th - 14;
+                tooltip.style.left = tx + 'px';
+                tooltip.style.top = ty + 'px';
             });
             canvas.addEventListener('pointerup', event => {
                 canvas._pareto3d.dragging = false;
+                canvas.style.cursor = 'grab';
                 if (Math.hypot(event.clientX - downX, event.clientY - downY) < 5) selectParetoPoint(canvas, event);
             });
-            canvas.addEventListener('pointercancel', () => { canvas._pareto3d.dragging = false; });
+            canvas.addEventListener('pointercancel', () => { canvas._pareto3d.dragging = false; canvas.style.cursor = 'grab'; });
+            canvas.addEventListener('pointerleave', () => { if (tooltip) tooltip.style.display = 'none'; canvas.style.cursor = 'grab'; });
             canvas.addEventListener('wheel', event => { event.preventDefault(); canvas._pareto3d.zoom = Math.max(0.7, Math.min(1.8, canvas._pareto3d.zoom * (event.deltaY > 0 ? 0.92 : 1.08))); drawPareto3D(); }, { passive: false });
         }
 
