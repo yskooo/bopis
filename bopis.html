@@ -1180,8 +1180,32 @@
         .pareto-selection {
             min-height: 28px;
             color: #6B7F86;
-            font: 11px 'IBM Plex Mono', monospace;
+            font: 11px 'IBM Plex Sans', sans-serif;
+            display: flex;
+            align-items: center;
         }
+
+        .ps-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 6px;
+            border-radius: 5px;
+            background: #EDF2F7;
+            border: 1px solid #E2E8F0;
+            color: #4A5568;
+            margin-right: 6px;
+            margin-bottom: 4px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .ps-val { font-weight: 600; color: #1A202C; margin-left: 4px; }
+        .ps-energy { background: #FFFAF0; border-color: #FBD38D; }
+        .ps-energy .ps-val { color: #C05621; }
+        .ps-speed { background: #F0FFF4; border-color: #9AE6B4; }
+        .ps-speed .ps-val { color: #2F855A; }
+        .ps-quality { background: #FAF5FF; border-color: #D6BCFA; }
+        .ps-quality .ps-val { color: #6B46C1; }
+        .ps-status { background: #EBF8FF; border-color: #90CDF4; font-weight: 600; color: #2B6CB0; font-family: 'IBM Plex Sans', sans-serif; }
+        .ps-status.xstar { background: #C6F6D5; border-color: #68D391; color: #22543D; }
 
         .pareto-readout {
             margin-top: 12px;
@@ -6999,22 +7023,37 @@
             }
             const point = target.item.point;
             if (point.arm === 'chat') {
-                output.textContent = `Your chat prompt · "${point.text}" · answered by ${point.config ? describeCfg(parseCfgKey(point.config)) : 'the launched server'}`
-                    + ` · Energy ${point.energy.toFixed(2)} J · Speed ${point.speed.toFixed(2)} tok/s · BERTScore F1 ${point.quality.toFixed(4)}`
-                    + ' · one prompt, indicative only';
+                const configText = point.config ? describeCfg(parseCfgKey(point.config)) : 'the launched server';
+                output.innerHTML = `
+                    <div style="display:flex; flex-wrap:wrap; align-items:center;">
+                        <span class="ps-badge ps-status">Your chat prompt</span>
+                        <span class="ps-badge">"${point.text}"</span>
+                        <span class="ps-badge ps-energy">Energy<span class="ps-val">${point.energy.toFixed(2)} J</span></span>
+                        <span class="ps-badge ps-speed">Speed<span class="ps-val">${point.speed.toFixed(2)} tok/s</span></span>
+                        <span class="ps-badge ps-quality">Quality (F1)<span class="ps-val">${point.quality.toFixed(4)}</span></span>
+                    </div>
+                `;
                 return;
             }
-            const prefix = point.selected ? 'x* (BOPIS pick) · '
-                : point.reference ? 'Default · '
-                    : point.arm === 'random' ? 'Random search · '
-                        : point.front ? 'On Pareto front · ' : '';
-            output.textContent = `${prefix}${point.label || 'Configuration'} · ${point.precision || 'reference'}`
-                + ` · Energy ${point.energy.toFixed(2)} J`
-                + ` · Speed ${point.speed.toFixed(2)} tok/s`
-                + ` · Quality (BERTScore F1) ${point.quality.toFixed(4)}`
-                + ` · Iter ${point.iteration ?? '—'}`
-                + (point.reference || !RUN_PROMPTS?.proxy?.length ? ''
-                    : ` · mean over the ${RUN_PROMPTS.proxy.length} proxy prompts listed below`);
+            const prefixBadge = point.selected ? '<span class="ps-badge ps-status xstar">★ x* (BOPIS pick)</span>'
+                : point.reference ? '<span class="ps-badge ps-status">Default</span>'
+                    : point.arm === 'random' ? '<span class="ps-badge ps-status">Random search</span>'
+                        : point.front ? '<span class="ps-badge ps-status">On Pareto front</span>' : '';
+            
+            const cfgName = point.label || 'Configuration';
+            const prec = point.precision || 'reference';
+            const iterStr = point.iteration ?? '—';
+            
+            output.innerHTML = `
+                <div style="display:flex; flex-wrap:wrap; align-items:center;">
+                    ${prefixBadge}
+                    <span class="ps-badge">${cfgName} · ${prec}</span>
+                    <span class="ps-badge ps-energy">Energy<span class="ps-val">${point.energy.toFixed(2)} J</span></span>
+                    <span class="ps-badge ps-speed">Speed<span class="ps-val">${point.speed.toFixed(2)} tok/s</span></span>
+                    <span class="ps-badge ps-quality">Quality (F1)<span class="ps-val">${point.quality.toFixed(4)}</span></span>
+                    <span class="ps-badge">Iter ${iterStr}</span>
+                </div>
+            `;
         }
 
         function resetParetoView() {
