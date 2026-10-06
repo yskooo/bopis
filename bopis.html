@@ -1918,21 +1918,20 @@
             width: 100%;
             margin-top: 12px;
             padding: 8px 12px;
-            background: linear-gradient(135deg, #4F46E5, #3B82F6);
-            border: none;
-            border-radius: 8px;
+            background: #102A43;
+            border: 1px solid #243B53;
+            border-radius: 6px;
             font-size: 11.5px;
             font-weight: 600;
-            color: #FFFFFF;
+            color: #F0F4F8;
             cursor: pointer;
-            transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
         }
         .hw-probe-btn:hover { 
-            opacity: 0.9;
-            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+            background: #243B53;
+            border-color: #334E68;
         }
-        .hw-probe-btn:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2); }
+        .hw-probe-btn:active { transform: scale(0.97); }
         .hw-probe-btn.scanning {
             background: #EFF6FF;
             color: #1D4ED8;
@@ -3052,7 +3051,6 @@
                     <div class="hw-scan-bar" id="hw-scan-bar"><div class="hw-scan-fill" id="hw-scan-fill"></div></div>
                     <!-- Hardware scan button -->
                     <button class="hw-probe-btn" id="hw-probe-btn" type="button" onclick="probeHardware()">
-                        <span class="hw-probe-icon">&#128269;</span>
                         <span id="hw-probe-label">Run Hardware Scan</span>
                     </button>
                 </div>
@@ -4785,13 +4783,12 @@
             }, totalTime - 200);
             setTimeout(() => {
                 btn.classList.remove('scanning');
-                label.textContent = 'Run Hardware Scan';
-                btn.innerHTML = '<span class="hw-probe-icon" style="color:#A7F3D0;">&#10003;</span><span id="hw-probe-label">Profile refreshed</span>';
+                btn.innerHTML = '<span id="hw-probe-label">Profile refreshed</span>';
                 scanBar.classList.remove('active');
                 fill.style.width = '0%';
                 // Reset button text after 2s
                 setTimeout(() => {
-                    btn.innerHTML = '<span class="hw-probe-icon">&#128269;</span><span id="hw-probe-label">Run Hardware Scan</span>';
+                    btn.innerHTML = '<span id="hw-probe-label">Run Hardware Scan</span>';
                 }, 2000);
             }, totalTime + 100);
         }
