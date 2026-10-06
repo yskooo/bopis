@@ -4525,7 +4525,10 @@
             };
             const setSummary = (name, value) => {
                 const element = document.querySelector(`[data-summary="${name}"]`);
-                if (element) element.textContent = value;
+                if (element) {
+                    element.dataset.realValue = value;
+                    element.textContent = '—'; // Keep it blank/hidden until scanned
+                }
             };
             const formatGiB = value => `${Number(value).toFixed(2)} GiB`;
             const permittedLayers = (host.permitted_gpu_layers || []).join(', ');
@@ -4794,6 +4797,13 @@
                 setTimeout(() => {
                     row.classList.remove('probe-hidden');
                     row.classList.add('probe-reveal');
+                    
+                    // Reveal the real value
+                    const strong = row.querySelector('strong[data-summary]');
+                    if (strong && strong.dataset.realValue) {
+                        strong.textContent = strong.dataset.realValue;
+                    }
+
                     // Advance scan bar proportionally
                     const progress = 40 + ((i + 1) / rows.length) * 50;
                     fill.style.width = progress + '%';
