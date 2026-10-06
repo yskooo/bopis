@@ -921,6 +921,27 @@ def make_handler(instruments: Instruments, port: int):
             url = urlparse(self.path)
             if url.path == "/api/status":
                 return self._json(200, instruments.status())
+            if url.path == "/api/utilization":
+                cpu, ram, gpu, gpu_ram = 0, 0, 0, 0
+                try:
+                    import psutil
+                    cpu = psutil.cpu_percent(interval=None)
+                    ram = psutil.virtual_memory().percent
+                except Exception:
+                    pass
+                try:
+                    from bopis.monitor.nvml import Nvml
+                    with Nvml.open() as nv:
+                        if nv.device_count() > 0:
+                            dev = nv.device(0)
+                            g_util, _ = dev.utilization()
+                            gpu = g_util or 0
+                            used = dev.memory_used_bytes() or 0
+                            free = dev.memory_free_bytes() or 1
+                            gpu_ram = (used / (used + free)) * 100
+                except Exception:
+                    pass
+                return self._json(200, {"cpu": cpu, "ram": ram, "gpu": gpu, "gpu_ram": gpu_ram})
             if url.path == "/api/live":
                 live = live_run()
                 live["study"] = instruments.study_state()

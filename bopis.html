@@ -6063,13 +6063,50 @@
             pending.innerHTML = `
         <div class="turn assistant">
             <div class="avatar bot">B</div>
-            <div class="bubble assistant">
-                <span class="typing"><span></span><span></span><span></span></span>
+            <div class="bubble assistant" style="min-width: 280px">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                    <span class="typing"><span></span><span></span><span></span></span>
+                    <span style="font-size: 10px; color: #718096; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Live Inference Metrics</span>
+                </div>
+                <div style="background: #1A202C; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display:flex; justify-content:space-between; font-size: 10px; color: #E2E8F0; font-family: monospace;">
+                        <span>CPU <span id="live-cpu-val">0%</span></span>
+                        <span>RAM <span id="live-ram-val">0%</span></span>
+                    </div>
+                    <div style="height: 4px; background: #2D3748; border-radius: 2px; overflow: hidden;">
+                        <div id="live-cpu-bar" style="height: 100%; width: 0%; background: #48BB78; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size: 10px; color: #E2E8F0; font-family: monospace;">
+                        <span>GPU <span id="live-gpu-val">0%</span></span>
+                        <span>VRAM <span id="live-vram-val">0%</span></span>
+                    </div>
+                    <div style="height: 4px; background: #2D3748; border-radius: 2px; overflow: hidden;">
+                        <div id="live-gpu-bar" style="height: 100%; width: 0%; background: #9F7AEA; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
             </div>
         </div>`;
             area.appendChild(pending);
             scrollToBottom();
             const wallStart = performance.now();
+            
+            const liveUtilTimer = setInterval(async () => {
+                try {
+                    const viaBridge = Boolean(BRIDGE);
+                    if (!viaBridge) return;
+                    const r = await fetch(`${BRIDGE_BASE}/api/utilization`, { cache: 'no-store' });
+                    if (!r.ok) return;
+                    const data = await r.json();
+                    const elCpuVal = document.getElementById('live-cpu-val');
+                    if (!elCpuVal) return; // bubble might be gone
+                    elCpuVal.textContent = data.cpu.toFixed(0) + '%';
+                    document.getElementById('live-ram-val').textContent = data.ram.toFixed(0) + '%';
+                    document.getElementById('live-cpu-bar').style.width = data.cpu + '%';
+                    document.getElementById('live-gpu-val').textContent = data.gpu.toFixed(0) + '%';
+                    document.getElementById('live-vram-val').textContent = data.gpu_ram.toFixed(0) + '%';
+                    document.getElementById('live-gpu-bar').style.width = data.gpu + '%';
+                } catch(e) {}
+            }, 300);
 
             try {
                 const requestBody = JSON.stringify({
@@ -6146,6 +6183,7 @@
                 if (energy.measured) SESSION.measured += 1;
                 SESSION.tokens += generatedTokens;
                 renderSessionTally();
+                clearInterval(liveUtilTimer);
                 scrollToBottom();
 
                 if (reference) scoreReply(scoreId, reply, reference.reference, {
@@ -6155,6 +6193,7 @@
                     config: DEPLOYED_KEY
                 });
             } catch (error) {
+                clearInterval(liveUtilTimer);
                 chatHistory.pop();
                 pending.innerHTML = `
             <div class="turn assistant">
