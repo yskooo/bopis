@@ -6298,6 +6298,10 @@
                 : `Mode C estimate from llama-server's CPU time `
                 + `(${Number(energy.process_cpu_percent || 0).toFixed(0)}% of the CPU, `
                 + `${energy.cpu_attribution}). ${energy.caveat}`;
+            const resources = ` &middot; CPU: ${(Number(energy.cpu_percent) * 100 || 0).toFixed(1)}% `
+                + `&middot; RAM: ${Number(energy.memory_mib_mean || 0).toFixed(0)}MB `
+                + `&middot; GPU: ${(Number(energy.gpu_percent_mean) || 0).toFixed(1)}% `
+                + `&middot; VRAM: ${Number(energy.vram_mib_mean || 0).toFixed(0)}MB`;
             return {
                 joules, php, measured: Boolean(energy.measured),
                 html: `<span class="${energy.measured ? 'meas' : 'est'}" title="${escapeHtml(detail)}">`
@@ -6305,6 +6309,7 @@
                     + (perToken ? ` (<b>${perToken.toFixed(2)}</b> J/tok)` : '')
                     + ` &middot; <b>PHP ${(php * 1000).toFixed(3)}</b>/1k replies`
                     + ` &middot; <b>${energy.measured ? 'measured (RAPL)' : 'estimated (Mode C)'}</b></span>`
+                    + `<span style="display:inline-block; margin-left:8px; font-size:11px; opacity:0.8;">${resources}</span>`
             };
         }
 
@@ -6450,6 +6455,9 @@
                 <td class="${e.measured ? 'meas' : 'est'}">${e.measured ? '' : '~'}${num(e.energy_j, 1)} J</td>
                 <td>${num(row.tokens_per_s, 1)} tok/s</td>
                 <td>${num(q.quality_f1, 3)}</td>
+                <td>${num((e.cpu_percent || 0) * 100, 1)}%</td>
+                <td>${num(e.gpu_percent_mean || 0, 1)}%</td>
+                <td>${num(e.memory_mib_mean || 0, 0)}MB</td>
                 <td><details><summary>${num(row.n_generated_tokens, 0)} tok</summary>${renderMarkdown(row.text || '')}</details></td>
             </tr>`;
                 }).join('');
@@ -6459,7 +6467,7 @@
                 <b>Same Dolly prompt, ${configWord} configurations</b>
                 <table class="metrics" style="width:100%; border-collapse:collapse; display:table; margin-top:6px;">
                     <thead><tr style="text-align:left;"><th>Condition</th><th>Configuration</th><th>Energy</th>
-                        <th>Speed</th><th>BERTScore F1</th><th>Answer</th></tr></thead>
+                        <th>Speed</th><th>F1</th><th>CPU</th><th>GPU</th><th>RAM</th><th>Answer</th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
                 ${analysis}

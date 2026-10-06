@@ -556,6 +556,10 @@ class Instruments:
             "cpu_power_mean_w": window.cpu_power_mean_w,
             "process_cpu_percent": window.process_cpu_percent,
             "cpu_attribution": window.cpu_attribution,
+            "gpu_percent_mean": window.gpu_percent_mean,
+            "vram_mib_mean": window.vram_mib_mean,
+            "cpu_percent": window.cpu_percent,
+            "memory_mib_mean": window.memory_mib_mean,
             "llama_pid": pid,
             "basis": window.energy_basis,
             "cost_php": (
