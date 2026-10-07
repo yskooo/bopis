@@ -556,9 +556,11 @@ class Instruments:
         mem_mib = window.memory_mib_mean
         if pid:
             try:
-                from bopis.monitor.platform_os import process_memory_bytes
-                proc_mem = process_memory_bytes(pid)
-                if proc_mem is not None:
+                import psutil
+                proc = psutil.Process(pid)
+                # Ensure we use rss memory
+                proc_mem = proc.memory_info().rss
+                if proc_mem:
                     mem_mib = proc_mem / (1024 * 1024)
             except Exception:
                 pass
