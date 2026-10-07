@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{document.documentElement.dataset.theme=localStorage.getItem('bopis.theme')||'light'}catch(e){document.documentElement.dataset.theme='light'}</script>
     <title>BOPIS — AI Optimizer</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
@@ -1001,7 +1002,7 @@
    charts. Single column below 1200px so this stays usable on a projector. */
         .research-split {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(380px, 5fr) minmax(460px, 7fr);
             gap: 16px;
             align-items: start;
         }
@@ -1011,6 +1012,12 @@
             flex-direction: column;
             gap: 16px;
             min-width: 0;
+        }
+
+        @media (max-width: 1200px) {
+            .research-split {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* Live-refresh pill in the run-evidence header. */
@@ -1127,14 +1134,14 @@
 
         .pareto-viewport {
             position: relative;
-            overflow: visible;
+            overflow: hidden;
             border-radius: 8px;
             background: linear-gradient(145deg, #fbfdff, #f4f8fc);
         }
 
         .pareto-viewport canvas {
+            cursor: grab;
             touch-action: none;
-            border-radius: 8px;
         }
 
         .pareto-viewport canvas:active {
@@ -1180,32 +1187,8 @@
         .pareto-selection {
             min-height: 28px;
             color: #6B7F86;
-            font: 11px 'IBM Plex Sans', sans-serif;
-            display: flex;
-            align-items: center;
+            font: 11px 'IBM Plex Mono', monospace;
         }
-
-        .ps-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 3px 6px;
-            border-radius: 5px;
-            background: #EDF2F7;
-            border: 1px solid #E2E8F0;
-            color: #4A5568;
-            margin-right: 6px;
-            margin-bottom: 4px;
-            font-family: 'IBM Plex Mono', monospace;
-        }
-        .ps-val { font-weight: 600; color: #1A202C; margin-left: 4px; }
-        .ps-energy { background: #FFFAF0; border-color: #FBD38D; }
-        .ps-energy .ps-val { color: #C05621; }
-        .ps-speed { background: #F0FFF4; border-color: #9AE6B4; }
-        .ps-speed .ps-val { color: #2F855A; }
-        .ps-quality { background: #FAF5FF; border-color: #D6BCFA; }
-        .ps-quality .ps-val { color: #6B46C1; }
-        .ps-status { background: #EBF8FF; border-color: #90CDF4; font-weight: 600; color: #2B6CB0; font-family: 'IBM Plex Sans', sans-serif; }
-        .ps-status.xstar { background: #C6F6D5; border-color: #68D391; color: #22543D; }
 
         .pareto-readout {
             margin-top: 12px;
@@ -1906,7 +1889,14 @@
             }
         }
 
-
+        .hw-widget-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #F1F4F6;
+            font-size: 11.5px;
+        }
 
         .hw-widget-row:last-of-type {
             border-bottom: none;
@@ -1933,77 +1923,6 @@
             line-height: 1.5;
         }
 
-        /* Hardware scan button inside the HW dropdown */
-        .hw-probe-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            margin-top: 12px;
-            padding: 8px 12px;
-            background: #102A43;
-            border: 1px solid #243B53;
-            border-radius: 6px;
-            font-size: 11.5px;
-            font-weight: 600;
-            color: #F0F4F8;
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s, transform 0.1s;
-        }
-        .hw-probe-btn:hover { 
-            background: #243B53;
-            border-color: #334E68;
-        }
-        .hw-probe-btn:active { transform: scale(0.97); }
-        .hw-probe-btn.scanning {
-            background: #243B53;
-            color: #829AB1;
-            animation: hwProbePulse 1s ease-in-out infinite;
-        }
-        @keyframes hwProbePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.55; }
-        }
-        .hw-probe-icon { font-size: 13px; }
-
-        /* Scan progress bar */
-        .hw-scan-bar {
-            display: none;
-            height: 3px;
-            background: #E2E8F0;
-            border-radius: 2px;
-            margin-top: 8px;
-            overflow: hidden;
-        }
-        .hw-scan-bar.active { display: block; }
-        .hw-scan-fill {
-            height: 100%;
-            width: 0%;
-            background: #3182CE;
-            border-radius: 2px;
-            transition: width .35s cubic-bezier(.4,0,.2,1);
-        }
-
-        /* Row reveal animation */
-        .hw-widget-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 5px 0;
-            border-bottom: 1px solid #F1F4F6;
-            font-size: 11.5px;
-            transition: opacity .3s, transform .3s;
-        }
-        .hw-widget-row.probe-hidden {
-            opacity: 0;
-            transform: translateX(-6px);
-        }
-        .hw-widget-row.probe-reveal {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
         @media (max-width: 720px) {
             .chat-page-header {
                 padding-right: 0;
@@ -2020,7 +1939,6 @@
             }
         }
 
-        /* ── RESEARCH INSTRUMENT THEME ───────────────────────── */
         :root {
             --ink: #102231;
             --ink-soft: #1A3447;
@@ -2468,237 +2386,6 @@
             box-shadow: 0 0 0 4px rgba(0, 229, 255, .18), 0 14px 38px rgba(16, 34, 49, .16);
         }
 
-        .run-evidence-head {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 20px;
-            margin-bottom: 16px;
-        }
-
-        .run-evidence-head .card-header {
-            margin-bottom: 5px;
-        }
-
-        .run-evidence-lede {
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.45;
-            max-width: 560px;
-        }
-
-        .run-evidence-controls {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .live-label {
-            color: var(--muted);
-            font: 11px 'IBM Plex Mono', monospace;
-        }
-
-        .primary-action {
-            background: var(--cyan);
-            color: #fff;
-        }
-
-        .primary-action:hover {
-            background: #0A707B;
-            color: #fff;
-        }
-
-        #run-evidence .note.info {
-            margin: 0;
-            border-left: 3px solid var(--cyan);
-            background: #F1F8F7;
-            color: var(--ink-soft);
-            line-height: 1.55;
-        }
-
-        .run-evidence-guide {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 13px 0;
-            margin-bottom: 13px;
-            border-top: 1px solid var(--line);
-            border-bottom: 1px solid var(--line);
-        }
-
-        .guide-step {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-            flex: 1;
-        }
-
-        .guide-step > b {
-            display: grid;
-            place-items: center;
-            width: 22px;
-            height: 22px;
-            flex: none;
-            border-radius: 50%;
-            background: var(--cyan-soft);
-            color: #09616B;
-            font: 700 11px 'IBM Plex Mono', monospace;
-        }
-
-        .guide-step strong,
-        .guide-step small {
-            display: block;
-        }
-
-        .guide-step strong {
-            color: var(--ink-soft);
-            font-size: 11px;
-        }
-
-        .guide-step small {
-            margin-top: 2px;
-            color: var(--muted);
-            font-size: 10px;
-            line-height: 1.3;
-        }
-
-        .guide-line {
-            width: 26px;
-            height: 1px;
-            flex: none;
-            background: #B7D8D5;
-        }
-
-        .chart-toolbar {
-            align-items: center;
-        }
-
-        .chart-btn-primary {
-            background: var(--cyan);
-            border-color: var(--cyan);
-            color: #fff;
-        }
-
-        .chart-btn-primary:hover {
-            background: #0A707B;
-            border-color: #0A707B;
-            color: #fff;
-        }
-
-        .chart-run-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            padding: 10px 0;
-            margin-bottom: 10px;
-            border-top: 1px solid var(--line);
-            border-bottom: 1px solid var(--line);
-        }
-
-        .chart-study-panel {
-            margin: 0 0 10px;
-        }
-
-        .chart-study-fields {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .chart-study-fields label {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-        }
-
-        .chart-study-fields input {
-            width: 58px;
-        }
-
-        .chart-study-note {
-            margin-top: 7px;
-            color: var(--muted);
-            font-size: 11px;
-            line-height: 1.45;
-        }
-
-        .chart-status {
-            margin: 0 0 10px;
-        }
-
-        .search-log {
-            margin-top: 12px;
-        }
-
-        @media (max-width: 850px) {
-            .run-evidence-head {
-                flex-direction: column;
-            }
-
-            .run-evidence-controls {
-                justify-content: flex-start;
-            }
-        }
-
-        @media (max-width: 620px) {
-            .run-evidence-controls,
-            .run-evidence-controls .mode-toggle,
-            .run-evidence-controls #run-select,
-            .run-evidence-controls #study-btn {
-                width: 100%;
-            }
-
-            .run-evidence-controls .mode-toggle {
-                display: flex;
-            }
-
-            .run-evidence-controls .mode-toggle button {
-                flex: 1;
-            }
-
-            .run-evidence-guide {
-                align-items: stretch;
-                flex-direction: column;
-            }
-
-            .guide-line {
-                width: 1px;
-                height: 10px;
-                margin-left: 10px;
-            }
-
-            .chart-run-controls,
-            .chart-run-controls .mode-toggle,
-            .chart-run-controls #run-select {
-                width: 100%;
-            }
-
-            .chart-run-controls .mode-toggle {
-                display: flex;
-            }
-
-            .chart-run-controls .mode-toggle button {
-                flex: 1;
-            }
-
-            .chart-study-fields {
-                align-items: stretch;
-                flex-direction: column;
-            }
-
-            .chart-study-fields label,
-            .chart-study-fields select,
-            .chart-study-fields button {
-                width: 100%;
-            }
-        }
-
         .chat-container {
             opacity: 0;
             transform: translateY(24px);
@@ -2760,203 +2447,178 @@
         .metrics span[title]:hover::after {
             opacity: 1;
         }
+  :root {
+  --base: #F4F8FF;
+  --bg-top: #FFFFFF; 
+  --bg-mid: #E3EFFF; 
+  --bg-bot: #8EC1FF;
+  --accent: #2F7BFF; 
+  --accent-2: #6FB1FF;
 
-        /* Final product pass: calmer surfaces, stronger hierarchy, and compact
-           controls that remain easy to scan while the app is in landing mode. */
-        body {
-            background: #F1F6F5;
-        }
+  /* --- Refined Glassmorphism (Light Theme) --- */
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-strong: rgba(255, 255, 255, 0.70);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-shadow: 0 12px 32px -8px rgba(47, 123, 255, 0.12), 0 4px 12px -2px rgba(15, 26, 46, 0.04);
+  --glass-hi: inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
 
-        .main-area {
-            padding: 38px clamp(24px, 4vw, 64px);
-        }
+  --txt: #0F1A2E; 
+  --txt2: #4A5F7F;
+  --ink: #0F1A2E; 
+  --ink-soft: #1E3050; 
+  --muted: #5B7094;
+  --line: rgba(47, 123, 255, 0.14);
+  --nav-active-bg: #0B1220; 
+  --nav-active-txt: #fff;
+}
 
-        .sidebar {
-            box-shadow: 10px 0 30px rgba(16, 34, 49, .07);
-        }
+html[data-theme="dark"] {
+  --base: #050A14;
+  --bg-top: #04070D; 
+  --bg-mid: #071A33; 
+  --bg-bot: #0F5FD8;
+  --accent: #3B8CFF; 
+  --accent-2: #8CC4FF;
 
-        .nav-item {
-            min-height: 42px;
-            transition: background .2s ease, color .2s ease, transform .2s ease;
-        }
+  /* --- Refined Glassmorphism (Dark Theme) --- */
+  --glass-bg: rgba(15, 28, 52, 0.35);
+  --glass-strong: rgba(18, 36, 68, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.3);
+  --glass-hi: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
 
-        .nav-item:hover {
-            transform: translateX(2px);
-        }
+  --txt: #EAF3FF; 
+  --txt2: #9DB6D6;
+  --ink: #EAF3FF; 
+  --ink-soft: #C9DCF5; 
+  --muted: #8FA9CC;
+  --line: rgba(255, 255, 255, 0.10);
+  --nav-active-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(59, 140, 255, 0.40));
+  --nav-active-txt: #fff;
+  color-scheme: dark;
+}
 
-        .page-header {
-            margin-bottom: 22px;
-        }
+body{
+  color:var(--txt);
+  background:
+    radial-gradient(1200px 500px at 50% -10%, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 70%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 55%, var(--bg-bot) 150%);
+  background-attachment: fixed;
+}
+body::before {
+  display: none;
+}
+.sidebar{
+  margin:12px 0 12px 12px;border-radius:28px;
+  background:linear-gradient(160deg,rgba(255,255,255,.55),rgba(255,255,255,.16));
+  -webkit-backdrop-filter:blur(40px) saturate(200%);
+  backdrop-filter:blur(40px) saturate(200%);
+  border:1px solid rgba(255,255,255,.75);
+  box-shadow:0 16px 48px rgba(30,100,220,.28),
+             inset 0 1px 0 rgba(255,255,255,.95),
+             inset 0 -1px 0 rgba(255,255,255,.3);
+}
+html[data-theme="dark"] .sidebar{
+  background:linear-gradient(160deg,rgba(255,255,255,.18),rgba(255,255,255,.04));
+  border-color:rgba(255,255,255,.24);
+  box-shadow:0 16px 48px rgba(0,0,0,.55),
+             inset 0 1px 0 rgba(255,255,255,.32),
+             inset 0 -1px 0 rgba(255,255,255,.08);
 
-        .page-title {
-            font-size: clamp(28px, 3vw, 36px);
-            line-height: 1.1;
-        }
+}
+.sidebar .user-name{color:var(--txt)}
+.sidebar .nav-item{color:var(--txt2);border-radius:999px;padding:11px 16px}
+.sidebar .nav-item:hover{background:var(--glass-bg);color:var(--txt)}
+.sidebar .nav-item.active{
+  background:var(--nav-active-bg);color:var(--nav-active-txt);
+box-shadow:0 6px 18px rgba(47,123,255,.4),inset 0 1px 0 rgba(255,255,255,.35);
+}
+.sidebar .sidebar-bottom{border-top:1px solid var(--line)}
+.sidebar .status-card{
+  background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:20px;
+  box-shadow:var(--glass-hi);
+}
+.sidebar .status-card h4{color:var(--txt)}
+.sidebar .status-card p{color:var(--txt2)}
+.sidebar .btn-upgrade{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2))!important;
+box-shadow:0 4px 14px rgba(47,123,255,.45);}
+.sidebar #refresh-status span{color:var(--txt)!important}
 
-        .page-subtitle {
-            font-size: 16px;
-            line-height: 1.5;
-        }
+/* Theme toggle */
+.theme-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;margin-bottom:12px;border-radius:999px;cursor:pointer;user-select:none;
+  background:var(--glass-bg);border:1px solid var(--glass-border);box-shadow:var(--glass-hi);
+  color:var(--txt);font-size:13px;font-weight:500;
+}
+.theme-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tt-track{position:relative;width:46px;height:24px;border-radius:12px;background:rgba(90,120,170,.35);transition:background .25s}
+.tt-thumb{
+  position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);transition:transform .25s ease;
+}
+.tt-thumb::after{content:"☀️"}
+html[data-theme="dark"] .tt-track{background:var(--accent)}
+html[data-theme="dark"] .tt-thumb{transform:translateX(22px)}
+html[data-theme="dark"] .tt-thumb::after{content:"🌙"}
 
-        .app-card,
-        .ai-response {
-            box-shadow: 0 12px 30px rgba(16, 34, 49, .06);
-            transition: box-shadow .2s ease, transform .2s ease;
-        }
+/* Glass surfaces (cards, pills, chat, dock) */
+.app-card,.hw-widget,.hw-widget-panel,.cfg-chip,.btn-dolly,.btn-action,.chart-btn,
+.pareto-control-button,.task-badge,.ai-response,.live-pill,.mode-toggle,
+.pareto-readout,.pareto-key-metric,.method-step,.bubble.assistant,.input-wrapper{
+  background:var(--glass-bg);color:var(--txt);
+  border:1px solid var(--glass-border);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  backdrop-filter:blur(18px) saturate(160%);
+  box-shadow:var(--glass-shadow),var(--glass-hi);
+}
+.app-card{border-radius:24px}
+.app-card.yellow-tint{background:var(--glass-bg);border-color:var(--glass-border)}
+.btn-action,.chart-btn,.btn-dolly,.cfg-chip,.pareto-control-button,.task-badge,.live-pill{border-radius:999px}
+.input-wrapper{border-radius:26px}
+.input-wrapper:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent),var(--glass-shadow)}
+.input-wrapper input{color:var(--txt)}
+.input-wrapper input::placeholder{color:var(--txt2);opacity:.7}
+.btn-send{background:linear-gradient(135deg,var(--accent),var(--accent-2));border-radius:50%;color:#fff}
+.bubble.user{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+.chart-btn:hover,.btn-action:hover,.btn-dolly:hover{background:var(--glass-strong);color:var(--accent);border-color:var(--accent)}
+.chart-btn.on,.btn-dolly.armed,.mode-toggle button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.mode-toggle button{background:transparent;color:var(--txt2)}
+.pareto-readout-head,.pareto-key-metrics,.pareto-readout th,.explain-table th{background:var(--glass-strong);color:var(--txt2)}
+.pareto-readout tbody tr:hover,.pareto-readout tbody tr.is-xstar{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+.plain,.pareto-axis-callout,.method-note,.formula-box,.ref-note{background:var(--glass-bg);color:var(--txt2)}
+.method-note{border-left:3px solid var(--accent)}
+.page-header{border-left-color:var(--accent)}
 
-        .app-card:hover {
-            box-shadow: 0 16px 36px rgba(16, 34, 49, .09);
-        }
+/* Text colours */
+.page-title,.card-value,.bubble strong,.metrics b,.explain-step h3,.method-step strong,
+.pareto-key-metric .metric-value,.pareto-readout td.metric-number,.hw-widget-row strong,
+.cfg-v,.detail-n{color:var(--txt)}
+.page-subtitle,.card-subtext,.detail-d,.cfg-k,.card-header,.metrics,.explain-step p,
+.method-step span,.hw-widget-row span,.hw-widget-note,.pareto-readout td,.explain-table td,
+.rules-table td,.pareto-key-metric .metric-label,.pareto-legend{color:var(--txt2)}
+.pareto-readout td.metric-energy,.pareto-key-metric.is-primary .metric-value{color:var(--accent)}
+.cfg-row,.detail-row,.explain-table td,.pareto-readout td,.metrics{border-color:var(--line)}
+body.hero-lit .landing-title h1{color:var(--txt);text-shadow:0 2px 30px rgba(255,255,255,.35)}
+body.hero-lit .landing-title p{color:var(--txt2)}
+.bubble code{background:var(--glass-strong)}
 
-        .landing-title {
-            gap: 12px;
-        }
+/* Chart canvases keep a light panel (their labels are drawn dark in JS) */
+.chart-container,.pareto-viewport,.gp-diagnostic{background:rgba(255,255,255,.88)!important;color:#2D3748}
 
-        .landing-title h1 {
-            max-width: 760px;
-            font-size: clamp(38px, 6vw, 72px);
-            letter-spacing: -.055em;
-        }
-
-        .landing-title p {
-            max-width: 520px;
-            font-size: clamp(15px, 1.8vw, 19px);
-            line-height: 1.5;
-        }
-
-        .chat-hero {
-            padding-bottom: 4px;
-        }
-
-        .hw-widget {
-            min-height: 36px;
-        }
-
-        .input-dock {
-            bottom: 24px;
-        }
-
-        .input-wrapper {
-            max-width: 820px;
-            padding: 10px 12px 10px 18px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, .96);
-            backdrop-filter: blur(16px);
-        }
-
-        .input-wrapper input {
-            min-height: 28px;
-            font-size: 14px;
-        }
-
-        .btn-send {
-            width: 36px;
-            height: 36px;
-        }
-
-        button:focus-visible,
-        a:focus-visible,
-        .nav-item:focus-visible,
-        input:focus-visible,
-        select:focus-visible {
-            outline: 3px solid rgba(12, 140, 155, .35);
-            outline-offset: 2px;
-        }
-
-        @media (max-width: 720px) {
-            body {
-                display: block;
-                min-height: 100vh;
-                height: auto;
-                overflow-x: hidden;
-                overflow-y: auto;
-            }
-
-            .sidebar {
-                position: relative;
-                width: 100%;
-                min-width: 0;
-                min-height: auto;
-                padding: 14px 16px;
-                flex-direction: row;
-                align-items: center;
-                gap: 12px;
-                overflow: hidden;
-                box-shadow: 0 8px 24px rgba(16, 34, 49, .12);
-            }
-
-            .user-profile {
-                margin: 0;
-                padding: 0;
-            }
-
-            .nav-links {
-                flex-direction: row;
-                gap: 4px;
-                overflow-x: auto;
-                flex: 1;
-                min-width: 0;
-                scrollbar-width: none;
-            }
-
-            .nav-links::-webkit-scrollbar {
-                display: none;
-            }
-
-            .nav-item {
-                flex: none;
-                min-height: 36px;
-                padding: 8px 10px;
-                font-size: 12px;
-                white-space: nowrap;
-            }
-
-            .nav-item .nav-icon {
-                display: none;
-            }
-
-            .sidebar-bottom {
-                display: none;
-            }
-
-            .main-area {
-                min-height: calc(100vh - 68px);
-                padding: 26px 16px 110px;
-            }
-
-            .chat-hero {
-                flex-wrap: wrap;
-            }
-
-            .hw-widget {
-                order: 3;
-                width: 100%;
-                justify-content: center;
-            }
-
-            .input-dock {
-                left: 12px !important;
-                right: 12px !important;
-                bottom: 12px;
-            }
-
-            .input-wrapper {
-                padding: 8px 10px 8px 14px;
-            }
-
-            .dock-tools {
-                overflow-x: auto;
-                flex-wrap: nowrap;
-            }
-
-            .landing-title {
-                padding: 0 18px 100px;
-            }
-
-            .landing-title h1 {
-                font-size: clamp(34px, 10vw, 52px);
-            }
-        }
+html[data-theme="dark"] .main-area [style*="color:#4A5568"],
+html[data-theme="dark"] .main-area [style*="color:#2D3748"]{color:#C9DCF5!important}
+html[data-theme="dark"] .main-area [style*="color:#718096"],
+html[data-theme="dark"] .main-area [style*="color:#A0AEC0"]{color:#8FA9CC!important}
+html[data-theme="dark"] .main-area [style*="background:#EBF8FF"],
+html[data-theme="dark"] .main-area [style*="background:#F7FAFC"],
+html[data-theme="dark"] .main-area [style*="background:#F0FFF4"],
+html[data-theme="dark"] .main-area [style*="background:#FFF5F5"],
+html[data-theme="dark"] .main-area [style*="background:#FFFBEB"]{
+  background:var(--glass-bg)!important;border-color:var(--glass-border)!important}
+html[data-theme="dark"] .gp-diagnostic [style*="color:"]{color:#4A5568!important}
     </style>
 </head>
 
@@ -3009,6 +2671,11 @@
         </ul>
 
         <div class="sidebar-bottom">
+            <div class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" tabindex="0"
+     onclick="toggleTheme()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTheme()}">
+    <span>Dark mode</span>
+    <span class="tt-track"><span class="tt-thumb"></span></span>
+</div>
             <div class="status-card">
                 <h4>Hardware profile active</h4>
                 <p id="calibration-status">Run data not loaded</p>
@@ -3055,26 +2722,20 @@
                     <span class="hw-widget-chevron">▾</span>
                 </button>
                 <div class="hw-widget-panel" id="hw-widget-panel">
-                    <div class="hw-widget-row probe-hidden"><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong>
+                    <div class="hw-widget-row"><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong>
                     </div>
-                    <div class="hw-widget-row probe-hidden"><span>RAM</span><strong data-summary="ram">Profile unavailable</strong>
+                    <div class="hw-widget-row"><span>RAM</span><strong data-summary="ram">Profile unavailable</strong>
                     </div>
-                    <div class="hw-widget-row probe-hidden"><span>GPU / VRAM</span><strong data-summary="gpu">Profile
+                    <div class="hw-widget-row"><span>GPU / VRAM</span><strong data-summary="gpu">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row probe-hidden"><span>Feasible space</span><strong data-summary="space">Profile
+                    <div class="hw-widget-row"><span>Feasible space</span><strong data-summary="space">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row probe-hidden"><span>Energy</span><strong data-summary="energy">Profile
+                    <div class="hw-widget-row"><span>Energy</span><strong data-summary="energy">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row probe-hidden"><span>Timestamp</span><strong data-summary="timestamp">Profile
+                    <div class="hw-widget-row"><span>Timestamp</span><strong data-summary="timestamp">Profile
                             unavailable</strong></div>
                     <p id="runtime-status" class="hw-widget-note"><strong>Live chatbot ready.</strong> llama.cpp
                         endpoint connected.</p>
-                    <!-- Scan bar -->
-                    <div class="hw-scan-bar" id="hw-scan-bar"><div class="hw-scan-fill" id="hw-scan-fill"></div></div>
-                    <!-- Hardware scan button -->
-                    <button class="hw-probe-btn" id="hw-probe-btn" type="button" onclick="probeHardware()">
-                        <span id="hw-probe-label">Run Hardware Scan</span>
-                    </button>
                 </div>
             </div>
 
@@ -3091,12 +2752,98 @@
                 <h2 class="page-subtitle">Follow the evidence from search to deployment.</h2>
             </div>
 
-            <!-- <div id="sop-validation-dashboard" style="background:#0f172a; border-radius:12px; padding:24px; color:#f8fafc; margin-bottom:24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #334155; font-family: 'Inter', sans-serif;">
-                <!-- Content injected via JS renderSopDashboard()
+            <div class="app-card" style="background:#EBF8FF; border-color:#90CDF4;">
+                <div class="card-header">BOPIS user journey</div>
+                <div class="cards-grid" style="grid-template-columns:repeat(4, minmax(0, 1fr));">
+                    <div>
+                        <button class="tag blue" style="cursor:pointer; border:none; font:inherit;"
+                            onclick="sw('chat', document.querySelector('.nav-item:nth-child(1)'));"
+                            title="Go to Optimization Chat">
+                            1 · Define
+                        </button>
+                        <p class="detail-d" style="margin-top:6px">Classify the prompt type and set quality/speed
+                            floors.</p>
+                    </div>
+                    <div>
+                        <button class="tag blue" style="cursor:pointer; border:none; font:inherit;"
+                            onclick="sw('tech', document.querySelector('.nav-item:nth-child(2)')); setTimeout(()=>toggleReplay(),300);"
+                            title="Go to Dashboard and replay the search">
+                            2 · Search
+                        </button>
+                        <p class="detail-d" style="margin-top:6px">Seed 10 random configs, then GP-guided Expected
+                            Improvement.</p>
+                    </div>
+                    <div>
+                        <button class="tag blue" style="cursor:pointer; border:none; font:inherit;"
+                            onclick="sw('tech', document.querySelector('.nav-item:nth-child(2)'));"
+                            title="Go to Pareto chart">
+                            3 · Compare
+                        </button>
+                        <p class="detail-d" style="margin-top:6px">Non-dominated configs on the energy–quality–speed
+                            Pareto front.</p>
+                    </div>
+                    <div>
+                        <button class="tag green" style="cursor:pointer; border:none; font:inherit;"
+                            onclick="sw('chat', document.querySelector('.nav-item:nth-child(1)'));"
+                            title="Go to chat with x* deployed">
+                            4 · Deploy
+                        </button>
+                        <p class="detail-d" style="margin-top:6px">x* serves live chat. Every decision is traceable in
+                            this dashboard.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-card" id="run-evidence">
+                <div class="card-header">
+                    <span>Run evidence</span>
+                    <span style="display:inline-flex; gap:8px; align-items:center;">
+                        <span id="live-label" style="font-size:11px; color:#4A5568;"></span>
+                        <span class="mode-toggle" role="group" aria-label="Run data source">
+                            <button id="mode-live" onclick="setDataMode('live')"
+                                title="Follow the newest run in runs\ as it happens: progress while it searches, the full dashboard the moment it finishes."><span
+                                    class="live-dot"></span>Live</button>
+                            <button id="mode-manual" onclick="setDataMode('manual')"
+                                title="Keep the run you loaded; nothing changes until you load another.">Manual</button>
+                        </span>
+                        <select id="run-select" class="btn-action" onchange="chooseRun(this.value)"
+                            title="Pick a run from the runs folder"></select>
+                        <button class="btn-action" id="study-btn" onclick="toggleStudyPanel()">&#9654; Run a
+                            study</button>
+                    </span>
+                </div>
+                <input type="file" id="run-file-input" accept=".js,.json" style="display:none">
+                <div id="study-panel" class="note info" style="display:none; margin-bottom:10px;">
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                        <label>Study
+                            <select id="study-preset" onchange="presetDefaults(this.value)">
+                                <option value="sim">Quick: simulated energy (about a minute)</option>
+                                <option value="real">Real: llama-server on this laptop (slow)</option>
+                            </select></label>
+                        <label title="Number of configurations tested by BOPIS and Random Search.">Search evaluations
+                            <input id="study-iterations" type="number" min="4" max="60" value="30"
+                                style="width:56px"></label>
+                        <label title="Prompts reused for every configuration during the fast search loop.">Proxy prompts
+                            <input id="study-proxy" type="number" min="8" max="100" value="20"
+                                style="width:56px"></label>
+                        <button class="btn-action" onclick="startStudy()">Start</button>
+                        <button class="btn-action" onclick="stopStudy()">Stop</button>
+                    </div>
+                    <div id="study-note" style="margin-top:6px; color:#4A5568;">Starts a quick search-only study:
+                        each tested configuration is averaged over the same proxy prompts. This is for methodology
+                        demonstration; a formal Chapter 4/5 conclusion requires the full validation stage.
+                        Live mode then streams each evaluation into the chart and the search log as it is measured.
+                    </div>
+                </div>
+                <div id="dashboard-status" class="note info">Loading generated run data...</div>
+            </div>
+
+            <div id="sop-validation-dashboard" style="background:#0f172a; border-radius:12px; padding:24px; color:#f8fafc; margin-bottom:24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #334155; font-family: 'Inter', sans-serif;">
+                <!-- Content injected via JS renderSopDashboard() -->
                 <div style="text-align:center; padding:40px; color:#94a3b8; font-style:italic;">
                     Awaiting SOP Validation Data...
                 </div>
-            </div> -->
+            </div>
 
             <div class="app-card">
                 <div class="card-header">Methodology trace — what happens during one BOPIS run</div>
@@ -3592,7 +3339,6 @@
     <script src="bopis_model.js" onerror="void 0"></script>
     <script>
         let RUN_DATA = window.BOPIS_DATA || null;
-        const BRIDGE_BASE = location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8090';
 
         /* Replay/animation state. Declared up here, ahead of every reader, because
          * `applyRunData(RUN_DATA)` runs during page load and calls drawPareto3D(),
@@ -3660,7 +3406,7 @@
             renderMethodComparison(data);
             renderSurrogateDetail(data);
             drawGpDiagnostic(data);
-            if (typeof renderSopDashboard === 'function') renderSopDashboard(data);
+            renderSopDashboard(data);
             // The log is rebuilt from the artifacts, then shown in full: the evidence
             // is readable as text on arrival, without having to watch an animation.
             buildSearchLog(data);
@@ -4037,7 +3783,7 @@
                 ctx.clearRect(0, 0, width, height);
                 if (!points.length) {
                     ctx.fillStyle = '#A0AEC0';
-                    ctx.font = '14px IBM Plex Sans, sans-serif';
+                    ctx.font = '12px IBM Plex Sans, sans-serif';
                     ctx.textAlign = 'center';
                     ctx.fillText('No pre-evaluation GP predictions in this run payload.', width / 2, height / 2);
                     return;
@@ -4053,7 +3799,7 @@
                 const py = value => height - pad.b - (value - minValue) / span * (height - pad.t - pad.b);
                 ctx.strokeStyle = '#EDF2F7';
                 ctx.lineWidth = 1;
-                ctx.font = '12px IBM Plex Mono, monospace';
+                ctx.font = '10px IBM Plex Mono, monospace';
                 ctx.fillStyle = '#718096';
                 ctx.textAlign = 'right';
                 for (let i = 0; i <= 4; i += 1) {
@@ -4086,13 +3832,13 @@
                     ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
                 });
                 ctx.fillStyle = '#4A5568';
-                ctx.font = '600 13px IBM Plex Sans, sans-serif';
+                ctx.font = '600 11px IBM Plex Sans, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillText('Observed energy (J)', (pad.l + width - pad.r) / 2, height - 10);
                 ctx.save(); ctx.translate(14, (pad.t + height - pad.b) / 2); ctx.rotate(-Math.PI / 2);
                 ctx.fillText('GP predicted energy (J)', 0, 0); ctx.restore();
                 ctx.textAlign = 'left';
-                ctx.font = '12px IBM Plex Sans, sans-serif';
+                ctx.font = '10px IBM Plex Sans, sans-serif';
                 ctx.fillStyle = '#718096';
                 ctx.fillText('diagonal = perfect prediction · bars = ±σ', pad.l, 13);
             }
@@ -4155,135 +3901,135 @@
             }
         }
 
-        // function renderSopDashboard(data) {
-        //     const host = document.getElementById('sop-validation-dashboard');
-        //     if (!host) return;
-        //     if (!data || !data.statistical_tests) {
-        //         const reason = data?.meta?.validated === false
-        //             ? 'This run was saved without the full validation stage (for example, --skip-validation).'
-        //             : 'Run a complete study to generate the statistical tests.';
-        //         host.innerHTML = `<div style="text-align:center; padding:32px; color:#94a3b8; font-style:italic;">
-        //             <div style="font-size:16px; color:#cbd5e1; font-style:normal; font-weight:700; margin-bottom:8px;">SOP validation not available for this run</div>
-        //             <div>${escapeHtml(reason)}</div>
-        //         </div>`;
-        //         return;
-        //     }
+        function renderSopDashboard(data) {
+            const host = document.getElementById('sop-validation-dashboard');
+            if (!host) return;
+            if (!data || !data.statistical_tests) {
+                const reason = data?.meta?.validated === false
+                    ? 'This run was saved without the full validation stage (for example, --skip-validation).'
+                    : 'Run a complete study to generate the statistical tests.';
+                host.innerHTML = `<div style="text-align:center; padding:32px; color:#94a3b8; font-style:italic;">
+                    <div style="font-size:16px; color:#cbd5e1; font-style:normal; font-weight:700; margin-bottom:8px;">SOP validation not available for this run</div>
+                    <div>${escapeHtml(reason)}</div>
+                </div>`;
+                return;
+            }
 
-        //     const stats = data.statistical_tests || {};
-        //     const desc = data.descriptives || {};
-        //     const ind = data.indicators || data.selection || {};
+            const stats = data.statistical_tests || {};
+            const desc = data.descriptives || {};
+            const ind = data.indicators || data.selection || {};
 
-        //     const safeStat = (obj, key) => (obj && obj[key] && obj[key].wilcoxon) ? obj[key].wilcoxon : null;
-        //     const energyWilcox = safeStat(stats, 'energy_j');
-        //     const speedWilcox = safeStat(stats, 'speed_tok_s');
-        //     const qualityWilcox = safeStat(stats, 'quality');
+            const safeStat = (obj, key) => (obj && obj[key] && obj[key].wilcoxon) ? obj[key].wilcoxon : null;
+            const energyWilcox = safeStat(stats, 'energy_j');
+            const speedWilcox = safeStat(stats, 'speed_tok_s');
+            const qualityWilcox = safeStat(stats, 'quality');
 
-        //     const getMean = (varName, cond) => {
-        //         if(desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
-        //         return 0;
-        //     };
+            const getMean = (varName, cond) => {
+                if(desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
+                return 0;
+            };
 
-        //     const e_rs = getMean('energy_j', 'random_search');
-        //     const e_bp = getMean('energy_j', 'bopis');
-        //     const s_rs = getMean('speed_tok_s', 'random_search');
-        //     const s_bp = getMean('speed_tok_s', 'bopis');
-        //     const q_rs = getMean('quality', 'random_search');
-        //     const q_bp = getMean('quality', 'bopis');
+            const e_rs = getMean('energy_j', 'random_search');
+            const e_bp = getMean('energy_j', 'bopis');
+            const s_rs = getMean('speed_tok_s', 'random_search');
+            const s_bp = getMean('speed_tok_s', 'bopis');
+            const q_rs = getMean('quality', 'random_search');
+            const q_bp = getMean('quality', 'bopis');
 
-        //     const p_e = energyWilcox ? energyWilcox.p_value.toFixed(4) : "—";
-        //     const p_s = speedWilcox ? speedWilcox.p_value.toFixed(4) : "—";
-        //     const p_q = qualityWilcox ? qualityWilcox.p_value.toFixed(4) : "—";
+            const p_e = energyWilcox ? energyWilcox.p_value.toFixed(4) : "—";
+            const p_s = speedWilcox ? speedWilcox.p_value.toFixed(4) : "—";
+            const p_q = qualityWilcox ? qualityWilcox.p_value.toFixed(4) : "—";
 
-        //     const sig_e = energyWilcox && energyWilcox.significant;
-        //     const sig_s = speedWilcox && speedWilcox.significant;
-        //     const sig_q = qualityWilcox && qualityWilcox.significant;
+            const sig_e = energyWilcox && energyWilcox.significant;
+            const sig_s = speedWilcox && speedWilcox.significant;
+            const sig_q = qualityWilcox && qualityWilcox.significant;
 
-        //     const formatSig = (sig) => sig ? `<span style="color:#10b981; font-weight:600;">Significant</span>` : `<span style="color:#94a3b8;">Not Significant</span>`;
+            const formatSig = (sig) => sig ? `<span style="color:#10b981; font-weight:600;">Significant</span>` : `<span style="color:#94a3b8;">Not Significant</span>`;
 
-        //     host.innerHTML = `
-        //         <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid #1e293b; padding-bottom:16px; margin-bottom:24px;">
-        //             <div>
-        //                 <h2 style="font-size:20px; font-weight:700; letter-spacing:-0.02em; color:#e2e8f0; margin:0 0 4px 0;">SOP Statistical Validation</h2>
-        //                 <div style="font-size:13px; color:#94a3b8; letter-spacing:0.02em; text-transform:uppercase;">Random Search vs BOPIS · Wilcoxon Signed-Rank Test</div>
-        //             </div>
-        //             <div style="text-align:right;">
-        //                 <div style="font-size:12px; color:#64748b; margin-bottom:2px;">SIGNIFICANCE THRESHOLD</div>
-        //                 <div style="font-size:14px; font-weight:600; color:#38bdf8; background:#0284c722; padding:4px 10px; border-radius:6px; border:1px solid #0284c744; display:inline-block;">α = 0.05</div>
-        //             </div>
-        //         </div>
+            host.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid #1e293b; padding-bottom:16px; margin-bottom:24px;">
+                    <div>
+                        <h2 style="font-size:20px; font-weight:700; letter-spacing:-0.02em; color:#e2e8f0; margin:0 0 4px 0;">SOP Statistical Validation</h2>
+                        <div style="font-size:13px; color:#94a3b8; letter-spacing:0.02em; text-transform:uppercase;">Random Search vs BOPIS · Wilcoxon Signed-Rank Test</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:12px; color:#64748b; margin-bottom:2px;">SIGNIFICANCE THRESHOLD</div>
+                        <div style="font-size:14px; font-weight:600; color:#38bdf8; background:#0284c722; padding:4px 10px; border-radius:6px; border:1px solid #0284c744; display:inline-block;">α = 0.05</div>
+                    </div>
+                </div>
 
-        //         <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px;">
-        //             <!-- Energy Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Energy (Joules)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_rs.toFixed(2)} J</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_bp.toFixed(2)} J</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">EIR (Savings)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#10b981;">${(ind.eir_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_e}</span></span>
-        //                     ${formatSig(sig_e)}
-        //                 </div>
-        //             </div>
+                <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px;">
+                    <!-- Energy Card -->
+                    <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                        <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Energy (Joules)</div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                            <div>
+                                <div style="font-size:11px; color:#64748b;">Random Search</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_rs.toFixed(2)} J</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_bp.toFixed(2)} J</div>
+                            </div>
+                        </div>
+                        <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:12px; color:#94a3b8;">EIR (Savings)</div>
+                            <div style="font-size:16px; font-weight:700; color:#10b981;">${(ind.eir_percent || 0).toFixed(2)}%</div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                            <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_e}</span></span>
+                            ${formatSig(sig_e)}
+                        </div>
+                    </div>
 
-        //             <!-- Speed Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Speed (Tok/s)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_rs.toFixed(2)}</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_bp.toFixed(2)}</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">SRR (Retention)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#38bdf8;">${(ind.srr_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_s}</span></span>
-        //                     ${formatSig(sig_s)}
-        //                 </div>
-        //             </div>
+                    <!-- Speed Card -->
+                    <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                        <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Speed (Tok/s)</div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                            <div>
+                                <div style="font-size:11px; color:#64748b;">Random Search</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_rs.toFixed(2)}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_bp.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:12px; color:#94a3b8;">SRR (Retention)</div>
+                            <div style="font-size:16px; font-weight:700; color:#38bdf8;">${(ind.srr_percent || 0).toFixed(2)}%</div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                            <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_s}</span></span>
+                            ${formatSig(sig_s)}
+                        </div>
+                    </div>
 
-        //             <!-- Quality Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Quality (F1)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_rs.toFixed(4)}</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_bp.toFixed(4)}</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">QRR (Retention)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#818cf8;">${(ind.qrr_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_q}</span></span>
-        //                     ${formatSig(sig_q)}
-        //                 </div>
-        //             </div>
-        //         </div>
-        //     `;
-        // }
+                    <!-- Quality Card -->
+                    <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                        <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Quality (F1)</div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                            <div>
+                                <div style="font-size:11px; color:#64748b;">Random Search</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_rs.toFixed(4)}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_bp.toFixed(4)}</div>
+                            </div>
+                        </div>
+                        <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:12px; color:#94a3b8;">QRR (Retention)</div>
+                            <div style="font-size:16px; font-weight:700; color:#818cf8;">${(ind.qrr_percent || 0).toFixed(2)}%</div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                            <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_q}</span></span>
+                            ${formatSig(sig_q)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
         /* ── Convergence curve ──────────────────────────────────────────────────── */
         function drawConvergence() {
@@ -4572,10 +4318,7 @@
             };
             const setSummary = (name, value) => {
                 const element = document.querySelector(`[data-summary="${name}"]`);
-                if (element) {
-                    element.dataset.realValue = value;
-                    element.textContent = '—'; // Keep it blank/hidden until scanned
-                }
+                if (element) element.textContent = value;
             };
             const formatGiB = value => `${Number(value).toFixed(2)} GiB`;
             const permittedLayers = (host.permitted_gpu_layers || []).join(', ');
@@ -4809,69 +4552,6 @@
         function toggleHwWidget() {
             document.getElementById('hw-widget-panel')?.classList.toggle('open');
             document.getElementById('hw-widget')?.classList.toggle('open');
-        }
-
-        /* ── Hardware probe animation ────────────────────────────────────────────
-         * Theatrically re-reveals the hardware rows one by one, reading the data
-         * that BOPIS_PROFILE already loaded. No backend call — pure demo polish.
-         */
-        function probeHardware() {
-            const btn = document.getElementById('hw-probe-btn');
-            const label = document.getElementById('hw-probe-label');
-            const scanBar = document.getElementById('hw-scan-bar');
-            const fill = document.getElementById('hw-scan-fill');
-            if (!btn || btn.classList.contains('scanning')) return;
-
-            const rows = document.querySelectorAll('#hw-widget-panel .hw-widget-row');
-
-            // Phase 1 — scanning
-            btn.classList.add('scanning');
-            label.textContent = 'Scanning…';
-            scanBar.classList.add('active');
-            fill.style.width = '0%';
-
-            // Hide all rows
-            rows.forEach(r => r.classList.add('probe-hidden'));
-
-            // Animate scan bar to 40%
-            requestAnimationFrame(() => { fill.style.width = '40%'; });
-
-            // Phase 2 — detect (stagger rows in one by one)
-            const STAGGER = 160; // ms between each row
-            const detectStart = 600;
-
-            rows.forEach((row, i) => {
-                setTimeout(() => {
-                    row.classList.remove('probe-hidden');
-                    row.classList.add('probe-reveal');
-                    
-                    // Reveal the real value
-                    const strong = row.querySelector('strong[data-summary]');
-                    if (strong && strong.dataset.realValue) {
-                        strong.textContent = strong.dataset.realValue;
-                    }
-
-                    // Advance scan bar proportionally
-                    const progress = 40 + ((i + 1) / rows.length) * 50;
-                    fill.style.width = progress + '%';
-                }, detectStart + i * STAGGER);
-            });
-
-            // Phase 3 — done
-            const totalTime = detectStart + rows.length * STAGGER + 200;
-            setTimeout(() => {
-                fill.style.width = '100%';
-            }, totalTime - 200);
-            setTimeout(() => {
-                btn.classList.remove('scanning');
-                btn.innerHTML = '<span id="hw-probe-label">Profile refreshed</span>';
-                scanBar.classList.remove('active');
-                fill.style.width = '0%';
-                // Reset button text after 2s
-                setTimeout(() => {
-                    btn.innerHTML = '<span id="hw-probe-label">Run Hardware Scan</span>';
-                }, 2000);
-            }, totalTime + 100);
         }
         document.addEventListener('click', event => {
             const widget = document.getElementById('hw-widget');
@@ -5359,6 +5039,7 @@
          * Served by the bridge, the page talks to its own origin. Opened from file://,
          * it tries the bridge's default port and falls back to llama-server directly.
          * ------------------------------------------------------------------------- */
+        const BRIDGE_BASE = location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8090';
         let BRIDGE = null;          // /api/status payload, or null when not running
         let DOLLY_PENDING = null;   // { text, reference, prompt_id, task_type }
         const SESSION = { replies: 0, joules: 0, tokens: 0, measured: 0, f1: [] };
@@ -6136,24 +5817,6 @@
             area.appendChild(pending);
             scrollToBottom();
             const wallStart = performance.now();
-            
-            const liveUtilTimer = setInterval(async () => {
-                try {
-                    const viaBridge = Boolean(BRIDGE);
-                    if (!viaBridge) return;
-                    const r = await fetch(`${BRIDGE_BASE}/api/utilization`, { cache: 'no-store' });
-                    if (!r.ok) return;
-                    const data = await r.json();
-                    const elCpuVal = document.getElementById('live-cpu-val');
-                    if (!elCpuVal) return; // bubble might be gone
-                    elCpuVal.textContent = data.cpu.toFixed(0) + '%';
-                    document.getElementById('live-ram-val').textContent = data.ram.toFixed(0) + '%';
-                    document.getElementById('live-cpu-bar').style.width = data.cpu + '%';
-                    document.getElementById('live-gpu-val').textContent = data.gpu.toFixed(0) + '%';
-                    document.getElementById('live-vram-val').textContent = data.gpu_ram.toFixed(0) + '%';
-                    document.getElementById('live-gpu-bar').style.width = data.gpu + '%';
-                } catch(e) {}
-            }, 300);
 
             try {
                 const requestBody = JSON.stringify({
@@ -6230,21 +5893,15 @@
                 if (energy.measured) SESSION.measured += 1;
                 SESSION.tokens += generatedTokens;
                 renderSessionTally();
-                clearInterval(liveUtilTimer);
                 scrollToBottom();
 
                 if (reference) scoreReply(scoreId, reply, reference.reference, {
                     energy: energy.joules,
                     speed: decodeSeconds > 0 ? generatedTokens / decodeSeconds : NaN,
                     text: reference.instruction || txt,
-                    config: DEPLOYED_KEY,
-                    cpu_percent: envelope.energy?.process_cpu_percent != null ? envelope.energy.process_cpu_percent * 100 : null,
-                    gpu_percent: envelope.energy?.gpu_percent_mean,
-                    memory_mib: envelope.energy?.memory_mib_mean,
-                    vram_mib: envelope.energy?.vram_mib_mean
+                    config: DEPLOYED_KEY
                 });
             } catch (error) {
-                clearInterval(liveUtilTimer);
                 chatHistory.pop();
                 pending.innerHTML = `
             <div class="turn assistant">
@@ -6349,10 +6006,6 @@
                 : `Mode C estimate from llama-server's CPU time `
                 + `(${Number(energy.process_cpu_percent || 0).toFixed(0)}% of the CPU, `
                 + `${energy.cpu_attribution}). ${energy.caveat}`;
-            const resources = ` &middot; CPU: ${(Number(energy.process_cpu_percent) || 0).toFixed(1)}% `
-                + `&middot; RAM: ${Number(energy.memory_mib_mean || 0).toFixed(0)}MB `
-                + `&middot; GPU: ${(Number(energy.gpu_percent_mean) || 0).toFixed(1)}% `
-                + `&middot; VRAM: ${Number(energy.vram_mib_mean || 0).toFixed(0)}MB`;
             return {
                 joules, php, measured: Boolean(energy.measured),
                 html: `<span class="${energy.measured ? 'meas' : 'est'}" title="${escapeHtml(detail)}">`
@@ -6360,7 +6013,6 @@
                     + (perToken ? ` (<b>${perToken.toFixed(2)}</b> J/tok)` : '')
                     + ` &middot; <b>PHP ${(php * 1000).toFixed(3)}</b>/1k replies`
                     + ` &middot; <b>${energy.measured ? 'measured (RAPL)' : 'estimated (Mode C)'}</b></span>`
-                    + `<span style="display:inline-block; margin-left:8px; font-size:11px; opacity:0.8;">${resources}</span>`
             };
         }
 
@@ -6762,20 +6414,8 @@
             const body = document.getElementById('pareto-readout-body');
             if (!body) return;
             const visiblePoints = points
-                .sort((a, b) => a.energy - b.energy);
-
-            visiblePoints.forEach(point => {
-                if (point.cpu_percent == null && point.config && point.config !== 'reference' && point.arm !== 'chat') {
-                    const c = parseCfgKey(point.config) || {};
-                    const threads = c.c || 4;
-                    const hash = point.config.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-                    point.cpu_percent = (threads / 8) * 85 + (hash % 10);
-                    point.gpu_percent = (c.g > 0) ? (c.g / 33) * 80 + 15 + (hash % 5) : 0;
-                    point.memory_mib = 1200 + (c.t || 1024) * 0.5 + (hash % 200);
-                    point.vram_mib = (c.g > 0) ? 2000 + c.g * 100 + (hash % 50) : 0;
-                }
-            });
-
+                .filter(point => point.arm !== 'chat')
+                .sort((a, b) => a.energy - b.energy)
             const selected = visiblePoints.find(point => point.selected) || visiblePoints[0];
             const metrics = document.getElementById('pareto-key-metrics');
             if (metrics) {
@@ -6809,10 +6449,6 @@
                         <td class="metric-number">${point.speed.toFixed(2)}</td>
                         <td class="metric-number">${point.quality.toFixed(4)}</td>
                         <td class="metric-number">${point.iteration == null ? '—' : escapeHtml(String(point.iteration))}</td>
-                        <td class="metric-number">${point.cpu_percent != null ? fmtNum(point.cpu_percent, 1) + '%' : '—'}</td>
-                        <td class="metric-number">${point.gpu_percent != null ? fmtNum(point.gpu_percent, 1) + '%' : '—'}</td>
-                        <td class="metric-number">${point.memory_mib != null ? fmtNum(point.memory_mib, 0) + 'MB' : '—'}</td>
-                        <td class="metric-number">${point.vram_mib != null ? fmtNum(point.vram_mib, 0) + 'MB' : '—'}</td>
                     </tr>`;
                 });
             body.innerHTML = rows.length
@@ -6932,13 +6568,13 @@
             const axis = (from, to, label, min, max, formatter) => {
                 ctx.strokeStyle = '#A0AEC0'; ctx.lineWidth = 1.3;
                 ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
-                ctx.fillStyle = '#4A5568'; ctx.font = '600 13px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+                ctx.fillStyle = '#4A5568'; ctx.font = '600 11px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
                 ctx.fillText(label, to.x, to.y + (to.y > from.y ? 18 : -10));
                 for (let index = 0; index <= 4; index += 1) {
                     const fraction = index / 4;
                     const x = from.x + (to.x - from.x) * fraction;
                     const y = from.y + (to.y - from.y) * fraction;
-                    ctx.fillStyle = '#6B7F86'; ctx.font = '12px IBM Plex Mono, monospace';
+                    ctx.fillStyle = '#6B7F86'; ctx.font = '10px IBM Plex Mono, monospace';
                     ctx.fillText(formatter(min + (max - min) * fraction), x, y + (to.y >= from.y ? 15 : -8));
                 }
             };
@@ -6982,8 +6618,7 @@
                 });
                 return weightTotal ? weighted / weightTotal : bounds.quality.lo;
             };
-            // Interpolated visual surface: it explains the measured response shape;
-            // the black dots remain the actual observations used by BOPIS.
+            
             const surfaceStepsX = 18, surfaceStepsY = 14;
             for (let ix = 0; ix < surfaceStepsX - 1; ix += 1) {
                 for (let iy = 0; iy < surfaceStepsY - 1; iy += 1) {
@@ -7041,19 +6676,19 @@
                 ctx.stroke();
                 targets.push({ point, x: screen.x, y: screen.y, radius: radius + 7 });
                 if (point.selected || point.reference) {
-                    ctx.globalAlpha = 1; ctx.fillStyle = point.selected ? '#102231' : '#822727'; ctx.font = '700 13px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+                    ctx.globalAlpha = 1; ctx.fillStyle = point.selected ? '#102231' : '#822727'; ctx.font = '700 11px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
                     ctx.fillText(point.selected ? 'x*' : 'default', screen.x, screen.y - radius - 8);
                 } else if (showLabels || point.arm === 'chat') {
                     ctx.globalAlpha = 1;
                     ctx.fillStyle = point.arm === 'chat' ? '#97266D' : '#2D3748';
-                    ctx.font = point.arm === 'chat' ? '600 12px IBM Plex Sans, sans-serif' : '11px IBM Plex Mono, monospace';
+                    ctx.font = point.arm === 'chat' ? '600 10px IBM Plex Sans, sans-serif' : '9px IBM Plex Mono, monospace';
                     ctx.textAlign = 'left';
                     ctx.fillText(pointLabel(point), screen.x + radius + 3, screen.y - 3);
                 }
             });
             canvas._paretoHitTargets = targets;
             ctx.globalAlpha = 1;
-            ctx.fillStyle = '#718096'; ctx.font = '12px IBM Plex Sans, sans-serif'; ctx.textAlign = 'left';
+            ctx.fillStyle = '#718096'; ctx.font = '10px IBM Plex Sans, sans-serif'; ctx.textAlign = 'left';
             ctx.fillText('3D trade-off surface · bubble size emphasizes selected/front points', 12, height - 10);
         }
 
@@ -7062,73 +6697,18 @@
             if (!canvas || canvas._paretoControlsBound) return;
             canvas._paretoControlsBound = true;
             let lastX = 0, lastY = 0, downX = 0, downY = 0;
-            canvas.style.cursor = 'grab';
-            canvas.addEventListener('pointerdown', event => {
-                canvas._pareto3d.dragging = true;
-                canvas.style.cursor = 'grabbing';
-                lastX = downX = event.clientX; lastY = downY = event.clientY;
-                canvas.setPointerCapture(event.pointerId);
-            });
-
-            /* Merged pointermove: drag-rotation + hover tooltip. */
-            const tooltip = document.getElementById('pareto-tooltip');
-            const viewport = canvas.parentElement;
+            canvas.addEventListener('pointerdown', event => { canvas._pareto3d.dragging = true; lastX = downX = event.clientX; lastY = downY = event.clientY; canvas.setPointerCapture(event.pointerId); });
             canvas.addEventListener('pointermove', event => {
-                if (canvas._pareto3d?.dragging) {
-                    canvas._pareto3d.yaw += (event.clientX - lastX) * 0.012;
-                    canvas._pareto3d.pitch = Math.max(-1.15, Math.min(1.15, canvas._pareto3d.pitch + (event.clientY - lastY) * 0.012));
-                    lastX = event.clientX; lastY = event.clientY;
-                    drawPareto3D();
-                    if (tooltip) tooltip.style.display = 'none';
-                    return;
-                }
-                /* --- Hover tooltip --- */
-                const rect = canvas.getBoundingClientRect();
-                const mx = event.clientX - rect.left, my = event.clientY - rect.top;
-                const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
-                const cx = mx * scaleX, cy = my * scaleY;
-                const hit = (canvas._paretoHitTargets || [])
-                    .map(item => ({ item, dist: Math.hypot(item.x - cx, item.y - cy) }))
-                    .filter(c => c.dist <= c.item.radius + 6)
-                    .sort((a, b) => a.dist - b.dist)[0];
-                if (!tooltip) return;
-                if (!hit) { tooltip.style.display = 'none'; canvas.style.cursor = 'grab'; return; }
-                canvas.style.cursor = 'pointer';
-                const p = hit.item.point;
-                const badge = p.selected ? '<span style="color:#68D391;font-weight:700">x* &#9733; BOPIS pick</span>'
-                    : p.reference ? '<span style="color:#FC8181;font-weight:700">&#9679; default</span>'
-                    : p.arm === 'random' ? '<span style="color:#F6AD55">random search</span>'
-                    : p.front ? '<span style="color:#63B3ED">pareto front</span>' : '';
-                const key = p.label || p.config || '';
-                tooltip.innerHTML = [
-                    badge ? `<div style="margin-bottom:5px">${badge}</div>` : '',
-                    `<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#90CDF4;margin-bottom:6px;word-break:break-all">${key}</div>`,
-                    `<div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:11px">`,
-                    `<span style="color:#A0AEC0">Energy</span><span style="color:#FBD38D;font-weight:600">${p.energy.toFixed(2)} J</span>`,
-                    `<span style="color:#A0AEC0">Speed</span><span style="color:#9AE6B4;font-weight:600">${p.speed.toFixed(2)} tok/s</span>`,
-                    `<span style="color:#A0AEC0">Quality F1</span><span style="color:#B794F4;font-weight:600">${p.quality.toFixed(4)}</span>`,
-                    p.iteration != null ? `<span style="color:#A0AEC0">Iteration</span><span>${p.iteration}</span>` : '',
-                    `</div>`
-                ].join('');
-                /* Position relative to the viewport container, clamp to edges. */
-                const vrect = viewport.getBoundingClientRect();
-                let tx = event.clientX - vrect.left + 14;
-                let ty = event.clientY - vrect.top + 14;
-                tooltip.style.display = 'block';
-                const tw = tooltip.offsetWidth || 240;
-                const th = tooltip.offsetHeight || 120;
-                if (tx + tw > vrect.width - 8) tx = event.clientX - vrect.left - tw - 14;
-                if (ty + th > vrect.height - 8) ty = event.clientY - vrect.top - th - 14;
-                tooltip.style.left = tx + 'px';
-                tooltip.style.top = ty + 'px';
+                if (!canvas._pareto3d?.dragging) return;
+                canvas._pareto3d.yaw += (event.clientX - lastX) * 0.012;
+                canvas._pareto3d.pitch = Math.max(-1.15, Math.min(1.15, canvas._pareto3d.pitch + (event.clientY - lastY) * 0.012));
+                lastX = event.clientX; lastY = event.clientY; drawPareto3D();
             });
             canvas.addEventListener('pointerup', event => {
                 canvas._pareto3d.dragging = false;
-                canvas.style.cursor = 'grab';
                 if (Math.hypot(event.clientX - downX, event.clientY - downY) < 5) selectParetoPoint(canvas, event);
             });
-            canvas.addEventListener('pointercancel', () => { canvas._pareto3d.dragging = false; canvas.style.cursor = 'grab'; });
-            canvas.addEventListener('pointerleave', () => { if (tooltip) tooltip.style.display = 'none'; canvas.style.cursor = 'grab'; });
+            canvas.addEventListener('pointercancel', () => { canvas._pareto3d.dragging = false; });
             canvas.addEventListener('wheel', event => { event.preventDefault(); canvas._pareto3d.zoom = Math.max(0.7, Math.min(1.8, canvas._pareto3d.zoom * (event.deltaY > 0 ? 0.92 : 1.08))); drawPareto3D(); }, { passive: false });
         }
 
@@ -7147,37 +6727,22 @@
             }
             const point = target.item.point;
             if (point.arm === 'chat') {
-                const configText = point.config ? describeCfg(parseCfgKey(point.config)) : 'the launched server';
-                output.innerHTML = `
-                    <div style="display:flex; flex-wrap:wrap; align-items:center;">
-                        <span class="ps-badge ps-status">Your chat prompt</span>
-                        <span class="ps-badge">"${point.text}"</span>
-                        <span class="ps-badge ps-energy">Energy<span class="ps-val">${point.energy.toFixed(2)} J</span></span>
-                        <span class="ps-badge ps-speed">Speed<span class="ps-val">${point.speed.toFixed(2)} tok/s</span></span>
-                        <span class="ps-badge ps-quality">Quality (F1)<span class="ps-val">${point.quality.toFixed(4)}</span></span>
-                    </div>
-                `;
+                output.textContent = `Your chat prompt · "${point.text}" · answered by ${point.config ? describeCfg(parseCfgKey(point.config)) : 'the launched server'}`
+                    + ` · Energy ${point.energy.toFixed(2)} J · Speed ${point.speed.toFixed(2)} tok/s · BERTScore F1 ${point.quality.toFixed(4)}`
+                    + ' · one prompt, indicative only';
                 return;
             }
-            const prefixBadge = point.selected ? '<span class="ps-badge ps-status xstar">★ x* (BOPIS pick)</span>'
-                : point.reference ? '<span class="ps-badge ps-status">Default</span>'
-                    : point.arm === 'random' ? '<span class="ps-badge ps-status">Random search</span>'
-                        : point.front ? '<span class="ps-badge ps-status">On Pareto front</span>' : '';
-            
-            const cfgName = point.label || 'Configuration';
-            const prec = point.precision || 'reference';
-            const iterStr = point.iteration ?? '—';
-            
-            output.innerHTML = `
-                <div style="display:flex; flex-wrap:wrap; align-items:center;">
-                    ${prefixBadge}
-                    <span class="ps-badge">${cfgName} · ${prec}</span>
-                    <span class="ps-badge ps-energy">Energy<span class="ps-val">${point.energy.toFixed(2)} J</span></span>
-                    <span class="ps-badge ps-speed">Speed<span class="ps-val">${point.speed.toFixed(2)} tok/s</span></span>
-                    <span class="ps-badge ps-quality">Quality (F1)<span class="ps-val">${point.quality.toFixed(4)}</span></span>
-                    <span class="ps-badge">Iter ${iterStr}</span>
-                </div>
-            `;
+            const prefix = point.selected ? 'x* (BOPIS pick) · '
+                : point.reference ? 'Default · '
+                    : point.arm === 'random' ? 'Random search · '
+                        : point.front ? 'On Pareto front · ' : '';
+            output.textContent = `${prefix}${point.label || 'Configuration'} · ${point.precision || 'reference'}`
+                + ` · Energy ${point.energy.toFixed(2)} J`
+                + ` · Speed ${point.speed.toFixed(2)} tok/s`
+                + ` · Quality (BERTScore F1) ${point.quality.toFixed(4)}`
+                + ` · Iter ${point.iteration ?? '—'}`
+                + (point.reference || !RUN_PROMPTS?.proxy?.length ? ''
+                    : ` · mean over the ${RUN_PROMPTS.proxy.length} proxy prompts listed below`);
         }
 
         function resetParetoView() {
@@ -7193,10 +6758,7 @@
         setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
     </script>
 
-    <!-- Hero FX: full-viewport interactive spiral (Canvas 2D + requestAnimationFrame).
-     On first input focus / send, the same canvas glides down to the header slot and
-     becomes the small rotating BOPIS galaxy beside "Welcome, BOPIS-er."
-     A second mini canvas in the sidebar keeps the same galaxy next to "BOPIS System". -->
+   
     <script>
         (function () {
             try {
@@ -7236,7 +6798,6 @@
                 window.addEventListener('resize', size);
                 window.addEventListener('resize', fitSidebar);
 
-                // Cyan #00E5FF core -> deep navy #001133 rim.
                 const STOPS = [[0, 229, 255], [0, 150, 230], [0, 64, 150], [0, 17, 51]];
                 function ramp(t) {
                     const pos = Math.max(0, Math.min(0.999, t)) * (STOPS.length - 1);
@@ -7546,6 +7107,17 @@
             reset();
         }
     </script>
+    </script>
+    <script>
+function syncThemeToggle(){const t=document.getElementById('theme-toggle');if(t)t.setAttribute('aria-checked',document.documentElement.dataset.theme==='dark');}
+function toggleTheme(){
+  const next=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=next;
+  try{localStorage.setItem('bopis.theme',next)}catch(e){}
+  syncThemeToggle();
+}
+syncThemeToggle();
+</script>
 </body>
 
 </html>
