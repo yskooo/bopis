@@ -5654,14 +5654,14 @@
             if (armed) {
                 const task = DOLLY_PENDING.task_type;
                 const mapping = {
-                    'open_qa': "Task Type: Open QA\nQuality Sensitivity: Low\nP(F16): 0.53\nP(INT8): 0.235\nP(Q4_K_M): 0.235\nMin. Precision: P(F16)\nLiterature Basis: Lee et al. (2025)",
-                    'closed_qa': "Task Type: Closed QA\nQuality Sensitivity: High\nP(F16): 0.69\nP(INT8): 0.233\nP(Q4_K_M): 0.077\nMin. Precision: P(F16)\nLiterature Basis: Lee et al. (2025)",
-                    'summarization': "Task Type: Summarization\nQuality Sensitivity: Low\nP(F16): 0.47\nP(INT8): 0.265\nP(Q4_K_M): 0.265\nMin. Precision: P(F16)\nLiterature Basis: Lee et al. (2025)",
-                    'classification': "Task Type: Classification\nQuality Sensitivity: Low\nP(F16): 0.39\nP(INT8): 0.305\nP(Q4_K_M): 0.305\nMin. Precision: P(Q8_0)\nLiterature Basis: Lee et al. (2025)",
-                    'creative_writing': "Task Type: Creative Writing\nQuality Sensitivity: Low\nP(F16): 0.53\nP(INT8): 0.235\nP(Q4_K_M): 0.235\nMin. Precision: P(F16)\nLiterature Basis: Lee et al. (2025)",
-                    'brainstorming': "Task Type: Brainstorming\nQuality Sensitivity: Low\nP(F16): 0.39\nP(INT8): 0.305\nP(Q4_K_M): 0.305\nMin. Precision: P(Q8_0)\nLiterature Basis: Lee et al. (2025)",
-                    'information_extraction': "Task Type: Info Extraction\nQuality Sensitivity: High\nP(F16): 0.69\nP(INT8): 0.233\nP(Q4_K_M): 0.077\nMin. Precision: P(F16)\nLiterature Basis: Lee et al. (2025)",
-                    'general_qa': "Task Type: General Instr.\nQuality Sensitivity: Medium\nP(F16): 0.56\nP(INT8): 0.264\nP(Q4_K_M): 0.176\nMin. Precision: P(F16)\nLiterature Basis: Shi et al. (2025)"
+                    'open_qa': "Task Type: Open QA\nQuality Sensitivity: Low\nP(F16): 0.53\nP(INT8): 0.235\nP(Q4_K_M): 0.235\nMin. Precision: P(F16)",
+                    'closed_qa': "Task Type: Closed QA\nQuality Sensitivity: High\nP(F16): 0.69\nP(INT8): 0.233\nP(Q4_K_M): 0.077\nMin. Precision: P(F16)",
+                    'summarization': "Task Type: Summarization\nQuality Sensitivity: Low\nP(F16): 0.47\nP(INT8): 0.265\nP(Q4_K_M): 0.265\nMin. Precision: P(F16)",
+                    'classification': "Task Type: Classification\nQuality Sensitivity: Low\nP(F16): 0.39\nP(INT8): 0.305\nP(Q4_K_M): 0.305\nMin. Precision: P(Q8_0)",
+                    'creative_writing': "Task Type: Creative Writing\nQuality Sensitivity: Low\nP(F16): 0.53\nP(INT8): 0.235\nP(Q4_K_M): 0.235\nMin. Precision: P(F16)",
+                    'brainstorming': "Task Type: Brainstorming\nQuality Sensitivity: Low\nP(F16): 0.39\nP(INT8): 0.305\nP(Q4_K_M): 0.305\nMin. Precision: P(Q8_0)",
+                    'information_extraction': "Task Type: Info Extraction\nQuality Sensitivity: High\nP(F16): 0.69\nP(INT8): 0.233\nP(Q4_K_M): 0.077\nMin. Precision: P(F16)",
+                    'general_qa': "Task Type: General Instr.\nQuality Sensitivity: Medium\nP(F16): 0.56\nP(INT8): 0.264\nP(Q4_K_M): 0.176\nMin. Precision: P(F16)"
                 };
                 btn.textContent = `Dolly · ${DOLLY_PENDING.prompt_id} · ${task}`;
                 btn.title = mapping[task] || "Load a random Dolly 15k prompt...";
