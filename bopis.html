@@ -5402,7 +5402,7 @@
             }
             REPLAY_LIMIT += 1;
             const nSeeds = Number(RUN_DATA?.meta?.n_seeds) || 0;
-            const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'Step 1: Prior-weighted seed' : 'Steps 3-5: EI-guided BO phase';
+            const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'Stage 1: Task Classification & Stage 2: Prior-weighted seed' : 'Steps 3-5: EI-guided BO phase';
             setReplayReadout(`evaluation ${REPLAY_LIMIT} / ${total} · ${phase}`);
             renderSearchLog(REPLAY_LIMIT);
             drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA);
@@ -5424,7 +5424,7 @@
 
             REPLAY_TIMER = setInterval(() => {
                 REPLAY_LIMIT += 1;
-                const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'Step 1: Prior-weighted seed'
+                const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'Stage 1: Task Classification & Stage 2: Prior-weighted seed'
                     : 'Steps 3-5: EI-guided BO phase';
                 setReplayReadout(`evaluation ${REPLAY_LIMIT} / ${total} · ${phase}`);
                 // Log and chart are advanced by the same tick: the line and the point
@@ -7619,12 +7619,13 @@
             function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x));}
             const Phi=z=>0.5*(1+erf(z/Math.SQRT2)),phi=z=>Math.exp(-z*z/2)/Math.sqrt(2*Math.PI);
             function model(){
-            const m=pts.reduce((a,p)=>a+p.y,0)/pts.length;
-            const K=pts.map((a,i)=>pts.map((b,j)=>kf(a.x,b.x)+(i==j?NZ:0)));
-            const Ki=inv(K);const yc=pts.map(p=>p.y-m);
+            const activePts = pts.slice(-35); // Local GP approx for speed (O(N^3) cap)
+            const m=activePts.reduce((a,p)=>a+p.y,0)/activePts.length;
+            const K=activePts.map((a,i)=>activePts.map((b,j)=>kf(a.x,b.x)+(i==j?NZ:0)));
+            const Ki=inv(K);const yc=activePts.map(p=>p.y-m);
             const al=Ki.map(r=>r.reduce((s,v,j)=>s+v*yc[j],0));
             const best=Math.max(...pts.map(p=>p.y));const G=[];
-            for(let i=0;i<=150;i++){const x=i/150;const ks=pts.map(p=>kf(x,p.x));
+            for(let i=0;i<=150;i++){const x=i/150;const ks=activePts.map(p=>kf(x,p.x));
             const mu=m+ks.reduce((s,v,j)=>s+v*al[j],0);
             const t=Ki.map(r=>r.reduce((s,v,j)=>s+v*ks[j],0));
             const sd=Math.sqrt(Math.max(1e-9,S*S-ks.reduce((s,v,j)=>s+v*t[j],0)));
@@ -7680,9 +7681,17 @@
             window._nx=nx.x;
             document.getElementById('gp-demo-info').innerHTML='<strong>Evaluations |Dₙ|:</strong> '+pts.length+' &middot; <strong>Best observed f(x⁺):</strong> '+best.toFixed(3)+' &middot; <strong>Next candidate xₙ₊₁ at</strong> x = '+nx.x.toFixed(2)+'<br>'+msg;}
             function step(){const x=window._nx,y=f(x);pts.push({x,y});it++;msg='<b>Iteration '+it+' (Steps 4 & 5):</b> Evaluated xₙ₊₁ = '+x.toFixed(2)+' yielding E(x) = '+y.toFixed(3)+'. Added to Dₙ and refit GP posterior (μₙ, σₙ²).';draw();}
-            function reset(){pts=[0.12,0.5,0.88].map(x=>({x,y:f(x)}));it=0;msg='<b>Step 1 & 2:</b> Initialized with 3 seed configs. Fit GP surrogate (Mean μ, Uncertainty σ²) to Dₙ. Ready for Step 3 (Acquire Next Config).';draw();}
+            function reset(){pts=[0.12,0.5,0.88].map(x=>({x,y:f(x)}));it=0;msg='<b>Stage 1: Task Classification completed. Stage 2:</b> Initialized with 3 seed configs. Fit GP surrogate (Mean μ, Uncertainty σ²) to Dₙ. Ready for Step 3 (Acquire Next Config).';draw();}
             document.getElementById('gp-b1').onclick=step;
-            document.getElementById('gp-b5').onclick=()=>{for(let i=0;i<5;i++){step();}};
+            document.getElementById('gp-b50').onclick=()=>{
+                for(let i=0;i<49;i++){
+                    const x=window._nx,y=f(x); pts.push({x,y}); it++;
+                    const {G} = model();
+                    let nx=G[0];G.forEach(g=>{if(g.ei>nx.ei)nx=g;});
+                    window._nx=nx.x;
+                }
+                step(); // Does the 50th step and draws once at the end
+            };
             document.getElementById('gp-br').onclick=reset;
             document.getElementById('gp-tr').onchange=draw;
             reset();
