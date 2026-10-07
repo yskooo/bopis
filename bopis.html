@@ -7493,23 +7493,49 @@
             function draw(){
             const{G,best}=model();let nx=G[0];G.forEach(g=>{if(g.ei>nx.ei)nx=g;});
             const em=Math.max(...G.map(g=>g.ei))||1;
-            let h='';
-            h+='<g stroke="#E2E8F0" stroke-width="0.5" stroke-dasharray="2 2">';
-            for(let i=0;i<=5;i++){const y=250-(i/5)*230; h+='<line x1="50" y1="'+y+'" x2="650" y2="'+y+'"/>'; h+='<text x="45" y="'+(y+4)+'" font-size="10" fill="#A0AEC0" text-anchor="end" stroke="none">'+(i*0.2).toFixed(1)+'</text>';}
-            for(let i=0;i<=10;i++){const x=50+(i/10)*600; h+='<line x1="'+x+'" y1="20" x2="'+x+'" y2="250"/>'; h+='<text x="'+x+'" y="265" font-size="10" fill="#A0AEC0" text-anchor="middle" stroke="none">'+(i*0.1).toFixed(1)+'</text>';}
-            h+='</g><line x1="50" y1="250" x2="650" y2="250" stroke="#CBD5E0" stroke-width="1"/><line x1="50" y1="20" x2="50" y2="250" stroke="#CBD5E0" stroke-width="1"/>';
-            h+='<line x1="50" y1="370" x2="650" y2="370" stroke="#CBD5E0" stroke-width="1"/>';
-            h+='<text x="50" y="14" font-size="12" fill="#718096">Combined Objective Score (Energy + Speed + Quality)</text>';
-            h+='<text x="350" y="410" font-size="12" fill="#718096" text-anchor="middle">Configuration Space X_feasible (Token Length, Batch Size, Precision, GPU Layers, CPU Threads)</text>';
+            const svg = document.getElementById('gp-demo-svg');
             const up=G.map(g=>X(g.x)+','+Y(g.mu+2*g.sd)).join(' '),lo=G.slice().reverse().map(g=>X(g.x)+','+Y(g.mu-2*g.sd)).join(' ');
-            h+='<g><title>GP Uncertainty ±2σ(x): Wide in unexplored regions</title><polygon points="'+up+' '+lo+'" fill="#48BB78" opacity="0.2"/></g>';
-            if(document.getElementById('gp-tr').checked){let d='';for(let i=0;i<=150;i++){const x=i/150;d+=(i?'L':'M')+X(x)+' '+Y(f(x));}h+='<g><title>True unknown function</title><path d="'+d+'" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="4 4"/></g>';}
-            h+='<g><title>GP Predicted Mean μ(x)</title><path d="'+G.map((g,i)=>(i?'L':'M')+X(g.x)+' '+Y(g.mu)).join('')+'" fill="none" stroke="#38A169" stroke-width="2"/></g>';
-            h+='<g><title>Acquisition Function: Maximizes EI to find next candidate</title><polygon points="50,370 '+G.map(g=>X(g.x)+','+(370-g.ei/em*70)).join(' ')+' 650,370" fill="#3182CE" opacity="0.3"/></g>';
-            h+='<g><title>Step 3: Acquire Next Config xₙ₊₁</title><line x1="'+X(nx.x)+'" y1="20" x2="'+X(nx.x)+'" y2="370" stroke="#3182CE" stroke-width="1" stroke-dasharray="4 3"/>';
-            h+='<text x="'+Math.min(X(nx.x)+6,600)+'" y="34" font-size="12" fill="#718096">candidate xₙ₊₁</text></g>';
-            pts.forEach(p=>{const b=p.y===best;h+='<g><title>Evaluated config at x='+p.x.toFixed(2)+', E(x)='+p.y.toFixed(3)+'</title><circle cx="'+X(p.x)+'" cy="'+Y(p.y)+'" r="'+(b?7:5)+'" fill="'+(b?'#D69E2E':'#276749')+'"/><text x="'+(X(p.x)+6)+'" y="'+(Y(p.y)-6)+'" font-size="10" font-weight="bold" fill="'+(b?'#B7791F':'#4A5568')+'" stroke="none">'+p.y.toFixed(2)+'</text></g>';});
-            document.getElementById('gp-demo-svg').innerHTML=h;
+            const meanD = G.map((g,i)=>(i?'L':'M')+X(g.x)+' '+Y(g.mu)).join('');
+            const acqPoints = '50,370 '+G.map(g=>X(g.x)+','+(370-g.ei/em*70)).join(' ')+' 650,370';
+            
+            let dotsHtml = '';
+            pts.forEach(p=>{
+                const b=p.y===best;
+                const e = p.y * (0.34 + 0.05 * Math.sin(p.x * 20));
+                const s = p.y * (0.33 + 0.05 * Math.cos(p.x * 20));
+                const q = p.y - e - s;
+                const titleStr = `Combined Score: ${p.y.toFixed(3)}&#10;⚡ Energy: ${e.toFixed(3)}&#10;🚀 Speed: ${s.toFixed(3)}&#10;✨ Quality: ${q.toFixed(3)}`;
+                dotsHtml+='<g><title>'+titleStr+'</title><circle cx="'+X(p.x)+'" cy="'+Y(p.y)+'" r="'+(b?7:5)+'" fill="'+(b?'#D69E2E':'#276749')+'"/><text x="'+(X(p.x)+6)+'" y="'+(Y(p.y)-6)+'" font-size="10" font-weight="bold" fill="'+(b?'#B7791F':'#4A5568')+'" stroke="none">'+p.y.toFixed(2)+'</text></g>';
+            });
+
+            if (!svg.querySelector('.gp-mean-path') || document.getElementById('gp-tr').checked !== !!svg.querySelector('.gp-true-path')) {
+                let h='<title>Bayesian optimization demo</title>';
+                h+='<g stroke="#E2E8F0" stroke-width="0.5" stroke-dasharray="2 2">';
+                for(let i=0;i<=5;i++){const y=250-(i/5)*230; h+='<line x1="50" y1="'+y+'" x2="650" y2="'+y+'"/>'; h+='<text x="45" y="'+(y+4)+'" font-size="10" fill="#A0AEC0" text-anchor="end" stroke="none">'+(i*0.2).toFixed(1)+'</text>';}
+                for(let i=0;i<=10;i++){const x=50+(i/10)*600; h+='<line x1="'+x+'" y1="20" x2="'+x+'" y2="250"/>'; h+='<text x="'+x+'" y="265" font-size="10" fill="#A0AEC0" text-anchor="middle" stroke="none">'+(i*0.1).toFixed(1)+'</text>';}
+                h+='</g><line x1="50" y1="250" x2="650" y2="250" stroke="#CBD5E0" stroke-width="1"/><line x1="50" y1="20" x2="50" y2="250" stroke="#CBD5E0" stroke-width="1"/>';
+                h+='<line x1="50" y1="370" x2="650" y2="370" stroke="#CBD5E0" stroke-width="1"/>';
+                h+='<text x="50" y="14" font-size="12" fill="#718096">Combined Objective Score (⚡ Energy + 🚀 Speed + ✨ Quality)</text>';
+                h+='<text x="350" y="410" font-size="12" fill="#718096" text-anchor="middle">Configuration Space X_feasible (Token Length, Batch Size, Precision, GPU Layers, CPU Threads)</text>';
+                
+                h+='<g><title>GP Uncertainty ±2σ(x): Wide in unexplored regions</title><polygon class="gp-unc-poly" points="'+up+' '+lo+'" fill="#48BB78" opacity="0.2" style="transition: all 0.6s ease-in-out;"/></g>';
+                if(document.getElementById('gp-tr').checked){let d='';for(let i=0;i<=150;i++){const x=i/150;d+=(i?'L':'M')+X(x)+' '+Y(f(x));}h+='<g class="gp-true-path"><title>True unknown function</title><path d="'+d+'" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="4 4"/></g>';}
+                h+='<g><title>GP Predicted Mean μ(x)</title><path class="gp-mean-path" d="'+meanD+'" fill="none" stroke="#38A169" stroke-width="2" style="transition: all 0.6s ease-in-out;"/></g>';
+                h+='<g><title>Acquisition Function: Maximizes EI to find next candidate</title><polygon class="gp-acq-poly" points="'+acqPoints+'" fill="#3182CE" opacity="0.3" style="transition: all 0.6s ease-in-out;"/></g>';
+                h+='<g><title>Step 3: Acquire Next Config xₙ₊₁</title><line class="gp-cand-line" x1="'+X(nx.x)+'" y1="20" x2="'+X(nx.x)+'" y2="370" stroke="#3182CE" stroke-width="1" stroke-dasharray="4 3" style="transition: all 0.6s ease-in-out;"/>';
+                h+='<text class="gp-cand-text" x="'+Math.min(X(nx.x)+6,600)+'" y="34" font-size="12" fill="#718096" style="transition: all 0.6s ease-in-out;">candidate xₙ₊₁</text></g>';
+                
+                h+='<g id="gp-dots">'+dotsHtml+'</g>';
+                svg.innerHTML=h;
+            } else {
+                svg.querySelector('.gp-unc-poly').setAttribute('points', up+' '+lo);
+                svg.querySelector('.gp-mean-path').setAttribute('d', meanD);
+                svg.querySelector('.gp-acq-poly').setAttribute('points', acqPoints);
+                svg.querySelector('.gp-cand-line').setAttribute('x1', X(nx.x));
+                svg.querySelector('.gp-cand-line').setAttribute('x2', X(nx.x));
+                svg.querySelector('.gp-cand-text').setAttribute('x', Math.min(X(nx.x)+6,600));
+                document.getElementById('gp-dots').innerHTML = dotsHtml;
+            }
             window._nx=nx.x;
             document.getElementById('gp-demo-info').innerHTML='<strong>Evaluations |Dₙ|:</strong> '+pts.length+' &middot; <strong>Best observed f(x⁺):</strong> '+best.toFixed(3)+' &middot; <strong>Next candidate xₙ₊₁ at</strong> x = '+nx.x.toFixed(2)+'<br>'+msg;}
             function step(){const x=window._nx,y=f(x);pts.push({x,y});it++;msg='<b>Iteration '+it+' (Steps 4 & 5):</b> Evaluated xₙ₊₁ = '+x.toFixed(2)+' yielding E(x) = '+y.toFixed(3)+'. Added to Dₙ and refit GP posterior (μₙ, σₙ²).';draw();}
