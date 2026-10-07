@@ -5879,7 +5879,7 @@
             <h3>2 · Seeds: ${seeds.length} configurations drawn using the task prior</h3>
             <p>With no measurements yet, there is nothing to learn from, so BOPIS starts by measuring ${seeds.length}
                configurations at random — but not uniformly: precisions are drawn from the task-informed prior
-               P(precision | task) (Table T1), weighted by the Dolly task mix${priorText ? `: <b>${escapeHtml(priorText)}</b>` : ''}.
+               P(precision | task) (<a href="#" onclick="document.getElementById('table-t1-modal').style.display='block'; return false;" style="color:#3182CE;text-decoration:underline;">Table T1</a>), weighted by the Dolly task mix${priorText ? `: <b>${escapeHtml(priorText)}</b>` : ''}.
                Quality-sensitive tasks lean toward F16; tolerant ones toward Q4_K_M.</p>
             <div style="max-height:260px; overflow:auto;"><table class="explain-table">
                 <thead><tr><th>#</th><th>Configuration</th><th>Energy (J)</th><th>Speed (tok/s)</th><th>F1</th></tr></thead>
@@ -6222,7 +6222,7 @@
         <div style="font-size:11px; color:#718096; margin:-6px 0 10px 2px;">
             Seed prior P(precision | task): ${escapeHtml(priorText)}
             <span style="color:#A0AEC0;">
-                &mdash; ${method}; weights BO seeding only, not x*
+                &mdash; ${method}; weights BO seeding only, not x* <a href="#" style="color:#3182CE; margin-left:6px; text-decoration:underline;" onclick="document.getElementById('table-t1-modal').style.display='block'; return false;">[View Table T1]</a>
             </span>
         </div>`;
         }
@@ -7753,7 +7753,7 @@
             window._nx=nx.x;
             document.getElementById('gp-demo-info').innerHTML='<strong>Evaluations |Dₙ|:</strong> '+pts.length+' &middot; <strong>Best observed f(x⁺):</strong> '+best.toFixed(3)+' &middot; <strong>Next candidate xₙ₊₁ at</strong> x = '+nx.x.toFixed(2)+'<br>'+msg;}
             function step(){const x=window._nx,y=f(x);pts.push({x,y});it++;msg='<b>Iteration '+it+' (Steps 4 & 5):</b> Evaluated xₙ₊₁ = '+x.toFixed(2)+' yielding E(x) = '+y.toFixed(3)+'. Added to Dₙ and refit GP posterior (μₙ, σₙ²).';draw();}
-            function reset(){pts=[0.12,0.5,0.88].map(x=>({x,y:f(x)}));it=0;msg='<b>Stage 1: Task Classification completed. Stage 2:</b> Initialized with 3 seed configs. Fit GP surrogate (Mean μ, Uncertainty σ²) to Dₙ. Ready for Step 3 (Acquire Next Config).';draw();}
+            function reset(){pts=[0.12,0.5,0.88].map(x=>({x,y:f(x)}));it=0;msg='<b>Stage 1: Task Classification completed</b> (<a href="#" onclick="document.getElementById(\'table-t1-modal\').style.display=\'block\'; return false;" style="color:#3182CE;text-decoration:underline;">View Table T1</a>)<b>. Stage 2:</b> Initialized with 3 seed configs. Fit GP surrogate (Mean μ, Uncertainty σ²) to Dₙ. Ready for Step 3 (Acquire Next Config).';draw();}
             document.getElementById('gp-b1').onclick=step;
             document.getElementById('gp-b50').onclick=()=>{
                 for(let i=0;i<49;i++){
@@ -7769,6 +7769,38 @@
             reset();
         }
     </script>
+
+    <!-- Table T1 Modal -->
+    <div id="table-t1-modal" class="panel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.3); max-width: 800px; width: 90%; padding: 20px; background:#fff; border-radius:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">
+            <h3 style="margin:0; font-size:15px; color:#2D3748;">Table T1. Task-Informed Prior Distribution</h3>
+            <button onclick="document.getElementById('table-t1-modal').style.display='none'" style="cursor:pointer; background:none; border:none; font-size:22px; line-height:1; padding:0; color:#A0AEC0;">&times;</button>
+        </div>
+        <table class="explain-table" style="width:100%; text-align:center;">
+            <thead>
+                <tr>
+                    <th style="text-align:left;">Task Type</th>
+                    <th>Quality Sensitivity</th>
+                    <th>P(F16)</th>
+                    <th>P(INT8)</th>
+                    <th>P(Q4_K_M)</th>
+                    <th>Min. Precision</th>
+                    <th style="text-align:right;">Literature Basis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td style="text-align:left;">Open QA</td><td><b>Low</b></td><td>0.53</td><td>0.235</td><td>0.235</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
+                <tr><td style="text-align:left;">Closed QA</td><td><b>High</b></td><td>0.69</td><td>0.233</td><td>0.077</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
+                <tr><td style="text-align:left;">Summarization</td><td><b>Low</b></td><td>0.47</td><td>0.265</td><td>0.265</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
+                <tr><td style="text-align:left;">Classification</td><td><b>Low</b></td><td>0.39</td><td>0.305</td><td>0.305</td><td>P(Q8_0)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
+                <tr><td style="text-align:left;">Creative Writing</td><td><b>Low</b></td><td>0.53</td><td>0.235</td><td>0.235</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
+                <tr><td style="text-align:left;">Brainstorming</td><td><b>Low</b></td><td>0.39</td><td>0.305</td><td>0.305</td><td>P(Q8_0)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
+                <tr><td style="text-align:left;">Info Extraction</td><td><b>High</b></td><td>0.69</td><td>0.233</td><td>0.077</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
+                <tr><td style="text-align:left;">General Instr.</td><td><b>Medium</b></td><td>0.56</td><td>0.264</td><td>0.176</td><td>P(F16)</td><td style="text-align:right;">Shi et al. (2025)</td></tr>
+            </tbody>
+        </table>
+        <p style="font-size:11px; color:#718096; margin-top:10px; text-align:center;">Values dictate the seed configuration draw probabilities prior to the Bayesian surrogate fitting.</p>
+    </div>
 </body>
 
 </html>
