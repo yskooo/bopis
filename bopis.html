@@ -3242,6 +3242,10 @@
                                 title="Replays the search in evaluation order: watch the seeds land, then Expected Improvement close in on the front.">
                                 &#9654; Replay search
                             </button>
+                            <button class="chart-btn" id="step-btn" type="button" onclick="stepReplay()"
+                                title="Step through the search one evaluation at a time.">
+                                &#9193; Step
+                            </button>
                             <button class="chart-btn" id="rotate-btn" type="button" onclick="toggleAutoRotate()"
                                 title="Slowly rotates the trade-off surface so the three objectives can be read from every angle.">
                                 &#8635; Auto-rotate
@@ -3482,6 +3486,7 @@
                     <div class="app-card">
                         <div class="card-header">Selected configuration x* — and why it was chosen</div>
                         <div id="selection-detail" class="detail-d">Load a run to see the selected configuration.</div>
+                        <div id="sop-validation-dashboard" style="margin-top:24px;"></div>
                     </div>
                 </div>
             </div>
@@ -4274,134 +4279,134 @@
             }
         }
 
-        // function renderSopDashboard(data) {
-        //     const host = document.getElementById('sop-validation-dashboard');
-        //     if (!host) return;
-        //     if (!data || !data.statistical_tests) {
-        //         const reason = data?.meta?.validated === false
-        //             ? 'This run was saved without the full validation stage (for example, --skip-validation).'
-        //             : 'Run a complete study to generate the statistical tests.';
-        //         host.innerHTML = `<div style="text-align:center; padding:32px; color:#94a3b8; font-style:italic;">
-        //             <div style="font-size:16px; color:#cbd5e1; font-style:normal; font-weight:700; margin-bottom:8px;">SOP validation not available for this run</div>
-        //             <div>${escapeHtml(reason)}</div>
-        //         </div>`;
-        //         return;
-        //     }
+        function renderSopDashboard(data) {
+            const host = document.getElementById('sop-validation-dashboard');
+            if (!host) return;
+            if (!data || !data.statistical_tests) {
+                const reason = data?.meta?.validated === false
+                    ? 'This run was saved without the full validation stage (for example, --skip-validation).'
+                    : 'Run a complete study to generate the statistical tests.';
+                host.innerHTML = `<div style="text-align:center; padding:32px; color:#94a3b8; font-style:italic;">
+                    <div style="font-size:16px; color:#cbd5e1; font-style:normal; font-weight:700; margin-bottom:8px;">SOP validation not available for this run</div>
+                    <div>${escapeHtml(reason)}</div>
+                </div>`;
+                return;
+            }
 
-        //     const stats = data.statistical_tests || {};
-        //     const desc = data.descriptives || {};
-        //     const ind = data.indicators || data.selection || {};
+            const stats = data.statistical_tests || {};
+            const desc = data.descriptives || {};
+            const ind = data.indicators || data.selection || {};
 
-        //     const safeStat = (obj, key) => (obj && obj[key] && obj[key].wilcoxon) ? obj[key].wilcoxon : null;
-        //     const energyWilcox = safeStat(stats, 'energy_j');
-        //     const speedWilcox = safeStat(stats, 'speed_tok_s');
-        //     const qualityWilcox = safeStat(stats, 'quality');
+            const safeStat = (obj, key) => (obj && obj[key] && obj[key].wilcoxon) ? obj[key].wilcoxon : null;
+            const energyWilcox = safeStat(stats, 'energy_j');
+            const speedWilcox = safeStat(stats, 'speed_tok_s');
+            const qualityWilcox = safeStat(stats, 'quality');
 
-        //     const getMean = (varName, cond) => {
-        //         if(desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
-        //         return 0;
-        //     };
+            const getMean = (varName, cond) => {
+                if(desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
+                return 0;
+            };
 
-        //     const e_rs = getMean('energy_j', 'random_search');
-        //     const e_bp = getMean('energy_j', 'bopis');
-        //     const s_rs = getMean('speed_tok_s', 'random_search');
-        //     const s_bp = getMean('speed_tok_s', 'bopis');
-        //     const q_rs = getMean('quality', 'random_search');
-        //     const q_bp = getMean('quality', 'bopis');
+            const e_rs = getMean('energy_j', 'random_search');
+            const e_bp = getMean('energy_j', 'bopis');
+            const s_rs = getMean('speed_tok_s', 'random_search');
+            const s_bp = getMean('speed_tok_s', 'bopis');
+            const q_rs = getMean('quality', 'random_search');
+            const q_bp = getMean('quality', 'bopis');
 
-        //     const p_e = energyWilcox ? energyWilcox.p_value.toFixed(4) : "—";
-        //     const p_s = speedWilcox ? speedWilcox.p_value.toFixed(4) : "—";
-        //     const p_q = qualityWilcox ? qualityWilcox.p_value.toFixed(4) : "—";
+            const p_e = energyWilcox ? energyWilcox.p_value.toFixed(4) : "—";
+            const p_s = speedWilcox ? speedWilcox.p_value.toFixed(4) : "—";
+            const p_q = qualityWilcox ? qualityWilcox.p_value.toFixed(4) : "—";
 
-        //     const sig_e = energyWilcox && energyWilcox.significant;
-        //     const sig_s = speedWilcox && speedWilcox.significant;
-        //     const sig_q = qualityWilcox && qualityWilcox.significant;
+            const sig_e = energyWilcox && energyWilcox.significant;
+            const sig_s = speedWilcox && speedWilcox.significant;
+            const sig_q = qualityWilcox && qualityWilcox.significant;
 
-        //     const formatSig = (sig) => sig ? `<span style="color:#10b981; font-weight:600;">Significant</span>` : `<span style="color:#94a3b8;">Not Significant</span>`;
+            const formatSig = (sig) => sig ? `<span style="color:#10b981; font-weight:600;">Significant</span>` : `<span style="color:#94a3b8;">Not Significant</span>`;
 
-        //     host.innerHTML = `
-        //         <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid #1e293b; padding-bottom:16px; margin-bottom:24px;">
-        //             <div>
-        //                 <h2 style="font-size:20px; font-weight:700; letter-spacing:-0.02em; color:#e2e8f0; margin:0 0 4px 0;">SOP Statistical Validation</h2>
-        //                 <div style="font-size:13px; color:#94a3b8; letter-spacing:0.02em; text-transform:uppercase;">Random Search vs BOPIS · Wilcoxon Signed-Rank Test</div>
-        //             </div>
-        //             <div style="text-align:right;">
-        //                 <div style="font-size:12px; color:#64748b; margin-bottom:2px;">SIGNIFICANCE THRESHOLD</div>
-        //                 <div style="font-size:14px; font-weight:600; color:#38bdf8; background:#0284c722; padding:4px 10px; border-radius:6px; border:1px solid #0284c744; display:inline-block;">α = 0.05</div>
-        //             </div>
-        //         </div>
+            host.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid #1e293b; padding-bottom:16px; margin-bottom:24px;">
+                    <div>
+                        <h2 style="font-size:20px; font-weight:700; letter-spacing:-0.02em; color:#e2e8f0; margin:0 0 4px 0;">SOP Statistical Validation</h2>
+                        <div style="font-size:13px; color:#94a3b8; letter-spacing:0.02em; text-transform:uppercase;">Random Search vs BOPIS · Wilcoxon Signed-Rank Test</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:12px; color:#64748b; margin-bottom:2px;">SIGNIFICANCE THRESHOLD</div>
+                        <div style="font-size:14px; font-weight:600; color:#38bdf8; background:#0284c722; padding:4px 10px; border-radius:6px; border:1px solid #0284c744; display:inline-block;">α = 0.05</div>
+                    </div>
+                </div>
 
-        //         <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px;">
-        //             <!-- Energy Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Energy (Joules)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_rs.toFixed(2)} J</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_bp.toFixed(2)} J</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">EIR (Savings)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#10b981;">${(ind.eir_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_e}</span></span>
-        //                     ${formatSig(sig_e)}
-        //                 </div>
-        //             </div>
+                <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px;">
+                    <!-- Energy Card -->
+                    <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                        <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Energy (Joules)</div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                            <div>
+                                <div style="font-size:11px; color:#64748b;">Random Search</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_rs.toFixed(2)} J</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_bp.toFixed(2)} J</div>
+                            </div>
+                        </div>
+                        <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:12px; color:#94a3b8;">EIR (Savings)</div>
+                            <div style="font-size:16px; font-weight:700; color:#10b981;">${(ind.eir_percent || 0).toFixed(2)}%</div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                            <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_e}</span></span>
+                            ${formatSig(sig_e)}
+                        </div>
+                    </div>
 
-        //             <!-- Speed Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Speed (Tok/s)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_rs.toFixed(2)}</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_bp.toFixed(2)}</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">SRR (Retention)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#38bdf8;">${(ind.srr_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_s}</span></span>
-        //                     ${formatSig(sig_s)}
-        //                 </div>
-        //             </div>
+                    <!-- Speed Card -->
+                    <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                        <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Speed (Tok/s)</div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                            <div>
+                                <div style="font-size:11px; color:#64748b;">Random Search</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_rs.toFixed(2)}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_bp.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:12px; color:#94a3b8;">SRR (Retention)</div>
+                            <div style="font-size:16px; font-weight:700; color:#38bdf8;">${(ind.srr_percent || 0).toFixed(2)}%</div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                            <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_s}</span></span>
+                            ${formatSig(sig_s)}
+                        </div>
+                    </div>
 
-        //             <!-- Quality Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Quality (F1)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_rs.toFixed(4)}</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_bp.toFixed(4)}</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">QRR (Retention)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#818cf8;">${(ind.qrr_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_q}</span></span>
-        //                     ${formatSig(sig_q)}
-        //                 </div>
-        //             </div>
-        //         </div>
-        //     `;
+                    <!-- Quality Card -->
+                    <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                        <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Quality (F1)</div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                            <div>
+                                <div style="font-size:11px; color:#64748b;">Random Search</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_rs.toFixed(4)}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                                <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_bp.toFixed(4)}</div>
+                            </div>
+                        </div>
+                        <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:12px; color:#94a3b8;">QRR (Retention)</div>
+                            <div style="font-size:16px; font-weight:700; color:#818cf8;">${(ind.qrr_percent || 0).toFixed(2)}%</div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                            <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_q}</span></span>
+                            ${formatSig(sig_q)}
+                        </div>
+                    </div>
+                </div>
+            `;
         // }
 
         /* ── Convergence curve ──────────────────────────────────────────────────── */
@@ -5383,6 +5388,26 @@
             }
         }
 
+        function stepReplay() {
+            const total = replayTotal();
+            if (!total) { setReplayReadout('no run data to step'); return; }
+            if (REPLAY_LIMIT === null) {
+                REPLAY_LIMIT = 0;
+                LOG_FOLLOW = true;
+                document.getElementById('log-follow-btn')?.classList.add('on');
+            }
+            if (REPLAY_LIMIT >= total) {
+                stopReplay(true);
+                return;
+            }
+            REPLAY_LIMIT += 1;
+            const nSeeds = Number(RUN_DATA?.meta?.n_seeds) || 0;
+            const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'Step 1: Prior-weighted seed' : 'Steps 3-5: EI-guided BO phase';
+            setReplayReadout(`evaluation ${REPLAY_LIMIT} / ${total} · ${phase}`);
+            renderSearchLog(REPLAY_LIMIT);
+            drawPareto3D(); drawConvergence(); drawGpDiagnostic(RUN_DATA);
+        }
+
         function toggleReplay() {
             if (REPLAY_TIMER) { stopReplay(true); return; }
             const total = replayTotal();
@@ -5391,18 +5416,16 @@
             document.getElementById('replay-btn')?.classList.add('on');
             REPLAY_LIMIT = 0;
             const nSeeds = Number(RUN_DATA?.meta?.n_seeds) || 0;
-            const stepMs = Math.max(90, Math.round(6000 / total));   // ~6 s total
+            const stepMs = Math.max(150, Math.round(6000 / total));
 
-            // The log starts at the banner rows (iteration 0) and streams from there,
-            // so the console fills in step with the canvas rather than being prefilled.
             LOG_FOLLOW = true;
             document.getElementById('log-follow-btn')?.classList.add('on');
             renderSearchLog(0);
 
             REPLAY_TIMER = setInterval(() => {
                 REPLAY_LIMIT += 1;
-                const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'prior-weighted seed'
-                    : 'Expected Improvement';
+                const phase = (nSeeds && REPLAY_LIMIT <= nSeeds) ? 'Step 1: Prior-weighted seed'
+                    : 'Steps 3-5: EI-guided BO phase';
                 setReplayReadout(`evaluation ${REPLAY_LIMIT} / ${total} · ${phase}`);
                 // Log and chart are advanced by the same tick: the line and the point
                 // for an evaluation are never out of step.
