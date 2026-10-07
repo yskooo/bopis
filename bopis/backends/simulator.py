@@ -29,6 +29,9 @@ degenerate:
 * Larger batches amortize fixed per-step overhead, with diminishing returns.
 * Very small generation caps truncate responses, depressing quality for reasons
   unrelated to precision.
+* Smaller models are cheaper and faster per token but answer less well, and
+  lose *more* quality to the same quantization (amendment A-40) -- so a small
+  model at F16 and a larger one at Q4_K_M can land either side of each other.
 
 Every quantity is a deterministic function of ``(config, prompt)`` plus seeded
 multiplicative noise, so runs are exactly reproducible for a given seed.
@@ -58,8 +61,41 @@ _BASE_TOKENS_PER_S = 22.0
 _FIXED_OVERHEAD_J = 4.0
 _QUALITY_CEILING = 0.862
 
-#: Quality lost to each precision variant, relative to F32.
+#: Quality lost to each precision variant, relative to F32, *for the 7B model*.
+#: Smaller models lose more (see :func:`_quantization_sensitivity`).
 _QUALITY_PENALTY = {"F32": 0.0, "F16": 0.004, "Q8_0": 0.012, "Q4_K_M": 0.038}
+
+#: The calibration constants above describe the largest rung (amendment A-40).
+_REFERENCE_PARAMS = 7.62e9
+
+#: Quality ceiling lost by each smaller rung relative to the 7B, before any
+#: quantization. Only the ordering is grounded (fewer parameters answer less
+#: well); the magnitudes are illustrative, like every constant here, and the
+#: real gaps are what BERTScore on real runs is for.
+_MODEL_QUALITY_GAP = {
+    "qwen2.5-0.5b": 0.090,
+    "qwen2.5-1.5b": 0.045,
+    "qwen2.5-3b": 0.020,
+    "qwen2.5-7b": 0.0,
+}
+
+
+def _size_ratio(model: str) -> float:
+    """Parameters relative to the reference rung."""
+    variant = cs.MODELS.get(model)
+    return (variant.n_params if variant else _REFERENCE_PARAMS) / _REFERENCE_PARAMS
+
+
+def _quantization_sensitivity(model: str) -> float:
+    """Multiplier on the precision penalty: smaller models degrade more.
+
+    A model with fewer parameters has less redundancy to absorb rounding
+    error, so the same bit-width costs it more quality. This is what makes
+    "larger model at 4 bits vs smaller model at 16 bits" a genuine trade-off
+    in the simulator rather than one with a foregone answer.
+    """
+    return _size_ratio(model) ** -0.35
+
 
 #: Coefficients of variation for the seeded multiplicative noise.
 _ENERGY_CV = 0.030
@@ -166,11 +202,17 @@ class SimulatorBackend:
             return config.t, True
         return natural, False
 
+    def _layers(self, config: Config) -> int:
+        return config.n_layers or self.total_layers
+
     def energy_joules(self, config: Config, prompt: str) -> float:
         """Total system energy for one prompt, in Joules."""
         generated, _ = self._generated_tokens(config, prompt)
         rel_bpw = _relative_bpw(config.p)
-        gpu_fraction = config.gpu_fraction(self.total_layers)
+        gpu_fraction = config.gpu_fraction(self._layers(config))
+        # Decode is memory-bound: bytes moved per token scale with parameters.
+        # Sub-linear, because fixed per-token costs do not shrink with size.
+        size_factor = _size_ratio(config.m) ** 0.85
 
         # Narrower weights move less data per token.
         precision_factor = rel_bpw**0.60
@@ -189,12 +231,14 @@ class SimulatorBackend:
             * gpu_factor
             * batch_factor
             * thread_factor
+            * size_factor
         ) + _FIXED_OVERHEAD_J
         return energy * self._noise_factor(config, prompt, "energy", _ENERGY_CV)
 
     def tokens_per_second(self, config: Config, prompt: str) -> float:
         rel_bpw = _relative_bpw(config.p)
-        gpu_fraction = config.gpu_fraction(self.total_layers)
+        gpu_fraction = config.gpu_fraction(self._layers(config))
+        size_speed = _size_ratio(config.m) ** -0.75
 
         precision_speed = (1.0 / rel_bpw) ** 0.45
         gpu_speed = 0.25 + 0.75 * gpu_fraction
@@ -209,12 +253,17 @@ class SimulatorBackend:
             * gpu_speed
             * batch_speed
             * thread_speed
+            * size_speed
         )
         return max(0.5, speed * self._noise_factor(config, prompt, "speed", _SPEED_CV))
 
     def quality_f1(self, config: Config, prompt: str) -> float:
         _generated, truncated = self._generated_tokens(config, prompt)
-        quality = _QUALITY_CEILING - _QUALITY_PENALTY[config.p]
+        quality = (
+            _QUALITY_CEILING
+            - _MODEL_QUALITY_GAP.get(config.m, 0.0)
+            - _QUALITY_PENALTY[config.p] * _quantization_sensitivity(config.m)
+        )
         if truncated:
             # A response cut off at the cap loses content, and the shorter the
             # cap the more it loses.

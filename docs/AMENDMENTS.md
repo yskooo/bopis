@@ -668,3 +668,68 @@ dashboard reads the backend, energy method and versions from the run manifest
 instead, so it cannot contradict the run it displays.
 
 **Enforced by:** `tests/test_provenance.py::TestDashboardHasNoHardcodedMetrics`.
+
+---
+
+### A-40 — Search the model size; drop F32
+
+**Where:** Table 3.2 (configuration vector), Table 3.3 (base model), Table T1.
+
+**Should be:** `x = (m, t, b, p, g, c)`. The model `m` ranges over one family at
+several sizes, the Qwen2.5-Instruct ladder (0.5B, 1.5B, 3B, 7B), replacing the
+single Mistral-7B base model. `P = {F16, Q8_0, Q4_K_M}`: F32 is removed. Table
+T1's FP32 column is folded into F16, the highest precision that remains. The
+default becomes Qwen2.5-1.5B at F16.
+
+**Why:** With one 7B model, a low-end laptop's memory limit leaves only the 4-bit
+variant, so "selection" reduces to "quantize until it fits", which is one
+inequality rather than an optimization. The question such a machine actually
+poses is *a larger model at 4 bits, or a smaller one at 16?* Only measurement
+answers it, because a larger file is neither necessarily slower nor necessarily
+worse. One family is used so that size is the only difference: tokenizer,
+training data and chat template are shared. F32 adds nothing over F16 for BF16
+checkpoints, is rarely published as GGUF, and is never competitive on CPU.
+
+**Effect:** the unconstrained space grows from 768 to 2304 configurations. On the
+study laptop, CPU-only, a 30-evaluation budget is again a small fraction of
+`X_feasible`, so the BOPIS-vs-random-search comparison is informative.
+
+### A-41 — Apply the VRAM precision rule only to GPU offload
+
+**Where:** Table H1, rules HW-P1 to HW-P3.
+
+**Should be:** HW-P1 to HW-P3 restrict precision only for configurations with
+`g > 0`. At `g = 0` the weights live in system RAM, and the HW-P0 RAM guard alone
+decides.
+
+**Why:** The rules key precision on VRAM. On the 2 GB MX330 that excluded F16 for
+CPU-only inference, although a 1.5B model at F16 needs under 3 GiB of RAM.
+
+### A-42 — Constrained Expected Improvement
+
+**Where:** Chapter 3, Stage 1 acquisition function.
+
+**Should be:** `a(x) = EI_energy(x) · P(Q(x) ≥ 0.98·Q_ref) · P(S(x) ≥ 0.95·S_ref)`.
+Each probability comes from its own GP over the same encoding. The incumbent
+`f(x+)` is the lowest energy among observations that met both floors. Until one
+exists, the acquisition is the probability of feasibility alone (Gardner et al.,
+2014; Gelbart, Snoek & Adams, 2014). `--acquisition ei` restores the energy-only
+form.
+
+**Why:** Energy-only EI was harmless while quality barely varied across one
+model's precisions. Once model size is searched (A-40), energy-only EI spends the
+budget on the smallest models. The selection rule then rejects them for failing
+`QRR ≥ 98%`. On the simulator this left no admissible `x*` (QRR 79%,
+minimum-energy fallback). With A-42, the same budget found an `x*` meeting every
+floor. Random search, with the same budget and the same selection rule, still
+found none.
+
+**Reference check:** confirm both citations against the published proceedings
+before adding them to the RRL (Gardner et al., ICML 2014; Gelbart et al., UAI 2014).
+
+**Open issue from A-40 (not yet fixed):** on the simulator, the energy GP fits
+the larger 6-D space less well. Mean leave-one-out R² fell from about 0.9 to
+about 0.75, and LOO NPE rose to about 36%, with either acquisition. The GP
+models raw joules across a 15× range of model sizes. Modelling log-energy is the
+candidate fix. Until then, report the B.11 surrogate-reliability figures as
+measured, and do not claim the pre-A-40 R².

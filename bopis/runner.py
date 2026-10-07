@@ -25,6 +25,7 @@ Standard library only.
 from __future__ import annotations
 
 import dataclasses
+import json
 import math
 import time
 from typing import Callable, Dict, List, Optional, Sequence
@@ -75,6 +76,18 @@ class RunSettings:
     total_layers: int = 32
     resume: bool = False
     skip_validation: bool = False
+    #: Overrides the default's ``g`` (Table 3.2 says "All"); set to 0 when the
+    #: energy instrument covers only the CPU package.
+    default_gpu_layers: Optional[int] = None
+    #: ``cei`` -- Expected Improvement weighted by the probability of meeting
+    #: the QRR/SRR floors (A-42); ``ei`` -- Chapter 3's energy-only EI.
+    acquisition: str = "cei"
+
+    #: Which instrument measured energy, when it is not implied by the backend
+    #: (e.g. the RAPL feed's URL, sensor path and measured refresh interval).
+    energy_instrument: Optional[Dict[str, object]] = None
+    #: The quality scorer's own description, or None when quality is unscored.
+    quality_scorer: Optional[Dict[str, object]] = None
 
     @property
     def estimates_energy(self) -> bool:
@@ -148,8 +161,12 @@ class Study:
         backend_start: Optional[Callable[[Config], None]] = None,
         backend_stop: Optional[Callable[[], None]] = None,
         progress: ProgressFn = _noop,
+        scorer=None,
     ) -> None:
         self.run_dir = run_dir
+        #: A :class:`bopis.quality.Scorer`, or None. Only the simulator fills
+        #: ``quality_f1`` itself; for real backends this is what does.
+        self.scorer = scorer
         self.settings = settings
         self.profile = profile
         self.space = list(space)
@@ -185,10 +202,73 @@ class Study:
                         prompt=prompt.text,
                     )
                 )
-            return results
         finally:
             if self.backend_stop:
                 self.backend_stop()
+        # Scored only after the server has been stopped: every energy window
+        # of this batch is closed, and the transformer forward pass cannot
+        # compete with inference for the CPU it is being measured on.
+        self._score_quality(results, prompts)
+        self._write_generations(results, prompts)
+        return results
+
+    def _score_quality(
+        self, results: List[PromptMeasurement], prompts: Sequence[Prompt]
+    ) -> None:
+        """BERTScore every unscored generation against its Dolly reference."""
+        if self.scorer is None:
+            return
+        pending = [
+            (m, p)
+            for m, p in zip(results, prompts)
+            if m.quality_f1 is None and m.error is None
+        ]
+        # An empty answer is a real, bad outcome, not a missing one; dropping
+        # it would raise the mean. Scored as 0, the rescaled random-pair level.
+        for m, _p in pending:
+            if not m.text.strip():
+                m.quality_f1 = m.quality_precision = m.quality_recall = 0.0
+                m.quality_scorer = f"{self.scorer.name}:empty_candidate"
+        pending = [(m, p) for m, p in pending if m.quality_f1 is None]
+        if not pending:
+            return
+        scores = self.scorer.score(
+            [m.text for m, _p in pending], [p.response for _m, p in pending]
+        )
+        for (m, _p), score in zip(pending, scores):
+            m.quality_f1 = score.f1
+            m.quality_precision = score.precision
+            m.quality_recall = score.recall
+            m.quality_scorer = score.scorer
+            m.baseline_rescaled = score.baseline_rescaled
+
+    def _write_generations(
+        self, results: List[PromptMeasurement], prompts: Sequence[Prompt]
+    ) -> None:
+        """Persist generated text, so quality can be audited or re-scored."""
+        if not results or not any(m.text for m in results):
+            return
+        path = self.run_dir.path("raw", "generations.jsonl")
+        with open(path, "a", encoding="utf-8") as handle:
+            for m, p in zip(results, prompts):
+                handle.write(
+                    json.dumps(
+                        {
+                            "condition": m.condition,
+                            "config": m.config.key(),
+                            "prompt_id": m.prompt_id,
+                            "task_type": m.task_type,
+                            "candidate": m.text,
+                            "reference": p.response,
+                            "quality_f1": m.quality_f1,
+                            "scorer": m.quality_scorer,
+                            "energy_j": m.energy_j,
+                            "energy_method": m.energy_method,
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
 
     def evaluate_on_proxy(self, config: Config) -> Objectives:
         """Mean objectives for *config* over the 50-prompt proxy subset.
@@ -215,6 +295,80 @@ class Study:
         self._proxy_cache[key] = objectives
         return objectives
 
+    def reference_default(self) -> Config:
+        """The unoptimized default this study is measured against.
+
+        Table 3.2's default, with ``g`` overridden when the energy instrument
+        requires it. On a real backend the default must also be *measurable*:
+        if it falls outside ``X_feasible`` -- typically because its GGUF (the
+        default model at F16) was not supplied -- the closest feasible
+        configuration with the same runtime settings stands in: same model if
+        possible, otherwise the nearest rung, at the highest precision
+        available. The simulator can evaluate anything, so it keeps the
+        literal default and stays comparable with earlier runs.
+        """
+        default = cs.default_config(self.profile.physical_cores)
+        if self.settings.default_gpu_layers is not None:
+            default = default._replace(g=self.settings.default_gpu_layers)
+        if self.settings.backend == "sim" or default in self.space or not self.space:
+            return default
+
+        same_runtime = [
+            cfg
+            for cfg in self.space
+            if (cfg.t, cfg.b, cfg.g, cfg.c) == (default.t, default.b, default.g, default.c)
+        ] or list(self.space)
+        default_params = cs.MODELS[cs.DEFAULT_M].n_params
+
+        def distance(cfg: Config) -> tuple:
+            variant = cs.MODELS.get(cfg.m)
+            params = variant.n_params if variant else default_params
+            return (
+                cfg.m != default.m,
+                abs(math.log(params / default_params)),
+                cs.P_VALUES.index(cfg.p) if cfg.p in cs.P_VALUES else 99,
+                abs(cfg.t - default.t),
+                -cfg.c,
+            )
+
+        chosen = min(same_runtime, key=distance)
+        self.progress(
+            f"        default {default} is not measurable here (not in X_feasible); "
+            f"nearest feasible stand-in: {chosen}"
+        )
+        self.default_substituted_for = default
+        return chosen
+
+    #: Set by :meth:`reference_default` when the literal default was replaced.
+    default_substituted_for: Optional[Config] = None
+
+    def _search_floors(self, reference: Objectives) -> Optional[optimizer.Floors]:
+        """Absolute QRR/SRR floors for constrained acquisition, or None.
+
+        The same thresholds :func:`select_xstar` applies afterwards, so the
+        search looks where the selection rule will accept an answer. A floor
+        whose reference value is missing -- unscored quality on a real run --
+        is dropped rather than set to zero, which would make it vacuous.
+        """
+        if self.settings.acquisition != "cei":
+            return None
+
+        def usable(value: float) -> bool:
+            return value is not None and math.isfinite(value) and value > 0
+
+        return optimizer.Floors(
+            quality_f1=(
+                reference.quality_f1 * metrics.QRR_THRESHOLD / 100.0
+                if usable(reference.quality_f1)
+                else None
+            ),
+            tokens_per_s=(
+                reference.tokens_per_s * metrics.SRR_THRESHOLD / 100.0
+                if usable(reference.tokens_per_s)
+                else None
+            ),
+        )
+
     # ------------------------------------------------------------------ #
     # Stages
     # ------------------------------------------------------------------ #
@@ -223,12 +377,13 @@ class Study:
         started = time.perf_counter()
 
         # -- Stage 0: iteration-0 reference ---------------------------- #
-        default_config = cs.default_config(self.profile.physical_cores)
+        default_config = self.reference_default()
         self.progress(f"Stage 0: reference evaluation of default {default_config}")
         search_reference = self.evaluate_on_proxy(default_config)
 
         # -- Stage 1: BOPIS search ------------------------------------- #
         prior = tasks.dataset_prior(self.samples.task_proportions())
+        self._task_prior = prior
         self.progress(
             f"Stage 1: BOPIS search, {self.settings.n_total} evaluations "
             f"({self.settings.n_seeds} prior-weighted seeds) over "
@@ -246,6 +401,7 @@ class Study:
                 ard=self.settings.ard,
                 xi=self.settings.xi,
                 on_iteration=lambda record: writer.write(record.as_row()),
+                floors=self._search_floors(search_reference),
             )
 
         # -- Stage 2: random-search baseline --------------------------- #
@@ -306,6 +462,19 @@ class Study:
             validation=validation,
         )
         summary["wall_seconds"] = round(time.perf_counter() - started, 2)
+        # The seeding prior, so the dashboard can show what weighted the seeds.
+        summary["task_prior"] = {
+            "dataset_prior": dict(self._task_prior),
+            "task_proportions": dict(self.samples.task_proportions()),
+        }
+        # A substituted reference changes what EIR/SRR/QRR are relative to, so
+        # it travels with the results rather than living only in the log.
+        summary["default_config"] = default_config.key()
+        summary["default_substituted_for"] = (
+            self.default_substituted_for.key()
+            if self.default_substituted_for is not None
+            else None
+        )
 
         return StudyResult(
             run_dir=self.run_dir,

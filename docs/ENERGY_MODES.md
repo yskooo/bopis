@@ -28,6 +28,14 @@ for the other.
 | **A. Measured (NVML)** | Driver energy counter, or trapezoidal integration of board power at 100 ms with `P_idle` subtracted | Absolute GPU-only energy, in joules. Chapter 3's objective as written. | default (`--energy-mode auto`) |
 | **B. Measured (external meter)** | A wall-socket or DC-inline meter reads whole-system power; `P_idle` is subtracted manually | Absolute whole-system energy. Scope is *wider* than Chapter 3's, so it is not directly comparable to Mode A numbers | procedure, not a code path — see [Using an external meter](#using-an-external-meter) |
 | **C. Estimated (resource allocation)** | Observed CPU-time and GPU-utilization scaled by declared power budgets | *Relative* comparison between configurations on the same host in the same session. **Not** absolute energy. | `--energy-mode resource-estimate` |
+| **D. Measured (CPU package, RAPL)** | Intel RAPL package power read from a running LibreHardwareMonitor / Open Hardware Monitor, lag-compensated, integrated, `P_pkg,idle` subtracted | Absolute CPU-package energy for **CPU-only (`g = 0`)** inference. Scope is the package, not the GPU board, so it is not Chapter 3's objective as written | `--energy-mode cpu-rapl` |
+
+**On the study laptop, Mode D is the recommended mode.** The MX330 offers no
+power signal, but the i5-1135G7 does, and CPU-only inference is also the
+fastest configuration measured on this host (11.5 tok/s vs 4.7 tok/s with 14
+layers on the MX330; see `demo.ps1`). Running CPU-only therefore costs nothing
+in speed and turns energy from an estimate into a measurement. See
+[Mode D](#mode-d-cpu-package-energy-via-rapl).
 
 Mode A is the default and is never overridden. Mode C sits *below* the NVML
 ladder: `bopis/monitor/sampler.py` consults it only after both measured paths
@@ -155,7 +163,101 @@ is not captured by it and cannot be, without an instrument to compare against.
 
 ---
 
-## Assumptions
+## Mode D: CPU package energy via RAPL
+
+### The instrument
+
+Intel CPUs keep a RAPL energy counter for the whole package
+(`MSR_PKG_ENERGY_STATUS`). On Tiger Lake it is fed by on-die power telemetry.
+Reading an MSR on Windows needs a kernel driver, which the stdlib-only core
+cannot ship. LibreHardwareMonitor (LHM) and Open Hardware Monitor (OHM)
+already load one. They convert the counter into package watts and publish
+every sensor at `http://127.0.0.1:8085/data.json`, which
+`bopis/monitor/hwmon.py` reads with `urllib`. **The instrument is RAPL. The
+monitor is only the transport.**
+
+### Setup
+
+1. Install **LibreHardwareMonitor** (maintained; preferred) or Open Hardware
+   Monitor (last released 2020).
+2. Run it **as administrator**. Without admin rights it cannot load its driver,
+   and the CPU node shows no *Powers* group.
+3. *Options → Remote Web Server → Run* (port 8085).
+4. Check: `python -m bopis profile` should show a **CPU PACKAGE POWER (RAPL)**
+   section with a live reading.
+
+Security note: OHM and older LHM builds use the WinRing0 driver, which has a
+known vulnerability and is flagged by Microsoft Defender. Newer LHM releases
+moved to a different driver. Install from the project's official release page,
+and close the monitor when you are not measuring.
+
+### How the reading is turned into energy
+
+The monitor publishes `(E_k − E_{k−1}) / Δ`, the mean package power over the
+**previous** refresh interval `Δ` (about 1 s, measured at start-up). So:
+
+- **Lag compensation.** A value seen at time `t` describes `[t − Δ, t]`. The
+  sampler keeps polling for one interval after inference ends and integrates
+  over `[start + Δ, stop + Δ]`.
+- **Zero-order hold, not trapezoid.** The signal is piecewise constant, so a
+  trapezoid would invent a ramp between bins the monitor never observed.
+- **Idle subtraction.** `E = Σ (P_pkg − P_pkg,idle) · dt`, with `P_pkg,idle`
+  taken from the same 60 s idle calibration Chapter 3 specifies. Negative
+  excess is clamped and counted, exactly as in Mode A.
+- **Resolution band.** Each window edge falls inside one refresh bin.
+  `energy_low_j` / `energy_high_j` = `E ∓ Δ·(P_max − P_min)`. That is wide for a
+  2 s chat reply and narrow for a 20 s study window. It does not cover RAPL's
+  own error.
+
+### Scope, and why the search is pinned to `g = 0`
+
+Package power covers cores, uncore and the integrated GPU. It excludes DRAM,
+storage, display and the **discrete GPU**. Offloaded layers would therefore run
+"for free" as far as the objective could tell: the mirror image of amendment
+A-19. So, on a host whose GPU reports no power, `--energy-mode cpu-rapl`:
+
+- pins `X_feasible` to `g = 0` (rule `ENERGY-SCOPE` in the rejections), and
+- labels rows `energy_scope = cpu_package_rapl`, which `scope_valid` accepts
+  only at `g = 0`.
+
+On a GPU that *does* report power, the two are summed instead
+(`energy_scope = gpu_plus_rapl`) and `g` is left free.
+
+**Budget consequence.** With one model, fixing `g` would shrink the study
+laptop's space to 32 configurations, and a 30-evaluation budget would be nearly
+exhaustive. Searching the model size (amendment A-40) removes that problem. With
+the Qwen2.5 ladder and CPU-only, the space is up to 4 models × 3 precisions × 4
+`t` × 2 `b` × 2 `c` = 192 configurations, less whatever free RAM excludes. That
+leaves 30 evaluations as a small share of the space. `bopis run` still warns if
+the budget ever covers the whole space. It also restricts the space to the GGUF
+files you supply, so supply several rungs.
+
+### What Mode D supports
+
+| Claim | Permitted? |
+|---|---|
+| "CPU-only inference with x* used *E* J of CPU package energy per prompt" | Yes, measured |
+| "BOPIS reduced measured energy by N% vs. the default" (EIR) | Yes |
+| Comparing Mode D joules to Mode A (GPU board) joules | **No**, different scopes |
+| Calling it GPU energy | **No** |
+
+### Commands
+
+```powershell
+python -m bopis run --backend llama-server --model-aware `
+  --llama-binary .\tools\cpu\llama-server.exe `
+  --model qwen2.5-0.5b:Q4_K_M=.\models\qwen2.5-0.5b-instruct-q4_k_m.gguf `
+  --model qwen2.5-1.5b:Q4_K_M=.\models\qwen2.5-1.5b-instruct-q4_k_m.gguf `
+  --model qwen2.5-1.5b:F16=.\models\qwen2.5-1.5b-instruct-fp16.gguf `
+  --model qwen2.5-3b:Q4_K_M=.\models\qwen2.5-3b-instruct-q4_k_m.gguf `
+  --energy-mode cpu-rapl --idle-seconds 60
+
+python -m bopis ui          # the chat, with measured energy per reply
+```
+
+---
+
+## Assumptions (Mode C)
 
 Enumerated in `bopis/monitor/estimator.py` as `ASSUMPTIONS`, recorded verbatim
 in every run manifest, and rendered in the dashboard.

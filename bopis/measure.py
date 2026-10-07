@@ -32,6 +32,12 @@ They carry a different and larger caveat instead -- they are not measurements at
 all -- which :mod:`bopis.monitor.estimator` states and which travels with every
 row through ``energy_basis``.
 
+``cpu_package_rapl`` is the mirror image of ``gpu_only``: RAPL measures the CPU
+package and nothing on the discrete GPU, so it covers the work performed only
+when ``g = 0``. At ``g > 0`` the offloaded layers' energy is unmeasured and an
+optimizer would "discover" that offloading is free, so those rows are flagged
+scope-invalid by the same rule, reversed.
+
 Standard library only.
 """
 
@@ -51,6 +57,7 @@ class EnergyScope:
 
     GPU_ONLY = "gpu_only"  # NVML board power; excludes CPU/DRAM
     GPU_PLUS_RAPL = "gpu_plus_rapl"  # NVML + Intel RAPL package energy
+    CPU_PACKAGE_RAPL = "cpu_package_rapl"  # Intel RAPL package only (OHM/LHM)
     RESOURCE_ESTIMATE = "estimated_resource_allocation"  # utilization proxy
     SIMULATED = "simulated"  # computed by the analytic model
     NONE = "none"  # no energy instrument available
@@ -129,6 +136,8 @@ class PromptMeasurement:
             return False
         if self.energy_scope == EnergyScope.GPU_ONLY:
             return self.config.g != 0
+        if self.energy_scope == EnergyScope.CPU_PACKAGE_RAPL:
+            return self.config.g == 0
         return True
 
     # -- table rows ---------------------------------------------------------- #
@@ -370,6 +379,10 @@ class HardwareMeasurer:
             measurement.energy_scope = EnergyScope.NONE
         elif window.energy_method == EnergyMethod.RESOURCE_ALLOCATION_ESTIMATE:
             measurement.energy_scope = EnergyScope.RESOURCE_ESTIMATE
+        elif window.energy_method == EnergyMethod.RAPL_HWMON_POWER_INTEGRATION:
+            measurement.energy_scope = EnergyScope.CPU_PACKAGE_RAPL
+        elif EnergyMethod.RAPL_HWMON_POWER_INTEGRATION in window.energy_method:
+            measurement.energy_scope = EnergyScope.GPU_PLUS_RAPL
         else:
             measurement.energy_scope = EnergyScope.GPU_ONLY
         measurement.energy_crosscheck_j = window.energy_crosscheck_j

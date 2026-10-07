@@ -44,7 +44,7 @@ from bopis import optimizer, runner, tasks
 from bopis.backends.llama_server import LlamaServerBackend
 from bopis.config_space import Config
 from bopis.measure import SimulatedMeasurer
-from bopis.monitor import estimator
+from bopis.monitor import estimator, hwmon
 from bopis.monitor.nvml import EnergyMethod
 
 GIB = 1024**3
@@ -76,14 +76,16 @@ def _wrap(text: str, width: int = 74) -> List[str]:
 
 def cmd_profile(args: argparse.Namespace) -> int:
     profile = hardware.profile_host()
-    model = hardware.MISTRAL_7B_INSTRUCT_V03 if args.model_aware else None
     space, rejections = hardware.feasible_space(
         profile,
-        model=model,
+        models=hardware.MODEL_LADDER if args.model_aware else None,
         ctx_size=args.ctx_size,
         min_gpu_layers=args.min_gpu_layers,
+        max_gpu_layers=0 if args.cpu_only else None,
     )
     summary = hardware.summarize_space(space, rejections)
+    requirements = hardware.requirements_table(profile, ctx_size=args.ctx_size)
+    package = hwmon.probe(args.hwmon_url, args.hwmon_sensor)
 
     if args.write_js:
         payload = {
@@ -94,6 +96,19 @@ def cmd_profile(args: argparse.Namespace) -> int:
                 {"config": r.config.key(), "rule": r.rule, "detail": r.detail}
                 for r in rejections
             ],
+            # What each model x precision needs, for the UI's "can I run it?"
+            # answers. Deterministic footprint arithmetic, not a forecast.
+            "requirements": requirements,
+            # Every configuration the search may choose from, for the UI's
+            # Configurations view -- the "selection" in Intelligent
+            # Configuration Selection, made visible.
+            "feasible": [cfg.key() for cfg in space],
+            "cpu_only": bool(args.cpu_only),
+            "models": {
+                key: {"label": v.label, "n_params": v.n_params,
+                      "n_layers": v.n_layers, "hf_repo": v.hf_repo}
+                for key, v in cs.MODELS.items()
+            },
             # Constants the chat UI needs to show a *labelled* Mode C energy
             # estimate per reply. Exported rather than hard-coded in the HTML so
             # the browser and `bopis.metrics` cannot disagree about the tariff or
@@ -115,6 +130,9 @@ def cmd_profile(args: argparse.Namespace) -> int:
                     "absolute energy claim."
                 ),
             },
+            # Whether a RAPL package feed (OHM/LHM) answered at profile time.
+            # The chat measures through `bopis ui` when it does.
+            "cpu_package_power": package,
         }
         target = os.path.abspath(args.write_js)
         os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
@@ -132,6 +150,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
                 {
                     "host_profile": profile.as_dict(),
                     "configuration_space": summary,
+                    "requirements": requirements,
                     "rejections": [
                         {
                             "config": r.config.key(),
@@ -191,6 +210,19 @@ def cmd_profile(args: argparse.Namespace) -> int:
         print(_kv("Energy method", profile.energy_method))
 
     print()
+    print(_rule("CPU PACKAGE POWER (RAPL)"))
+    if package["available"]:
+        print(_kv("Feed", package["url"]))
+        print(_kv("Sensor", package["sensor"]))
+        print(_kv("Current reading", f"{package['watts']:.2f} W"))
+        print(_kv("Energy mode", "--energy-mode cpu-rapl available (measured)"))
+    else:
+        print(_kv("Feed", f"not reachable at {package['url']}"))
+        print("  Start LibreHardwareMonitor or Open Hardware Monitor as")
+        print("  administrator with Options -> Remote Web Server -> Run to")
+        print("  measure CPU package energy. See docs/ENERGY_MODES.md, Mode D.")
+
+    print()
     print(_rule("ENERGY MEASUREMENT"))
     if profile.energy_method == EnergyMethod.NVML_ENERGY_COUNTER:
         print("  nvmlDeviceGetTotalEnergyConsumption is available.")
@@ -203,25 +235,36 @@ def cmd_profile(args: argparse.Namespace) -> int:
         print("  window at a 100 ms sampling interval.")
     else:
         print("  This GPU reports neither power nor energy telemetry.")
-        print("  GPU energy CANNOT be measured on this machine. Three options,")
+        print("  GPU energy CANNOT be measured on this machine. Four options,")
         print("  in descending order of what the result can claim:")
         print()
         print("  1. Run the study on a GPU whose driver exposes")
-        print("     nvmlDeviceGetPowerUsage. This is the only path to a")
-        print("     measured energy result, and no software change substitutes")
-        print("     for the missing instrument.")
-        print("  2. Run with `--energy-mode resource-estimate` for a labelled")
+        print("     nvmlDeviceGetPowerUsage. The only path to a measured")
+        print("     GPU energy result.")
+        print("  2. Run CPU-only with `--energy-mode cpu-rapl`: measured CPU")
+        print("     package energy (Intel RAPL, read via LibreHardwareMonitor /")
+        print("     Open Hardware Monitor). Pins the search to g = 0, where the")
+        print("     package covers the inference work."
+              + ("  [feed is live]" if package["available"] else ""))
+        print("  3. Run with `--energy-mode resource-estimate` for a labelled")
         print("     resource-allocation estimate: CPU-time and GPU-utilization")
         print("     scaled by declared power budgets. Valid for comparing")
         print("     configurations on this host, not as absolute energy.")
         print("     See docs/ENERGY_MODES.md.")
-        print("  3. Use `--backend sim` to exercise the pipeline with no")
+        print("  4. Use `--backend sim` to exercise the pipeline with no")
         print("     hardware claim at all.")
 
     print()
     print(_rule("TABLE H1 -> FEASIBLE SPACE"))
     print(_kv("Rules fired", ", ".join(profile.rules_fired)))
-    print(_kv("Precisions permitted", ", ".join(profile.permitted_precisions)))
+    print(
+        _kv(
+            "Precisions on GPU",
+            ", ".join(p for p in profile.permitted_precisions if p in cs.P_VALUES)
+            + "  (g > 0 only; at g = 0 free RAM decides)",
+        )
+    )
+    print(_kv("Models searched", ", ".join(cs.M_VALUES)))
     print(
         _kv(
             "GPU layers permitted",
@@ -249,7 +292,31 @@ def cmd_profile(args: argparse.Namespace) -> int:
     if args.model_aware and not space:
         print()
         print("  WARNING: no configuration survives the model-size guards.")
-        print("  This model cannot be run on this hardware at any setting.")
+        print("  Usually this means too little FREE RAM right now -- see the")
+        print("  'free RAM' verdicts below; closing applications is enough.")
+
+    print()
+    print(_rule("WHAT EACH MODEL NEEDS (CPU-only, ctx %d)" % args.ctx_size))
+    print(
+        f"  {'model':<14}{'prec':<8}{'weights':>9}{'needs':>9}  "
+        f"{'this machine':<16}{'full GPU':<9}"
+    )
+    for row in requirements:
+        verdict = row["cpu_only_verdict"]
+        if verdict == "free RAM":
+            verdict = f"free {row['shortfall_gib']:.1f} GiB"
+        print(
+            f"  {row['model']:<14}{row['precision']:<8}"
+            f"{row['weights_gib']:>7.2f}Gi{row['cpu_only_ram_gib']:>7.2f}Gi  "
+            f"{verdict:<16}{'yes' if row['full_gpu_fits'] else 'no':<9}"
+            + ("" if row["searched"] else "(not searched)")
+        )
+    print(
+        f"  Free now: {profile.ram_available_bytes / GIB:.2f} GiB of "
+        f"{profile.ram_gib:.2f} GiB. 'needs' = weights + KV cache; llama.cpp adds"
+    )
+    print("  a few hundred MiB of compute buffers on top. Deterministic arithmetic,")
+    print("  the same the HW-P0 guard applies -- nothing here is trained.")
     return 0
 
 
@@ -321,21 +388,58 @@ def cmd_dataset(args: argparse.Namespace) -> int:
 
 
 def _parse_model_paths(values: Optional[Sequence[str]]) -> dict:
-    """Parse repeated ``--model VARIANT=/path/to.gguf`` arguments."""
+    """Parse repeated ``--model [MODEL:]VARIANT=/path/to.gguf`` arguments.
+
+    Keys come back as ``MODEL:VARIANT``. A bare ``VARIANT`` names the default
+    model's file (the pre-A-40 form), and is normalized to its full key.
+    """
     paths: dict = {}
     for item in values or ():
         if "=" not in item:
             raise SystemExit(
-                f"--model expects VARIANT=/path/to.gguf, got {item!r}"
+                f"--model expects [MODEL:]VARIANT=/path/to.gguf, got {item!r}"
             )
-        variant, path = item.split("=", 1)
-        variant = variant.strip()
+        label, path = item.split("=", 1)
+        model_key, _, variant = label.strip().rpartition(":")
+        model_key = model_key or cs.DEFAULT_M
+        if model_key not in cs.MODELS:
+            raise SystemExit(
+                f"unknown model {model_key!r}; expected one of "
+                f"{', '.join(cs.M_VALUES)}"
+            )
         if variant not in cs.P_VALUES:
             raise SystemExit(
                 f"unknown precision variant {variant!r}; "
                 f"expected one of {', '.join(cs.P_VALUES)}"
             )
-        paths[variant] = path.strip()
+        paths[f"{model_key}:{variant}"] = path.strip()
+    return paths
+
+
+def _gguf_sizes(model_paths: dict) -> dict:
+    """``{(model, variant): bytes}`` for every supplied GGUF that exists.
+
+    Split GGUFs are counted across all their shards (see :mod:`bopis.gguf`).
+    """
+    from bopis import gguf
+
+    sizes = {}
+    for key, path in model_paths.items():
+        model_key, variant = key.split(":", 1)
+        if os.path.exists(path):
+            try:
+                sizes[(model_key, variant)] = gguf.total_size(path)
+            except FileNotFoundError as exc:
+                print(f"  skipping {key}: {exc}")
+    return sizes
+
+
+def _model_paths(args: argparse.Namespace) -> dict:
+    """Explicit ``--model`` flags, on top of whatever ``--models-dir`` holds."""
+    from bopis import gguf
+
+    paths = gguf.discover(args.models_dir) if getattr(args, "models_dir", None) else {}
+    paths.update(_parse_model_paths(getattr(args, "model", None)))
     return paths
 
 
@@ -358,7 +462,7 @@ def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
             measure_idle_baseline,
         )
 
-        model_paths = _parse_model_paths(args.model)
+        model_paths = _model_paths(args)
         if not model_paths:
             raise SystemExit(
                 "--backend llama-server needs at least one model, e.g.\n"
@@ -385,18 +489,54 @@ def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
         device = None
         estimating = args.energy_mode == "resource-estimate"
         idle: dict = {"power_supported": False, "p_idle_w": 0.0}
+
+        # CPU package energy through a running OHM/LHM. Located and its
+        # refresh interval measured before anything else, because the lag
+        # compensation in the sampler depends on it.
+        cpu_source = None
+        if args.energy_mode == "cpu-rapl":
+            cpu_source = hwmon.HwmonPowerSource(args.hwmon_url, args.hwmon_sensor)
+            try:
+                sensor = cpu_source.discover()
+            except hwmon.HwmonUnavailable as exc:
+                raise SystemExit(f"REFUSING TO RUN: --energy-mode cpu-rapl\n  {exc}")
+            print(_kv("CPU package sensor", f"{sensor.label} ({sensor.watts:.2f} W)"))
+            refresh = cpu_source.calibrate_refresh()
+            print(
+                _kv(
+                    "Monitor refresh",
+                    f"{refresh:.2f} s"
+                    + ("" if cpu_source.refresh_measured else " (default; not observed)"),
+                )
+            )
         try:
             handle = nvml.Nvml.open()
             device = handle.device(0)
         except nvml.NvmlUnavailable:
             device = None
 
-        if device is not None or estimating:
+        if device is not None or estimating or cpu_source is not None:
             print(
                 f"Calibrating the idle baseline over {args.idle_seconds:g}s "
                 "with no inference running..."
             )
-            idle = measure_idle_baseline(device, seconds=args.idle_seconds)
+            idle = measure_idle_baseline(
+                device, seconds=args.idle_seconds, cpu_power_source=cpu_source
+            )
+            if idle.get("cpu_power_supported"):
+                print(
+                    _kv(
+                        "P_pkg,idle",
+                        f"{idle['p_cpu_idle_w']:.2f} W "
+                        f"(sd {idle['p_cpu_idle_sd_w']:.2f}, "
+                        f"n={idle['n_cpu_power_samples']})",
+                    )
+                )
+            elif cpu_source is not None:
+                raise SystemExit(
+                    "REFUSING TO RUN: the CPU package sensor returned no readings "
+                    "during idle calibration."
+                )
             if idle["power_supported"]:
                 print(
                     _kv(
@@ -451,7 +591,16 @@ def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
             estimator_budget=budget,
             gpu_percent_idle=float(idle.get("gpu_percent_idle") or 0.0),
             logical_cores=profile.logical_cores,
+            cpu_power_source=cpu_source,
+            p_cpu_idle_w=float(idle.get("p_cpu_idle_w") or 0.0),
         )
+        if cpu_source is not None:
+            args.energy_instrument = dict(
+                cpu_source.describe(),
+                p_cpu_idle_w=idle.get("p_cpu_idle_w"),
+                p_cpu_idle_sd_w=idle.get("p_cpu_idle_sd_w"),
+                idle_quiet=idle.get("quiet"),
+            )
         return backend, HardwareMeasurer(
             backend, sampler_factory, allow_no_power=args.allow_no_power
         )
@@ -465,6 +614,113 @@ def _build_measurer(args: argparse.Namespace, profile: hardware.HostProfile):
         )
 
     raise SystemExit(f"unknown backend: {args.backend!r}")
+
+
+def _build_scorer(args: argparse.Namespace):
+    """The BERTScore scorer for a real run, warmed up, or None.
+
+    Loaded before the study starts, so a missing dependency or a first-time
+    model download (~1.4 GB for roberta-large) happens now rather than after
+    an hour of measurement. The simulator scores itself and gets None.
+    """
+    import importlib.util
+
+    if args.backend == "sim" or args.quality == "none":
+        return None
+    missing = [
+        name
+        for name in ("torch", "transformers")
+        if importlib.util.find_spec(name) is None
+    ]
+    if missing:
+        message = (
+            f"BERTScore needs {', '.join(missing)}, which is not installed. "
+            "Install with:\n    python -m pip install transformers torch bert-score"
+        )
+        if args.quality == "bertscore":
+            raise SystemExit(f"REFUSING TO RUN: {message}")
+        print(_rule("QUALITY: UNSCORED"))
+        print(f"  {message}")
+        print("  Without it quality_f1 stays empty, QRR cannot be computed, and")
+        print("  x* is selected on energy and speed alone.")
+        print()
+        return None
+
+    from bopis.quality import get_scorer
+    from bopis.quality.bertscore import DEFAULT_LAYER, DEFAULT_MODEL
+
+    layer = args.bertscore_layer
+    if layer is None and args.bertscore_model == DEFAULT_MODEL:
+        layer = DEFAULT_LAYER
+    scorer = get_scorer("bertscore", model=args.bertscore_model, layer=layer)
+    print(
+        f"Loading BERTScore ({args.bertscore_model}); the first run downloads "
+        "the checkpoint..."
+    )
+    scorer.score(["warm-up"], ["warm-up"])
+    print(_kv("Quality scorer", f"BERTScore F1, {args.bertscore_model}"))
+    return scorer
+
+
+def _add_hwmon_args(parser: argparse.ArgumentParser) -> None:
+    """Where to find the RAPL feed (LibreHardwareMonitor / OHM web server)."""
+    parser.add_argument(
+        "--hwmon-url",
+        default=hwmon.DEFAULT_URL,
+        help="LibreHardwareMonitor/Open Hardware Monitor data.json endpoint "
+        "(default: %(default)s)",
+    )
+    parser.add_argument(
+        "--hwmon-sensor",
+        default=None,
+        help="substring of the package-power sensor path, when the default "
+        "'CPU Package' does not match",
+    )
+
+
+def _add_quality_args(parser: argparse.ArgumentParser) -> None:
+    from bopis.quality.bertscore import DEFAULT_MODEL
+
+    parser.add_argument(
+        "--bertscore-model",
+        default=DEFAULT_MODEL,
+        help="BERTScore backbone (default: %(default)s, ~1.4 GB). "
+        "distilbert-base-uncased needs far less RAM but is not comparable",
+    )
+    parser.add_argument(
+        "--bertscore-layer",
+        type=int,
+        default=None,
+        help="hidden layer to score from (default: the model's published one)",
+    )
+
+
+def cmd_ui(args: argparse.Namespace) -> int:
+    """Serve bopis.html with measured energy and BERTScore behind the chat."""
+    from bopis import ui_server
+
+    print(_rule("BOPIS UI"))
+    instruments = ui_server.Instruments(
+        llama_url=args.llama_url,
+        hwmon_url=args.hwmon_url,
+        hwmon_sensor=args.hwmon_sensor,
+        idle_seconds=args.idle_seconds,
+        llama_pid=args.llama_pid,
+        data_dir=args.data_dir,
+        bertscore_model=args.bertscore_model,
+        bertscore_layer=args.bertscore_layer,
+        cpu_tdp_w=args.cpu_tdp_w,
+        cpu_idle_w=args.cpu_idle_w,
+        llama_binary=args.llama_binary,
+        model_paths=_model_paths(args),
+        compare_port=args.compare_port,
+        ctx_size=args.ctx_size,
+    )
+    if args.llama_binary:
+        print(_kv("Comparison", f"{len(instruments.model_paths)} GGUFs, port "
+                  f"{args.compare_port}"))
+    ui_server.serve(instruments, host=args.host, port=args.port)
+    return 0
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -482,16 +738,21 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 2
 
     estimate_energy = args.energy_mode == "resource-estimate"
+    rapl = args.energy_mode == "cpu-rapl"
     if (
         args.backend != "sim"
         and not profile.can_measure_energy
         and not args.allow_no_power
         and not estimate_energy
+        and not rapl
     ):
         print(
             "REFUSING TO RUN: this GPU reports neither power nor energy "
             "telemetry, so no energy figure would be measurable.\n"
-            "  Pass --energy-mode resource-estimate to proceed with a "
+            "  Pass --energy-mode cpu-rapl to measure CPU package energy "
+            "through LibreHardwareMonitor /\n"
+            "  Open Hardware Monitor (CPU-only search, g = 0),\n"
+            "  --energy-mode resource-estimate to proceed with a "
             "labelled resource-allocation\n"
             "  estimate instead of a measurement (see docs/ENERGY_MODES.md), "
             "--allow-no-power to\n"
@@ -550,13 +811,56 @@ def cmd_run(args: argparse.Namespace) -> int:
             )
         print()
 
-    model = hardware.MISTRAL_7B_INSTRUCT_V03 if args.model_aware else None
+    # With no GPU power sensor, RAPL sees only the CPU package, so the search
+    # is pinned to CPU-only inference; see hardware.feasible_space. A GPU that
+    # does report power is summed with the package instead (gpu_plus_rapl).
+    max_gpu_layers = 0 if (rapl and not profile.can_measure_energy) else None
+    if rapl and args.backend != "sim":
+        print(_rule("ENERGY MODE: CPU PACKAGE, MEASURED (RAPL)"))
+        print("  Energy is Intel RAPL package energy, read from a running")
+        print("  LibreHardwareMonitor / Open Hardware Monitor, net of the")
+        print("  package's idle draw. Scope: cores + uncore + integrated GPU.")
+        print("  Excludes DRAM, storage, display and the discrete GPU.")
+        if max_gpu_layers == 0:
+            print("  The discrete GPU reports no power, so the search is pinned")
+            print("  to g = 0 (CPU-only), where that scope covers the work.")
+        print()
+
+    # A real run can only measure what is on disk: the space is restricted to
+    # the (model, precision) pairs a GGUF was supplied for, and their real
+    # file sizes replace the footprint estimate in the memory guard.
+    gguf_bytes = None
+    if args.backend == "llama-server":
+        gguf_bytes = _gguf_sizes(_model_paths(args))
+        present = sorted(f"{m}:{p}" for m, p in gguf_bytes)
+        print(_kv("GGUFs supplied", ", ".join(present) or "none found on disk"))
     space, rejections = hardware.feasible_space(
         profile,
-        model=model,
+        models=hardware.MODEL_LADDER if args.model_aware else None,
         ctx_size=args.ctx_size,
         min_gpu_layers=args.min_gpu_layers,
+        max_gpu_layers=max_gpu_layers,
+        gguf_bytes=gguf_bytes,
     )
+    if space:
+        models_in = sorted({cfg.m for cfg in space}, key=cs.M_VALUES.index)
+        print(_kv("Models in the search", ", ".join(models_in)))
+        if len(models_in) == 1:
+            print(
+                "  NOTE: one model only -- the search reduces to runtime settings "
+                "and precision.\n"
+                "  Supply GGUFs for more rungs (--model qwen2.5-3b:Q4_K_M=...) "
+                "to search model size.\n"
+            )
+    if space and args.iterations >= len(space):
+        print(
+            f"  WARNING: the budget ({args.iterations} evaluations) covers the "
+            f"whole feasible space ({len(space)} configurations).\n"
+            "  Both search arms then degenerate to near-exhaustive search and "
+            "the BOPIS-vs-random\n"
+            "  comparison cannot show a difference. Reduce --iterations (and "
+            "--seeds) below |X|.\n"
+        )
     if not space:
         print(
             "REFUSING TO RUN: X_feasible is empty. The Table H1 rules plus the "
@@ -589,6 +893,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         proxy_size=args.proxy_size,
         ard=args.ard,
         xi=args.xi,
+        acquisition=args.acquisition,
         min_gpu_layers=args.min_gpu_layers,
         allow_no_power=args.allow_no_power,
         # The simulator never reaches the sampler, so recording estimate mode
@@ -604,9 +909,15 @@ def cmd_run(args: argparse.Namespace) -> int:
         ctx_size=args.ctx_size,
         total_layers=args.total_layers,
         skip_validation=args.skip_validation,
+        # CPU-only accounting cannot measure a g=All default, so the reference
+        # runs where the search does.
+        default_gpu_layers=max_gpu_layers,
     )
 
+    scorer = _build_scorer(args)
     backend, measurer = _build_measurer(args, profile)
+    settings.energy_instrument = getattr(args, "energy_instrument", None)
+    settings.quality_scorer = scorer.describe() if scorer is not None else None
     run_dir = artifacts.RunDirectory.create(base=args.out, label=args.label)
 
     print(_rule("BOPIS"))
@@ -638,6 +949,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         backend_start=backend.start,
         backend_stop=backend.stop,
         progress=(lambda message: print(message)) if not args.quiet else (lambda _m: None),
+        scorer=scorer,
     )
     result = study.run()
 
@@ -838,11 +1150,6 @@ def cmd_report(args: argparse.Namespace) -> int:
 # --------------------------------------------------------------------------- #
 
 
-_CONFIG_KEY = re.compile(
-    r"^t(\d+)_b(\d+)_(F32|F16|Q8_0|Q4_K_M)_g(All|\d+)_c(\d+)$"
-)
-
-
 def _selected_config(run: artifacts.RunDirectory) -> Config:
     """Read the BOPIS-selected configuration from ``selection.csv``."""
     path = run.path("selection.csv")
@@ -853,19 +1160,12 @@ def _selected_config(run: artifacts.RunDirectory) -> Config:
         for row in csv.DictReader(handle):
             if row.get("selected", "").strip().lower() not in {"true", "1", "yes"}:
                 continue
-            match = _CONFIG_KEY.fullmatch(row.get("config", "").strip())
-            if not match:
+            config = cs.parse_key(row.get("config", ""))
+            if config is None:
                 raise SystemExit(
                     f"invalid selected configuration key: {row.get('config')!r}"
                 )
-            t, batch, precision, gpu_layers, threads = match.groups()
-            return Config(
-                t=int(t),
-                b=int(batch),
-                p=precision,
-                g=cs.ALL_LAYERS if gpu_layers == "All" else int(gpu_layers),
-                c=int(threads),
-            )
+            return config
     raise SystemExit(f"{path} has no selected BOPIS configuration")
 
 
@@ -874,11 +1174,13 @@ def cmd_serve(args: argparse.Namespace) -> int:
     run = artifacts.RunDirectory(args.run)
     config = _selected_config(run)
     profile = hardware.profile_host()
+    model_paths = _model_paths(args)
     space, rejections = hardware.feasible_space(
         profile,
-        model=hardware.MISTRAL_7B_INSTRUCT_V03,
+        models=hardware.MODEL_LADDER,
         ctx_size=args.ctx_size,
         min_gpu_layers=args.min_gpu_layers,
+        gguf_bytes=_gguf_sizes(model_paths),
     )
     if config not in space:
         rejection = next((r for r in rejections if r.config == config), None)
@@ -891,7 +1193,6 @@ def cmd_serve(args: argparse.Namespace) -> int:
             "from hardware with sufficient resources."
         )
 
-    model_paths = _parse_model_paths(args.model)
     backend = LlamaServerBackend(
         binary=args.llama_binary,
         model_paths=model_paths,
@@ -953,7 +1254,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="exclude configs below this GPU-layer floor (energy-scope guard)",
     )
+    p_profile.add_argument(
+        "--cpu-only",
+        action="store_true",
+        help="show the space a --energy-mode cpu-rapl run would search (g = 0)",
+    )
     p_profile.add_argument("--max-rejections", type=int, default=5)
+    _add_hwmon_args(p_profile)
     p_profile.add_argument(
         "--write-js",
         metavar="PATH",
@@ -995,6 +1302,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--tariff", type=float, default=metrics.DEFAULT_TARIFF_PHP_PER_KWH)
     p_run.add_argument("--xi", type=float, default=0.0, help="EI exploration margin")
     p_run.add_argument(
+        "--acquisition",
+        choices=["cei", "ei"],
+        default="cei",
+        help="cei (default): Expected Improvement x P(meets QRR/SRR floors), "
+        "needed once model size is searched; ei: Chapter 3's energy-only EI",
+    )
+    p_run.add_argument(
         "--ard", action="store_true", help="per-dimension GP length scales"
     )
     p_run.add_argument("--model-aware", action="store_true")
@@ -1002,11 +1316,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--allow-no-power", action="store_true")
     p_run.add_argument(
         "--energy-mode",
-        choices=["auto", "resource-estimate"],
+        choices=["auto", "cpu-rapl", "resource-estimate"],
         default="auto",
         help=(
             "auto (default) measures energy from NVML and refuses the run "
-            "when it cannot; resource-estimate adds a labelled "
+            "when it cannot; cpu-rapl measures CPU package energy (Intel RAPL) "
+            "through a running LibreHardwareMonitor/Open Hardware Monitor and "
+            "pins the search to g = 0 when the GPU reports no power; "
+            "resource-estimate adds a labelled "
             "resource-allocation estimate below that ladder for hosts with no "
             "power sensor. Estimated runs are not measured runs -- see "
             "docs/ENERGY_MODES.md before reporting one."
@@ -1065,9 +1382,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument(
         "--model",
         action="append",
-        metavar="VARIANT=PATH",
-        help="GGUF path per precision variant, e.g. --model "
-        "Q4_K_M=/models/mistral.Q4_K_M.gguf (repeatable)",
+        metavar="[MODEL:]VARIANT=PATH",
+        help="GGUF path per model and precision, e.g. --model "
+        "qwen2.5-3b:Q4_K_M=/models/qwen2.5-3b-instruct-q4_k_m.gguf (repeatable; "
+        "a bare VARIANT means the default model, qwen2.5-1.5b). Only supplied "
+        "pairs are searched. Added on top of --models-dir.",
+    )
+    p_run.add_argument(
+        "--models-dir",
+        default="models",
+        help="directory scanned for the official Qwen2.5 GGUF files, so each "
+        "one need not be passed with --model (default: %(default)s)",
     )
     p_run.add_argument("--llama-host", default="127.0.0.1")
     p_run.add_argument("--llama-port", type=int, default=8080)
@@ -1083,8 +1408,73 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="search only; skip the 500-prompt three-way validation",
     )
+    _add_hwmon_args(p_run)
+    p_run.add_argument(
+        "--quality",
+        choices=["auto", "bertscore", "none"],
+        default="auto",
+        help="BERTScore each generation against its Dolly reference after "
+        "every batch, outside the energy windows. auto (default) scores when "
+        "torch and transformers are installed; bertscore refuses to run "
+        "without them",
+    )
+    _add_quality_args(p_run)
     p_run.add_argument("--quiet", action="store_true")
     p_run.set_defaults(func=cmd_run)
+
+    # -- ui ------------------------------------------------------------------ #
+    p_ui = sub.add_parser(
+        "ui",
+        help="serve the chat UI with measured energy (RAPL) and BERTScore",
+    )
+    p_ui.add_argument("--host", default="127.0.0.1")
+    p_ui.add_argument("--port", type=int, default=8090)
+    p_ui.add_argument(
+        "--llama-url", default="http://127.0.0.1:8080", help="running llama-server"
+    )
+    p_ui.add_argument(
+        "--llama-pid",
+        type=int,
+        default=None,
+        help="llama-server's PID (found automatically by name when omitted)",
+    )
+    p_ui.add_argument(
+        "--idle-seconds",
+        type=float,
+        default=30.0,
+        help="idle package-power calibration before serving (0 to skip)",
+    )
+    p_ui.add_argument("--data-dir", default="data", help="where Dolly 15k lives")
+    p_ui.add_argument(
+        "--llama-binary",
+        default=None,
+        help="llama-server executable; enables the default vs random-search vs "
+        "BOPIS comparison on a Dolly prompt",
+    )
+    p_ui.add_argument("--model", action="append", metavar="[MODEL:]VARIANT=PATH")
+    p_ui.add_argument("--models-dir", default="models")
+    p_ui.add_argument(
+        "--compare-port",
+        type=int,
+        default=8081,
+        help="port for the comparison's own llama-server (8080 stays the chat's)",
+    )
+    p_ui.add_argument("--ctx-size", type=int, default=cs.FIXED_CTX_SIZE)
+    p_ui.add_argument(
+        "--cpu-tdp-w",
+        type=float,
+        default=estimator.DEFAULT_CPU_TDP_W,
+        help="Mode C fallback only: CPU package power at full utilization",
+    )
+    p_ui.add_argument(
+        "--cpu-idle-w",
+        type=float,
+        default=0.0,
+        help="Mode C fallback only: CPU package power at rest",
+    )
+    _add_hwmon_args(p_ui)
+    _add_quality_args(p_ui)
+    p_ui.set_defaults(func=cmd_ui)
 
     # report
     p_report = sub.add_parser("report", help="summarize an existing run directory")
@@ -1106,9 +1496,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument(
         "--model",
         action="append",
-        required=True,
-        metavar="VARIANT=PATH",
-        help="GGUF path per precision variant; repeat for available variants",
+        metavar="[MODEL:]VARIANT=PATH",
+        help="GGUF path per model and precision; repeat for each available file",
+    )
+    p_serve.add_argument(
+        "--models-dir",
+        default="models",
+        help="directory scanned for the official Qwen2.5 GGUF files",
     )
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8080)
