@@ -4035,6 +4035,7 @@
 
         function applyRunData(data) {
             RUN_DATA = data;
+            if (typeof renderThesisStats === 'function') renderThesisStats(data);
             const indicators = data.indicators || data.selection || {};
             const set = (name, value) => {
                 const element = document.querySelector(`[data-run="${name}"]`);
