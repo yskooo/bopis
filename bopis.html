@@ -6983,7 +6983,7 @@
             .sort((a, b) => a.energy - b.energy);
 
             rsPoints.forEach(point => {
-                if (point.cpu_percent == null && point.config && point.config !== 'reference') {
+                if (point.cpu_percent == null && point.config) {
                     const c = parseCfgKey(point.config) || {};
                     const threads = c.c || 4;
                     const hash = point.config.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
@@ -7048,7 +7048,8 @@
                 .sort((a, b) => a.energy - b.energy);
 
             visiblePoints.forEach(point => {
-                if (point.cpu_percent == null && point.config && point.config !== 'reference' && point.arm !== 'chat') {
+                if (point.config === 'reference') point.iteration = 0;
+                if (point.cpu_percent == null && point.config && point.arm !== 'chat') {
                     const c = parseCfgKey(point.config) || {};
                     const threads = c.c || 4;
                     const hash = point.config.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
