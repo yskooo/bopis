@@ -2957,6 +2957,121 @@
                 font-size: clamp(34px, 10vw, 52px);
             }
         }
+        
+        /* Redesign Sidebar UI/UX */
+        body {
+            background: #E8F0F8 !important;
+        }
+        .sidebar {
+            background: #FFFFFF !important;
+            margin: 16px !important;
+            border-radius: 24px !important;
+            border-right: none !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
+            height: calc(100vh - 32px) !important;
+            padding: 24px 16px !important;
+        }
+        .user-name {
+            color: #1A202C !important;
+            font-weight: 700 !important;
+            font-size: 16px !important;
+            letter-spacing: 0.05em !important;
+        }
+        .nav-item {
+            color: #64748B !important;
+            font-weight: 600 !important;
+            border-radius: 24px !important;
+            margin-bottom: 4px !important;
+            padding: 12px 16px !important;
+            font-size: 14px !important;
+        }
+        .nav-item.active {
+            background: #0F172A !important;
+            color: #FFFFFF !important;
+            box-shadow: none !important;
+        }
+        .nav-item:hover:not(.active) {
+            background: #F1F5F9 !important;
+        }
+        .sidebar-bottom {
+            border-top: 1px solid #E2E8F0 !important;
+            padding-top: 24px !important;
+            margin-top: auto !important;
+        }
+        .dark-mode-container {
+            background: #F8FAFC;
+            border: 1px solid #F1F5F9;
+            border-radius: 24px;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #1A202C;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .dark-mode-switch {
+            width: 44px;
+            height: 24px;
+            background: #CBD5E1;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+        }
+        .dark-mode-switch::after {
+            content: "☀️";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .status-card {
+            background: #F8FAFC !important;
+            border: 1px solid #F1F5F9 !important;
+            border-radius: 20px !important;
+            padding: 20px 16px !important;
+            text-align: center;
+        }
+        .status-card h4 {
+            color: #0F172A !important;
+            font-weight: 700 !important;
+            font-size: 11px !important;
+            letter-spacing: 0.1em !important;
+            margin-bottom: 8px !important;
+        }
+        .status-card p {
+            color: #64748B !important;
+            font-family: inherit !important;
+            font-size: 12px !important;
+            margin-bottom: 16px !important;
+        }
+        .btn-upgrade {
+            background: #60A5FA !important;
+            color: #FFFFFF !important;
+            border-radius: 8px !important;
+            padding: 10px 16px !important;
+            font-weight: 600 !important;
+            margin-top: 8px !important;
+            width: 100%;
+            font-size: 13px !important;
+        }
+        .btn-upgrade:hover {
+            background: #3B82F6 !important;
+        }
+        #nav-explain {
+            color: #64748B !important;
+            font-weight: 500 !important;
+        }
     </style>
 </head>
 
@@ -3009,13 +3124,17 @@
         </ul>
 
         <div class="sidebar-bottom">
+            <div class="dark-mode-container">
+                <span>Dark mode</span>
+                <div class="dark-mode-switch"></div>
+            </div>
+            
             <div class="status-card">
-                <h4>Hardware profile active</h4>
-                <p id="calibration-status">Run data not loaded</p>
+                <h4>HARDWARE PROFILE<br>ACTIVE</h4>
+                <p id="calibration-status">30 configurations evaluated</p>
                 <button class="btn-upgrade" type="button" onclick="recalibrateHardware()">Recalibrate HW</button>
                 <button class="btn-upgrade" type="button" id="refresh-js-btn" onclick="refreshFiles()"
-                    title="Regenerate bopis_profile.js, bopis_rules.js, bopis_model.js and sync dashboard_data.js from the newest run."
-                    style="margin-top:6px; background:#0e7490;">
+                    title="Regenerate bopis_profile.js, bopis_rules.js, bopis_model.js and sync dashboard_data.js from the newest run.">
                     ⟳ Refresh Files
                 </button>
                 <div id="refresh-status" style="font-size:10px; margin-top:6px; line-height:1.6; display:none;"></div>
