@@ -7285,7 +7285,7 @@ function renderThesisStats(data) {
     // 1. Variant Summary
     const variants = { 'F16': {count:0, e:0, s:0, q:0}, 'Q8_0': {count:0, e:0, s:0, q:0}, 'Q4_K_M': {count:0, e:0, s:0, q:0} };
     data.pareto.points.forEach(p => {
-        if (!p.front) return;
+        if (!p.on_front) return;
         const match = p.config.match(/_(F16|Q8_0|Q4_K_M)_/);
         const v = match ? match[1] : null;
         if (v && variants[v]) {
