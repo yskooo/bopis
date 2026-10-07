@@ -3736,21 +3736,6 @@
                 <div class="note info" style="margin-top:12px"><strong>Where is the machine learning?</strong> After the seed configurations are measured, <code>GaussianProcess.fit()</code> learns an energy response surface from the observed configurations. Expected Improvement then selects the next configuration using the GP's predicted energy and uncertainty. The model is retrained after every BO evaluation.</div>
             </div>
         </div> -->
-        </div>
-
-
-        <div id="panel-explain" class="panel">
-            <div class="page-header">
-                <h1 class="page-title">How BOPIS chose this configuration</h1>
-                <h2 class="page-subtitle">Every step of the search, with the numbers it actually used. Nothing here is a
-                    black box.</h2>
-            </div>
-            <div class="app-card" id="explain-body" style="font-size:13px;">
-                Load a run first (Dashboard &rarr; Load run data), or run a study: this page is built from the run's own
-                records.
-            </div>
-        </div>
-
 
                     <!-- NEW: Statistical Significance & Variant Analysis -->
                     <div class="cards-grid" style="margin-top:16px;">
@@ -3798,6 +3783,21 @@
                             </div>
                         </div>
                     </div>
+
+        </div>
+
+
+        <div id="panel-explain" class="panel">
+            <div class="page-header">
+                <h1 class="page-title">How BOPIS chose this configuration</h1>
+                <h2 class="page-subtitle">Every step of the search, with the numbers it actually used. Nothing here is a
+                    black box.</h2>
+            </div>
+            <div class="app-card" id="explain-body" style="font-size:13px;">
+                Load a run first (Dashboard &rarr; Load run data), or run a study: this page is built from the run's own
+                records.
+            </div>
+        </div>
 
         <div id="panel-cfg" class="panel">
             <div class="page-header">
