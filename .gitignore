@@ -43,3 +43,10 @@ qa-*.png
 .idea/
 .DS_Store
 Thumbs.db
+
+# Temporary patch scripts
+*.js
+!bopis.js
+!dashboard_data.js
+!check.js
+!test_script.js
