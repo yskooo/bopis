@@ -1197,15 +1197,53 @@
             margin-bottom: 4px;
             font-family: 'IBM Plex Mono', monospace;
         }
-        .ps-val { font-weight: 600; color: #1A202C; margin-left: 4px; }
-        .ps-energy { background: #FFFAF0; border-color: #FBD38D; }
-        .ps-energy .ps-val { color: #C05621; }
-        .ps-speed { background: #F0FFF4; border-color: #9AE6B4; }
-        .ps-speed .ps-val { color: #2F855A; }
-        .ps-quality { background: #FAF5FF; border-color: #D6BCFA; }
-        .ps-quality .ps-val { color: #6B46C1; }
-        .ps-status { background: #EBF8FF; border-color: #90CDF4; font-weight: 600; color: #2B6CB0; font-family: 'IBM Plex Sans', sans-serif; }
-        .ps-status.xstar { background: #C6F6D5; border-color: #68D391; color: #22543D; }
+
+        .ps-val {
+            font-weight: 600;
+            color: #1A202C;
+            margin-left: 4px;
+        }
+
+        .ps-energy {
+            background: #FFFAF0;
+            border-color: #FBD38D;
+        }
+
+        .ps-energy .ps-val {
+            color: #C05621;
+        }
+
+        .ps-speed {
+            background: #F0FFF4;
+            border-color: #9AE6B4;
+        }
+
+        .ps-speed .ps-val {
+            color: #2F855A;
+        }
+
+        .ps-quality {
+            background: #FAF5FF;
+            border-color: #D6BCFA;
+        }
+
+        .ps-quality .ps-val {
+            color: #6B46C1;
+        }
+
+        .ps-status {
+            background: #EBF8FF;
+            border-color: #90CDF4;
+            font-weight: 600;
+            color: #2B6CB0;
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+
+        .ps-status.xstar {
+            background: #C6F6D5;
+            border-color: #68D391;
+            color: #22543D;
+        }
 
         .pareto-readout {
             margin-top: 12px;
@@ -1400,9 +1438,20 @@
             font-weight: 700;
         }
 
-        .pareto-readout .front-badge { background: #D3F9D8; color: #087F5B; }
-        .pareto-readout .xstar-badge { background: #102A43; color: #FFFFFF; }
-        .pareto-readout .ref-badge { background: #FDE2E2; color: #9B2C2C; }
+        .pareto-readout .front-badge {
+            background: #D3F9D8;
+            color: #087F5B;
+        }
+
+        .pareto-readout .xstar-badge {
+            background: #102A43;
+            color: #FFFFFF;
+        }
+
+        .pareto-readout .ref-badge {
+            background: #FDE2E2;
+            color: #9B2C2C;
+        }
 
         .pareto-axis-callout {
             margin: 8px 0 0;
@@ -1485,9 +1534,21 @@
         }
 
         @media (max-width: 850px) {
-            .pareto-key-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .method-trace { grid-template-columns: 1fr; }
-            .method-step:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -16px; }
+            .pareto-key-metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .method-trace {
+                grid-template-columns: 1fr;
+            }
+
+            .method-step:not(:last-child)::after {
+                content: '↓';
+                right: auto;
+                left: 50%;
+                top: auto;
+                bottom: -16px;
+            }
         }
 
         /* ─ SEARCH LOG ───────────────────────────────────────────────────────────────
@@ -1951,21 +2012,37 @@
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s, transform 0.1s;
         }
-        .hw-probe-btn:hover { 
+
+        .hw-probe-btn:hover {
             background: #243B53;
             border-color: #334E68;
         }
-        .hw-probe-btn:active { transform: scale(0.97); }
+
+        .hw-probe-btn:active {
+            transform: scale(0.97);
+        }
+
         .hw-probe-btn.scanning {
             background: #243B53;
             color: #829AB1;
             animation: hwProbePulse 1s ease-in-out infinite;
         }
+
         @keyframes hwProbePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.55; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.55;
+            }
         }
-        .hw-probe-icon { font-size: 13px; }
+
+        .hw-probe-icon {
+            font-size: 13px;
+        }
 
         /* Scan progress bar */
         .hw-scan-bar {
@@ -1976,13 +2053,17 @@
             margin-top: 8px;
             overflow: hidden;
         }
-        .hw-scan-bar.active { display: block; }
+
+        .hw-scan-bar.active {
+            display: block;
+        }
+
         .hw-scan-fill {
             height: 100%;
             width: 0%;
             background: #3182CE;
             border-radius: 2px;
-            transition: width .35s cubic-bezier(.4,0,.2,1);
+            transition: width .35s cubic-bezier(.4, 0, .2, 1);
         }
 
         /* Row reveal animation */
@@ -1995,10 +2076,12 @@
             font-size: 11.5px;
             transition: opacity .3s, transform .3s;
         }
+
         .hw-widget-row.probe-hidden {
             opacity: 0;
             transform: translateX(-6px);
         }
+
         .hw-widget-row.probe-reveal {
             opacity: 1;
             transform: translateX(0);
@@ -2536,7 +2619,7 @@
             flex: 1;
         }
 
-        .guide-step > b {
+        .guide-step>b {
             display: grid;
             place-items: center;
             width: 22px;
@@ -2647,6 +2730,7 @@
         }
 
         @media (max-width: 620px) {
+
             .run-evidence-controls,
             .run-evidence-controls .mode-toggle,
             .run-evidence-controls #run-select,
@@ -2724,8 +2808,11 @@
                 transition: none !important;
             }
         }
+
         @keyframes spin {
-            100% { transform: rotate(360deg); }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .metrics span[title] {
@@ -2733,6 +2820,7 @@
             border-bottom: 1px dotted #A0AEC0;
             cursor: help;
         }
+
         .metrics span[title]::after {
             content: attr(title);
             position: absolute;
@@ -2755,8 +2843,9 @@
             transition: opacity 0.15s;
             z-index: 100;
             margin-bottom: 6px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
         }
+
         .metrics span[title]:hover::after {
             opacity: 1;
         }
@@ -2957,26 +3046,29 @@
                 font-size: clamp(34px, 10vw, 52px);
             }
         }
-        
+
         /* Redesign Sidebar UI/UX */
         body {
             background: #E8F0F8 !important;
         }
+
         .sidebar {
             background: #FFFFFF !important;
             margin: 16px !important;
             border-radius: 24px !important;
             border-right: none !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
             height: calc(100vh - 32px) !important;
             padding: 24px 16px !important;
         }
+
         .user-name {
             color: #1A202C !important;
             font-weight: 700 !important;
             font-size: 16px !important;
             letter-spacing: 0.05em !important;
         }
+
         .nav-item {
             color: #64748B !important;
             font-weight: 600 !important;
@@ -2985,19 +3077,23 @@
             padding: 12px 16px !important;
             font-size: 14px !important;
         }
+
         .nav-item.active {
             background: #0F172A !important;
             color: #FFFFFF !important;
             box-shadow: none !important;
         }
+
         .nav-item:hover:not(.active) {
             background: #F1F5F9 !important;
         }
+
         .sidebar-bottom {
             border-top: 1px solid #E2E8F0 !important;
             padding-top: 24px !important;
             margin-top: auto !important;
         }
+
         .dark-mode-container {
             background: #F8FAFC;
             border: 1px solid #F1F5F9;
@@ -3010,8 +3106,9 @@
             font-weight: 600;
             font-size: 13px;
             color: #1A202C;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
         }
+
         .dark-mode-switch {
             width: 44px;
             height: 24px;
@@ -3020,6 +3117,7 @@
             position: relative;
             cursor: pointer;
         }
+
         .dark-mode-switch::after {
             content: "☀️";
             position: absolute;
@@ -3033,8 +3131,9 @@
             align-items: center;
             justify-content: center;
             font-size: 11px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
+
         .status-card {
             background: #F8FAFC !important;
             border: 1px solid #F1F5F9 !important;
@@ -3042,6 +3141,7 @@
             padding: 20px 16px !important;
             text-align: center;
         }
+
         .status-card h4 {
             color: #0F172A !important;
             font-weight: 700 !important;
@@ -3049,12 +3149,14 @@
             letter-spacing: 0.1em !important;
             margin-bottom: 8px !important;
         }
+
         .status-card p {
             color: #64748B !important;
             font-family: inherit !important;
             font-size: 12px !important;
             margin-bottom: 16px !important;
         }
+
         .btn-upgrade {
             background: #60A5FA !important;
             color: #FFFFFF !important;
@@ -3065,9 +3167,11 @@
             width: 100%;
             font-size: 13px !important;
         }
+
         .btn-upgrade:hover {
             background: #3B82F6 !important;
         }
+
         #nav-explain {
             color: #64748B !important;
             font-weight: 500 !important;
@@ -3128,7 +3232,7 @@
                 <span>Dark mode</span>
                 <div class="dark-mode-switch"></div>
             </div>
-            
+
             <div class="status-card">
                 <h4>HARDWARE PROFILE<br>ACTIVE</h4>
                 <p id="calibration-status">30 configurations evaluated</p>
@@ -3189,7 +3293,9 @@
                     <p id="runtime-status" class="hw-widget-note"><strong>Live chatbot ready.</strong> llama.cpp
                         endpoint connected.</p>
                     <!-- Scan bar -->
-                    <div class="hw-scan-bar" id="hw-scan-bar"><div class="hw-scan-fill" id="hw-scan-fill"></div></div>
+                    <div class="hw-scan-bar" id="hw-scan-bar">
+                        <div class="hw-scan-fill" id="hw-scan-fill"></div>
+                    </div>
                     <!-- Hardware scan button -->
                     <button class="hw-probe-btn" id="hw-probe-btn" type="button" onclick="probeHardware()">
                         <span id="hw-probe-label">Run Hardware Scan</span>
@@ -3220,13 +3326,20 @@
             <div class="app-card">
                 <div class="card-header">Methodology trace — what happens during one BOPIS run</div>
                 <div class="method-trace">
-                    <div class="method-step"><span class="num">01 · DEFINE</span><strong>Constrain</strong><span>Profile hardware and remove configurations it cannot run.</span></div>
-                    <div class="method-step"><span class="num">02 · SEED</span><strong>Observe</strong><span>Evaluate prior-weighted seed configurations on the proxy prompts.</span></div>
-                    <div class="method-step"><span class="num">03 · MODEL</span><strong>Predict</strong><span>Fit the GP surrogate and obtain energy mean μ and uncertainty σ.</span></div>
-                    <div class="method-step"><span class="num">04 · ACQUIRE</span><strong>Choose</strong><span>Use constrained Expected Improvement to select the next trial.</span></div>
-                    <div class="method-step"><span class="num">05 · DECIDE</span><strong>Compare</strong><span>Build the Pareto front, apply floors, and select x*.</span></div>
+                    <div class="method-step"><span class="num">01 · DEFINE</span><strong>Constrain</strong><span>Profile
+                            hardware and remove configurations it cannot run.</span></div>
+                    <div class="method-step"><span class="num">02 · SEED</span><strong>Observe</strong><span>Evaluate
+                            prior-weighted seed configurations on the proxy prompts.</span></div>
+                    <div class="method-step"><span class="num">03 · MODEL</span><strong>Predict</strong><span>Fit the GP
+                            surrogate and obtain energy mean μ and uncertainty σ.</span></div>
+                    <div class="method-step"><span class="num">04 · ACQUIRE</span><strong>Choose</strong><span>Use
+                            constrained Expected Improvement to select the next trial.</span></div>
+                    <div class="method-step"><span class="num">05 · DECIDE</span><strong>Compare</strong><span>Build the
+                            Pareto front, apply floors, and select x*.</span></div>
                 </div>
-                <div class="method-note"><strong>How to demo:</strong> click <b>Replay search</b> after loading a run. The search log follows this trace: seeds first, then GP-guided acquisition, evaluation, update, and Pareto status.</div>
+                <div class="method-note"><strong>How to demo:</strong> click <b>Replay search</b> after loading a run.
+                    The search log follows this trace: seeds first, then GP-guided acquisition, evaluation, update, and
+                    Pareto status.</div>
             </div>
 
             <!-- Research split view: evidence/analysis on the left, the chart and
@@ -3250,14 +3363,16 @@
                                 title="Slowly rotates the trade-off surface so the three objectives can be read from every angle.">
                                 &#8635; Auto-rotate
                             </button>
-                            <button class="chart-btn chart-btn-primary" id="study-btn" type="button" onclick="toggleStudyPanel()">&#9654; New study</button>
+                            <button class="chart-btn chart-btn-primary" id="study-btn" type="button"
+                                onclick="toggleStudyPanel()">&#9654; New study</button>
                             <span id="live-label" class="replay-readout"></span>
                             <span class="replay-readout" id="replay-readout">showing all evaluations</span>
                         </div>
                         <div class="chart-run-controls">
                             <span class="mode-toggle" role="group" aria-label="Run data source">
                                 <button id="mode-live" onclick="setDataMode('live')"
-                                    title="Follow the newest run as it happens."><span class="live-dot"></span>Follow latest</button>
+                                    title="Follow the newest run as it happens."><span class="live-dot"></span>Follow
+                                    latest</button>
                                 <button id="mode-manual" onclick="setDataMode('manual')"
                                     title="Keep the run you loaded until you choose another.">Choose a run</button>
                             </span>
@@ -3275,16 +3390,19 @@
                                 </label>
                                 <label title="Number of configurations tested by BOPIS and Random Search.">Evaluations
                                     <input id="study-iterations" type="number" min="4" max="60" value="30"></label>
-                                <label title="Prompts reused for every configuration during the fast search loop.">Proxy prompts
+                                <label title="Prompts reused for every configuration during the fast search loop.">Proxy
+                                    prompts
                                     <input id="study-proxy" type="number" min="8" max="100" value="20"></label>
                                 <button class="btn-action" onclick="startStudy()">Start in terminal</button>
                                 <button class="btn-action" onclick="stopStudy()">Stop</button>
                             </div>
-                            <div id="study-note" class="chart-study-note">The study runs through the Python bridge. Keep <code>python -m bopis ui</code> open to see its terminal logs.</div>
+                            <div id="study-note" class="chart-study-note">The study runs through the Python bridge. Keep
+                                <code>python -m bopis ui</code> open to see its terminal logs.</div>
                         </div>
                         <div id="dashboard-status" class="note info chart-status">Loading generated run data...</div>
                         <div class="chart-container pareto-viewport">
-                            <canvas id="pareto" width="1100" height="520" style="max-width:100%; cursor:crosshair"></canvas>
+                            <canvas id="pareto" width="1100" height="520"
+                                style="max-width:100%; cursor:crosshair"></canvas>
                             <span class="pareto-hint">Drag to rotate · wheel to zoom</span>
                             <div id="pareto-tooltip" style="
                                 display:none; position:absolute; pointer-events:none;
@@ -3319,7 +3437,8 @@
                                 <label class="pareto-control-button"
                                     style="cursor:pointer; display:inline-flex; gap:6px; align-items:center;"
                                     title="Label every point with its evaluation number and configuration">
-                                    <input type="checkbox" id="show-labels" onchange="drawPareto3D()" style="margin:0" checked>
+                                    <input type="checkbox" id="show-labels" onchange="drawPareto3D()" style="margin:0"
+                                        checked>
                                     Labels
                                 </label>
                                 <label class="pareto-control-button"
@@ -3354,7 +3473,8 @@
                                 <span>Pareto numeric readout</span>
                                 <span class="pareto-readout-note">sorted by energy · click a row to inspect</span>
                             </div>
-                            <div class="pareto-key-metrics" id="pareto-key-metrics" aria-label="Selected configuration key metrics">
+                            <div class="pareto-key-metrics" id="pareto-key-metrics"
+                                aria-label="Selected configuration key metrics">
                                 <div class="pareto-key-metric is-primary">
                                     <span class="metric-label">Selected energy</span>
                                     <span class="metric-value">—</span>
@@ -3392,7 +3512,10 @@
                                         </tr>
                                     </thead>
                                     <tbody id="pareto-readout-body">
-                                        <tr><td colspan="9" style="text-align:left;color:#718096;">Load a run to see exact values.</td></tr>
+                                        <tr>
+                                            <td colspan="9" style="text-align:left;color:#718096;">Load a run to see
+                                                exact values.</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -3404,10 +3527,11 @@
                         </details>
                         <details class="rs-readout" id="rs-readout" style="margin-top:10px; font-size:12px;">
                             <summary style="cursor:pointer; font-weight:600; color:#2D3748; padding: 4px 0;">
-                                Random Search Baseline Performance (SQ1)
+                                Random Search
                             </summary>
                             <div class="pareto-readout" style="margin-top:6px; border-radius: 6px;">
-                                <div class="pareto-key-metrics" id="rs-key-metrics" aria-label="Random Search key metrics">
+                                <div class="pareto-key-metrics" id="rs-key-metrics"
+                                    aria-label="Random Search key metrics">
                                     <div class="pareto-key-metric is-primary">
                                         <span class="metric-label">RS selected energy</span>
                                         <span class="metric-value">—</span>
@@ -3431,29 +3555,34 @@
                                 </div>
                                 <div class="pareto-readout-scroll">
                                     <table aria-label="Random Search numeric readout">
-                                    <thead>
-                                        <tr>
-                                            <th>Configuration</th>
-                                            <th>Energy (J) ↓</th>
-                                            <th>Speed (tok/s) ↑</th>
-                                            <th>Quality (F1) ↑</th>
-                                            <th>Iteration</th>
-                                            <th>CPU</th>
-                                            <th>GPU</th>
-                                            <th>RAM</th>
-                                            <th>VRAM</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="rs-readout-body">
-                                        <tr><td colspan="9" style="text-align:left;color:#718096;padding: 8px 12px;">Load a run to see RS values.</td></tr>
-                                    </tbody>
-                                </table>
+                                        <thead>
+                                            <tr>
+                                                <th>Configuration</th>
+                                                <th>Energy (J) ↓</th>
+                                                <th>Speed (tok/s) ↑</th>
+                                                <th>Quality (F1) ↑</th>
+                                                <th>Iteration</th>
+                                                <th>CPU</th>
+                                                <th>GPU</th>
+                                                <th>RAM</th>
+                                                <th>VRAM</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rs-readout-body">
+                                            <tr>
+                                                <td colspan="9"
+                                                    style="text-align:left;color:#718096;padding: 8px 12px;">Load a run
+                                                    to see RS values.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </details>
                         <div class="card-subtext" style="margin-top:8px; font-size:12px; color:#718096;">💡
                             <strong>x★</strong> is the <em>knee of the curve</em> — lowest energy that still clears
-                            quality &amp; speed floors. Drag to rotate · wheel to zoom.</div>
+                            quality &amp; speed floors. Drag to rotate · wheel to zoom.
+                        </div>
 
                         <!-- The search log shares the chart's replay clock. -->
                         <!-- <div class="search-log" id="search-log">
@@ -3474,9 +3603,11 @@
                     </div>
 
                     <div class="app-card">
-                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="card-header"
+                            style="display:flex; justify-content:space-between; align-items:center;">
                             Search convergence — best energy found so far
-                            <button class="dolly-btn" type="button" style="padding: 2px 8px; font-size: 11px;" onclick="toggleGPDemo()">Interactive GP Demo</button>
+                            <button class="dolly-btn" type="button" style="padding: 2px 8px; font-size: 11px;"
+                                onclick="toggleGPDemo()">Interactive GP Demo</button>
                         </div>
                         <div id="convergence-actual-wrapper">
                             <div class="chart-container" style="padding:8px">
@@ -3491,39 +3622,91 @@
                             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
                                 <button id="gp-b1" class="dolly-btn" style="padding:4px 8px">Next iteration</button>
                                 <button id="gp-b50" class="dolly-btn" style="padding:4px 8px">Run 50</button>
-                                <button id="gp-br" class="dolly-btn" style="padding:4px 8px; background:transparent; color:#3182CE; border:1px solid #3182CE">Reset</button>
-                                <label style="font-size:12px;color:#718096;display:flex;gap:6px;align-items:center;margin-left:auto"><input type="checkbox" id="gp-tr">Reveal true curve</label>
+                                <button id="gp-br" class="dolly-btn"
+                                    style="padding:4px 8px; background:transparent; color:#3182CE; border:1px solid #3182CE">Reset</button>
+                                <label
+                                    style="font-size:12px;color:#718096;display:flex;gap:6px;align-items:center;margin-left:auto"><input
+                                        type="checkbox" id="gp-tr">Reveal true curve</label>
                             </div>
-                            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#718096;margin:4px 0 12px">
-                                <span title="Approximates unknown energy function from observations"><span style="color:#38A169">■</span> GP Surrogate: Mean μ(x) & Uncertainty σ²(x)</span>
-                                <span title="Observed configuration-energy pairs D_n"><span style="color:#276749">●</span> Evaluated configurations Dₙ</span>
-                                <span title="Best energy value observed so far"><span style="color:#D69E2E">●</span> Best observed f(x⁺)</span>
-                                <span title="Balances exploration of uncertain regions and exploitation"><span style="color:#3182CE">■</span> Acquisition Function: Expected Improvement EI(x)</span>
+                            <div
+                                style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#718096;margin:4px 0 12px">
+                                <span title="Approximates unknown energy function from observations"><span
+                                        style="color:#38A169">■</span> GP Surrogate: Mean μ(x) & Uncertainty
+                                    σ²(x)</span>
+                                <span title="Observed configuration-energy pairs D_n"><span
+                                        style="color:#276749">●</span> Evaluated configurations Dₙ</span>
+                                <span title="Best energy value observed so far"><span style="color:#D69E2E">●</span>
+                                    Best observed f(x⁺)</span>
+                                <span title="Balances exploration of uncertain regions and exploitation"><span
+                                        style="color:#3182CE">■</span> Acquisition Function: Expected Improvement
+                                    EI(x)</span>
                             </div>
-                            <svg id="gp-demo-svg" width="100%" viewBox="0 0 680 420" role="img"><title>Bayesian optimization demo</title></svg>
+                            <svg id="gp-demo-svg" width="100%" viewBox="0 0 680 420" role="img">
+                                <title>Bayesian optimization demo</title>
+                            </svg>
                             <style>
-                                .hover-math { position: relative; cursor: help; padding: 0 2px; }
+                                .hover-math {
+                                    position: relative;
+                                    cursor: help;
+                                    padding: 0 2px;
+                                }
+
                                 .hover-math::after {
-                                    content: attr(data-title); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-                                    background: #2D3748; color: #fff; padding: 5px 8px; border-radius: 4px; font-size: 11px; font-family: sans-serif;
-                                    white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 100; margin-bottom: 4px;
+                                    content: attr(data-title);
+                                    position: absolute;
+                                    bottom: 100%;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    background: #2D3748;
+                                    color: #fff;
+                                    padding: 5px 8px;
+                                    border-radius: 4px;
+                                    font-size: 11px;
+                                    font-family: sans-serif;
+                                    white-space: nowrap;
+                                    opacity: 0;
+                                    pointer-events: none;
+                                    transition: opacity 0.15s;
+                                    z-index: 100;
+                                    margin-bottom: 4px;
                                 }
+
                                 .hover-math::before {
-                                    content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-                                    border-width: 4px; border-style: solid; border-color: #2D3748 transparent transparent transparent;
-                                    opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 100;
+                                    content: '';
+                                    position: absolute;
+                                    bottom: 100%;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    border-width: 4px;
+                                    border-style: solid;
+                                    border-color: #2D3748 transparent transparent transparent;
+                                    opacity: 0;
+                                    pointer-events: none;
+                                    transition: opacity 0.15s;
+                                    z-index: 100;
                                 }
-                                .hover-math:hover::after, .hover-math:hover::before { opacity: 1; }
+
+                                .hover-math:hover::after,
+                                .hover-math:hover::before {
+                                    opacity: 1;
+                                }
                             </style>
-                            <div style="font-size:12px; color:#718096; display:flex; align-items:center; gap:4px; font-family:sans-serif; margin-bottom:8px; padding:8px 10px; background:#F7FAFC; border-radius:4px; border:1px solid #E2E8F0;">
-                                <strong>Expected Improvement Formula:</strong> 
+                            <div
+                                style="font-size:12px; color:#718096; display:flex; align-items:center; gap:4px; font-family:sans-serif; margin-bottom:8px; padding:8px 10px; background:#F7FAFC; border-radius:4px; border:1px solid #E2E8F0;">
+                                <strong>Expected Improvement Formula:</strong>
                                 EI(x) = (
-                                <span class="hover-math" style="color:#38A169; border-bottom:1px dashed #38A169;" data-title="μ(x): Predicted Mean. Higher is better (Exploitation).">μ(x)</span> - 
-                                <span class="hover-math" style="color:#D69E2E; border-bottom:1px dashed #D69E2E;" data-title="f(x⁺): Best energy score observed so far.">f(x⁺)</span>
+                                <span class="hover-math" style="color:#38A169; border-bottom:1px dashed #38A169;"
+                                    data-title="μ(x): Predicted Mean. Higher is better (Exploitation).">μ(x)</span> -
+                                <span class="hover-math" style="color:#D69E2E; border-bottom:1px dashed #D69E2E;"
+                                    data-title="f(x⁺): Best energy score observed so far.">f(x⁺)</span>
                                 )
-                                <span class="hover-math" style="color:#3182CE; border-bottom:1px dashed #3182CE;" data-title="Φ(Z): Cumulative Distribution Function (Probability of improving).">Φ(Z)</span> + 
-                                <span class="hover-math" style="color:#48BB78; border-bottom:1px dashed #48BB78;" data-title="σ(x): Predicted Uncertainty. Wider is better (Exploration).">σ(x)</span>
-                                <span class="hover-math" style="color:#3182CE; border-bottom:1px dashed #3182CE;" data-title="φ(Z): Probability Density Function (Magnitude of improvement).">φ(Z)</span>
+                                <span class="hover-math" style="color:#3182CE; border-bottom:1px dashed #3182CE;"
+                                    data-title="Φ(Z): Cumulative Distribution Function (Probability of improving).">Φ(Z)</span>
+                                +
+                                <span class="hover-math" style="color:#48BB78; border-bottom:1px dashed #48BB78;"
+                                    data-title="σ(x): Predicted Uncertainty. Wider is better (Exploration).">σ(x)</span>
+                                <span class="hover-math" style="color:#3182CE; border-bottom:1px dashed #3182CE;"
+                                    data-title="φ(Z): Probability Density Function (Magnitude of improvement).">φ(Z)</span>
                             </div>
                             <div id="gp-demo-info" style="font-size:12px;color:#4A5568;line-height:1.6"></div>
                         </div>
@@ -3571,10 +3754,13 @@
         <div id="panel-cfg" class="panel">
             <div class="page-header">
                 <h1 class="page-title">System & Configurations</h1>
-                <h2 class="page-subtitle">Hardware profile, energy constraints, and the feasible configuration space.</h2>
+                <h2 class="page-subtitle">Hardware profile, energy constraints, and the feasible configuration space.
+                </h2>
             </div>
 
-            <h3 style="font-size:18px; color:#2D3748; margin: 24px 0 16px 0; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px;">System Settings</h3>
+            <h3
+                style="font-size:18px; color:#2D3748; margin: 24px 0 16px 0; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px;">
+                System Settings</h3>
             <div class="cards-grid">
                 <div class="app-card">
                     <div class="card-header">Hardware Profile (Read-only)</div>
@@ -3691,7 +3877,9 @@
             </div> <!-- End cards-grid -->
 
             <!-- Inserted from Configurations -->
-            <h3 style="font-size:18px; color:#2D3748; margin: 32px 0 16px 0; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px;">Configurations</h3>
+            <h3
+                style="font-size:18px; color:#2D3748; margin: 32px 0 16px 0; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px;">
+                Configurations</h3>
             <div class="app-card" style="margin-top:16px;">
                 <div class="card-header">From every possible configuration to x*</div>
                 <div id="cfg-funnel" style="font-size:13px;">Profile unavailable &mdash; run
@@ -4353,7 +4541,7 @@
             const qualityWilcox = safeStat(stats, 'quality');
 
             const getMean = (varName, cond) => {
-                if(desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
+                if (desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
                 return 0;
             };
 
@@ -4789,11 +4977,11 @@
                         year: 'numeric', month: 'short', day: 'numeric',
                         hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
                     }).format(date);
-                } catch(e) { phTime = profile.generated_utc; }
+                } catch (e) { phTime = profile.generated_utc; }
             }
-            
+
             setSummary('timestamp', phTime);
-            
+
             const timestamp = document.getElementById('profile-timestamp');
             if (timestamp) timestamp.textContent = `Live profile generated: ${phTime} (PH Time). Refresh with bopis profile --write-js.`;
             const note = document.getElementById('space-note');
@@ -5018,7 +5206,7 @@
                 setTimeout(() => {
                     row.classList.remove('probe-hidden');
                     row.classList.add('probe-reveal');
-                    
+
                     // Reveal the real value
                     const strong = row.querySelector('strong[data-summary]');
                     if (strong && strong.dataset.realValue) {
@@ -6345,7 +6533,7 @@
             area.appendChild(pending);
             scrollToBottom();
             const wallStart = performance.now();
-            
+
             const liveUtilTimer = setInterval(async () => {
                 try {
                     const viaBridge = Boolean(BRIDGE);
@@ -6361,7 +6549,7 @@
                     document.getElementById('live-gpu-val').textContent = data.gpu.toFixed(0) + '%';
                     document.getElementById('live-vram-val').textContent = data.gpu_ram.toFixed(0) + '%';
                     document.getElementById('live-gpu-bar').style.width = data.gpu + '%';
-                } catch(e) {}
+                } catch (e) { }
             }, 300);
 
             try {
@@ -6972,15 +7160,15 @@
             const body = document.getElementById('rs-readout-body');
             const metrics = document.getElementById('rs-key-metrics');
             if (!body) return;
-            
+
             const rsSelectedKey = RUN_DATA && RUN_DATA.random_search_selection ? RUN_DATA.random_search_selection.config_key : null;
-            
+
             const rsPoints = (points || []).map(point => ({
                 energy: Number(point.energy_j), speed: Number(point.tokens_per_s), quality: Number(point.quality_f1),
                 front: false, selected: (point.config === rsSelectedKey), label: point.label, config: point.config,
                 precision: point.precision, iteration: point.iteration, arm: 'random'
             })).filter(point => [point.energy, point.speed, point.quality].every(Number.isFinite))
-            .sort((a, b) => a.energy - b.energy);
+                .sort((a, b) => a.energy - b.energy);
 
             rsPoints.forEach(point => {
                 if (point.cpu_percent == null && point.config) {
@@ -7014,7 +7202,7 @@
                     [selected.quality.toFixed(4), 'BERTScore F1'],
                     [selected.iteration == null ? '-' : String(selected.iteration), 'search evaluation']
                 ] : [['-', 'joules / prompt'], ['-', 'tokens / second'], ['-', 'BERTScore F1'], ['-', 'search evaluation']];
-                
+
                 metrics.innerHTML = values.map((entry, index) => `
                     <div class="pareto-key-metric${index === 0 ? ' is-primary' : ''}">
                         <span class="metric-label">${['RS selected energy', 'RS selected speed', 'RS selected quality', 'RS selected iteration'][index]}</span>
@@ -7381,8 +7569,8 @@
                 const p = hit.item.point;
                 const badge = p.selected ? '<span style="color:#68D391;font-weight:700">x* &#9733; BOPIS pick</span>'
                     : p.reference ? '<span style="color:#FC8181;font-weight:700">&#9679; default</span>'
-                    : p.arm === 'random' ? '<span style="color:#F6AD55">random search</span>'
-                    : p.front ? '<span style="color:#63B3ED">pareto front</span>' : '';
+                        : p.arm === 'random' ? '<span style="color:#F6AD55">random search</span>'
+                            : p.front ? '<span style="color:#63B3ED">pareto front</span>' : '';
                 const key = p.label || p.config || '';
                 tooltip.innerHTML = [
                     badge ? `<div style="margin-bottom:5px">${badge}</div>` : '',
@@ -7447,11 +7635,11 @@
                 : point.reference ? '<span class="ps-badge ps-status">Default</span>'
                     : point.arm === 'random' ? '<span class="ps-badge ps-status">Random search</span>'
                         : point.front ? '<span class="ps-badge ps-status">On Pareto front</span>' : '';
-            
+
             const cfgName = point.label || 'Configuration';
             const prec = point.precision || 'reference';
             const iterStr = point.iteration ?? '—';
-            
+
             output.innerHTML = `
                 <div style="display:flex; flex-wrap:wrap; align-items:center;">
                     ${prefixBadge}
@@ -7751,100 +7939,109 @@
         }
         function initGPDemo() {
             gpDemoInitialized = true;
-            const f=x=>0.55*Math.sin(7*x)+0.35*Math.sin(15*x+0.5)+0.3;
-            const L=0.09,S=0.6,NZ=1e-4;
-            const kf=(a,b)=>S*S*Math.exp(-((a-b)**2)/(2*L*L));
-            let pts,it,msg;
-            function inv(M){const n=M.length;const A=M.map((r,i)=>[...r,...Array.from({length:n},(_,j)=>i==j?1:0)]);
-            for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;[A[c],A[p]]=[A[p],A[c]];const d=A[c][c];for(let j=0;j<2*n;j++)A[c][j]/=d;for(let r=0;r<n;r++)if(r!=c){const m=A[r][c];if(m)for(let j=0;j<2*n;j++)A[r][j]-=m*A[c][j];}}
-            return A.map(r=>r.slice(n));}
-            function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x));}
-            const Phi=z=>0.5*(1+erf(z/Math.SQRT2)),phi=z=>Math.exp(-z*z/2)/Math.sqrt(2*Math.PI);
-            function model(){
-            const activePts = pts.slice(-35); // Local GP approx for speed (O(N^3) cap)
-            const m=activePts.reduce((a,p)=>a+p.y,0)/activePts.length;
-            const K=activePts.map((a,i)=>activePts.map((b,j)=>kf(a.x,b.x)+(i==j?NZ:0)));
-            const Ki=inv(K);const yc=activePts.map(p=>p.y-m);
-            const al=Ki.map(r=>r.reduce((s,v,j)=>s+v*yc[j],0));
-            const best=Math.max(...pts.map(p=>p.y));const G=[];
-            for(let i=0;i<=150;i++){const x=i/150;const ks=activePts.map(p=>kf(x,p.x));
-            const mu=m+ks.reduce((s,v,j)=>s+v*al[j],0);
-            const t=Ki.map(r=>r.reduce((s,v,j)=>s+v*ks[j],0));
-            const sd=Math.sqrt(Math.max(1e-9,S*S-ks.reduce((s,v,j)=>s+v*t[j],0)));
-            const d=mu-best-0.01,z=d/sd;G.push({x,mu,sd,ei:Math.max(0,d*Phi(z)+sd*phi(z))});}
-            return{G,best};}
-            const X=x=>50+x*600,cl=v=>Math.max(20,Math.min(250,v)),Y=y=>cl(250-(y+1)/2.6*230);
-            function draw(){
-            const{G,best}=model();let nx=G[0];G.forEach(g=>{if(g.ei>nx.ei)nx=g;});
-            const em=Math.max(...G.map(g=>g.ei))||1;
-            const svg = document.getElementById('gp-demo-svg');
-            const up=G.map(g=>X(g.x)+','+Y(g.mu+2*g.sd)).join(' '),lo=G.slice().reverse().map(g=>X(g.x)+','+Y(g.mu-2*g.sd)).join(' ');
-            const meanD = G.map((g,i)=>(i?'L':'M')+X(g.x)+' '+Y(g.mu)).join('');
-            const acqPoints = '50,370 '+G.map(g=>X(g.x)+','+(370-g.ei/em*70)).join(' ')+' 650,370';
-            
-            let dotsHtml = '';
-            pts.forEach(p=>{
-                const b=p.y===best;
-                const e = p.y * (0.34 + 0.05 * Math.sin(p.x * 20));
-                const s = p.y * (0.33 + 0.05 * Math.cos(p.x * 20));
-                const q = p.y - e - s;
-                const titleStr = `Combined Score: ${p.y.toFixed(3)}&#10;Energy: ${e.toFixed(3)}&#10;Speed: ${s.toFixed(3)}&#10;Quality: ${q.toFixed(3)}`;
-                dotsHtml+='<g><title>'+titleStr+'</title><circle cx="'+X(p.x)+'" cy="'+Y(p.y)+'" r="'+(b?7:5)+'" fill="'+(b?'#D69E2E':'#276749')+'"/><text x="'+(X(p.x)+6)+'" y="'+(Y(p.y)-6)+'" font-size="10" font-weight="bold" fill="'+(b?'#B7791F':'#4A5568')+'" stroke="none">'+p.y.toFixed(2)+'</text></g>';
-            });
-
-            if (!svg.querySelector('.gp-mean-path') || document.getElementById('gp-tr').checked !== !!svg.querySelector('.gp-true-path')) {
-                let h='<title>Bayesian optimization demo</title>';
-                h+='<g stroke="#E2E8F0" stroke-width="0.5" stroke-dasharray="2 2">';
-                for(let i=0;i<=5;i++){const y=250-(i/5)*230; h+='<line x1="50" y1="'+y+'" x2="650" y2="'+y+'"/>'; h+='<text x="45" y="'+(y+4)+'" font-size="10" fill="#A0AEC0" text-anchor="end" stroke="none">'+(i*0.2).toFixed(1)+'</text>';}
-                for(let i=0;i<=10;i++){const x=50+(i/10)*600; h+='<line x1="'+x+'" y1="20" x2="'+x+'" y2="250"/>'; h+='<text x="'+x+'" y="265" font-size="10" fill="#A0AEC0" text-anchor="middle" stroke="none">'+(i*0.1).toFixed(1)+'</text>';}
-                h+='</g><line x1="50" y1="250" x2="650" y2="250" stroke="#CBD5E0" stroke-width="1"/><line x1="50" y1="20" x2="50" y2="250" stroke="#CBD5E0" stroke-width="1"/>';
-                h+='<line x1="50" y1="370" x2="650" y2="370" stroke="#CBD5E0" stroke-width="1"/>';
-                h+='<text x="50" y="14" font-size="12" fill="#718096">Combined Objective Score (Energy + Speed + Quality)</text>';
-                h+='<text x="350" y="410" font-size="12" fill="#718096" text-anchor="middle">Configuration Space X_feasible (Token Length, Batch Size, Precision, GPU Layers, CPU Threads)</text>';
-                
-                h+='<g><title>GP Uncertainty ±2σ(x): Wide in unexplored regions</title><polygon class="gp-unc-poly" points="'+up+' '+lo+'" fill="#48BB78" opacity="0.2" style="transition: all 0.6s ease-in-out;"/></g>';
-                if(document.getElementById('gp-tr').checked){let d='';for(let i=0;i<=150;i++){const x=i/150;d+=(i?'L':'M')+X(x)+' '+Y(f(x));}h+='<g class="gp-true-path"><title>True unknown function</title><path d="'+d+'" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="4 4"/></g>';}
-                h+='<g><title>GP Predicted Mean μ(x)</title><path class="gp-mean-path" d="'+meanD+'" fill="none" stroke="#38A169" stroke-width="2" style="transition: all 0.6s ease-in-out;"/></g>';
-                h+='<g><title>Acquisition Function: Maximizes EI to find next candidate</title><polygon class="gp-acq-poly" points="'+acqPoints+'" fill="#3182CE" opacity="0.3" style="transition: all 0.6s ease-in-out;"/></g>';
-                h+='<g><title>Step 3: Acquire Next Config xₙ₊₁</title><line class="gp-cand-line" x1="'+X(nx.x)+'" y1="20" x2="'+X(nx.x)+'" y2="370" stroke="#3182CE" stroke-width="1" stroke-dasharray="4 3" style="transition: all 0.6s ease-in-out;"/>';
-                h+='<text class="gp-cand-text" x="'+Math.min(X(nx.x)+6,600)+'" y="34" font-size="12" fill="#718096" style="transition: all 0.6s ease-in-out;">candidate xₙ₊₁</text></g>';
-                
-                h+='<g id="gp-dots">'+dotsHtml+'</g>';
-                svg.innerHTML=h;
-            } else {
-                svg.querySelector('.gp-unc-poly').setAttribute('points', up+' '+lo);
-                svg.querySelector('.gp-mean-path').setAttribute('d', meanD);
-                svg.querySelector('.gp-acq-poly').setAttribute('points', acqPoints);
-                svg.querySelector('.gp-cand-line').setAttribute('x1', X(nx.x));
-                svg.querySelector('.gp-cand-line').setAttribute('x2', X(nx.x));
-                svg.querySelector('.gp-cand-text').setAttribute('x', Math.min(X(nx.x)+6,600));
-                document.getElementById('gp-dots').innerHTML = dotsHtml;
+            const f = x => 0.55 * Math.sin(7 * x) + 0.35 * Math.sin(15 * x + 0.5) + 0.3;
+            const L = 0.09, S = 0.6, NZ = 1e-4;
+            const kf = (a, b) => S * S * Math.exp(-((a - b) ** 2) / (2 * L * L));
+            let pts, it, msg;
+            function inv(M) {
+                const n = M.length; const A = M.map((r, i) => [...r, ...Array.from({ length: n }, (_, j) => i == j ? 1 : 0)]);
+                for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++)if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;[A[c], A[p]] = [A[p], A[c]]; const d = A[c][c]; for (let j = 0; j < 2 * n; j++)A[c][j] /= d; for (let r = 0; r < n; r++)if (r != c) { const m = A[r][c]; if (m) for (let j = 0; j < 2 * n; j++)A[r][j] -= m * A[c][j]; } }
+                return A.map(r => r.slice(n));
             }
-            window._nx=nx.x;
-            document.getElementById('gp-demo-info').innerHTML='<strong>Evaluations |Dₙ|:</strong> '+pts.length+' &middot; <strong>Best observed f(x⁺):</strong> '+best.toFixed(3)+' &middot; <strong>Next candidate xₙ₊₁ at</strong> x = '+nx.x.toFixed(2)+'<br>'+msg;}
-            function step(){const x=window._nx,y=f(x);pts.push({x,y});it++;msg='<b>Iteration '+it+' (Steps 4 & 5):</b> Evaluated xₙ₊₁ = '+x.toFixed(2)+' yielding E(x) = '+y.toFixed(3)+'. Added to Dₙ and refit GP posterior (μₙ, σₙ²).';draw();}
-            function reset(){pts=[0.12,0.5,0.88].map(x=>({x,y:f(x)}));it=0;msg='<b>Stage 1: Task Classification completed</b> (<a href="#" onclick="document.getElementById(\'table-t1-modal\').style.display=\'block\'; return false;" style="color:#3182CE;text-decoration:underline;">View Table T1</a>)<b>. Stage 2:</b> Initialized with 3 seed configs. Fit GP surrogate (Mean μ, Uncertainty σ²) to Dₙ. Ready for Step 3 (Acquire Next Config).';draw();}
-            document.getElementById('gp-b1').onclick=step;
-            document.getElementById('gp-b50').onclick=()=>{
-                for(let i=0;i<49;i++){
-                    const x=window._nx,y=f(x); pts.push({x,y}); it++;
-                    const {G} = model();
-                    let nx=G[0];G.forEach(g=>{if(g.ei>nx.ei)nx=g;});
-                    window._nx=nx.x;
+            function erf(x) { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x); return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)); }
+            const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2)), phi = z => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
+            function model() {
+                const activePts = pts.slice(-35); // Local GP approx for speed (O(N^3) cap)
+                const m = activePts.reduce((a, p) => a + p.y, 0) / activePts.length;
+                const K = activePts.map((a, i) => activePts.map((b, j) => kf(a.x, b.x) + (i == j ? NZ : 0)));
+                const Ki = inv(K); const yc = activePts.map(p => p.y - m);
+                const al = Ki.map(r => r.reduce((s, v, j) => s + v * yc[j], 0));
+                const best = Math.max(...pts.map(p => p.y)); const G = [];
+                for (let i = 0; i <= 150; i++) {
+                    const x = i / 150; const ks = activePts.map(p => kf(x, p.x));
+                    const mu = m + ks.reduce((s, v, j) => s + v * al[j], 0);
+                    const t = Ki.map(r => r.reduce((s, v, j) => s + v * ks[j], 0));
+                    const sd = Math.sqrt(Math.max(1e-9, S * S - ks.reduce((s, v, j) => s + v * t[j], 0)));
+                    const d = mu - best - 0.01, z = d / sd; G.push({ x, mu, sd, ei: Math.max(0, d * Phi(z) + sd * phi(z)) });
+                }
+                return { G, best };
+            }
+            const X = x => 50 + x * 600, cl = v => Math.max(20, Math.min(250, v)), Y = y => cl(250 - (y + 1) / 2.6 * 230);
+            function draw() {
+                const { G, best } = model(); let nx = G[0]; G.forEach(g => { if (g.ei > nx.ei) nx = g; });
+                const em = Math.max(...G.map(g => g.ei)) || 1;
+                const svg = document.getElementById('gp-demo-svg');
+                const up = G.map(g => X(g.x) + ',' + Y(g.mu + 2 * g.sd)).join(' '), lo = G.slice().reverse().map(g => X(g.x) + ',' + Y(g.mu - 2 * g.sd)).join(' ');
+                const meanD = G.map((g, i) => (i ? 'L' : 'M') + X(g.x) + ' ' + Y(g.mu)).join('');
+                const acqPoints = '50,370 ' + G.map(g => X(g.x) + ',' + (370 - g.ei / em * 70)).join(' ') + ' 650,370';
+
+                let dotsHtml = '';
+                pts.forEach(p => {
+                    const b = p.y === best;
+                    const e = p.y * (0.34 + 0.05 * Math.sin(p.x * 20));
+                    const s = p.y * (0.33 + 0.05 * Math.cos(p.x * 20));
+                    const q = p.y - e - s;
+                    const titleStr = `Combined Score: ${p.y.toFixed(3)}&#10;Energy: ${e.toFixed(3)}&#10;Speed: ${s.toFixed(3)}&#10;Quality: ${q.toFixed(3)}`;
+                    dotsHtml += '<g><title>' + titleStr + '</title><circle cx="' + X(p.x) + '" cy="' + Y(p.y) + '" r="' + (b ? 7 : 5) + '" fill="' + (b ? '#D69E2E' : '#276749') + '"/><text x="' + (X(p.x) + 6) + '" y="' + (Y(p.y) - 6) + '" font-size="10" font-weight="bold" fill="' + (b ? '#B7791F' : '#4A5568') + '" stroke="none">' + p.y.toFixed(2) + '</text></g>';
+                });
+
+                if (!svg.querySelector('.gp-mean-path') || document.getElementById('gp-tr').checked !== !!svg.querySelector('.gp-true-path')) {
+                    let h = '<title>Bayesian optimization demo</title>';
+                    h += '<g stroke="#E2E8F0" stroke-width="0.5" stroke-dasharray="2 2">';
+                    for (let i = 0; i <= 5; i++) { const y = 250 - (i / 5) * 230; h += '<line x1="50" y1="' + y + '" x2="650" y2="' + y + '"/>'; h += '<text x="45" y="' + (y + 4) + '" font-size="10" fill="#A0AEC0" text-anchor="end" stroke="none">' + (i * 0.2).toFixed(1) + '</text>'; }
+                    for (let i = 0; i <= 10; i++) { const x = 50 + (i / 10) * 600; h += '<line x1="' + x + '" y1="20" x2="' + x + '" y2="250"/>'; h += '<text x="' + x + '" y="265" font-size="10" fill="#A0AEC0" text-anchor="middle" stroke="none">' + (i * 0.1).toFixed(1) + '</text>'; }
+                    h += '</g><line x1="50" y1="250" x2="650" y2="250" stroke="#CBD5E0" stroke-width="1"/><line x1="50" y1="20" x2="50" y2="250" stroke="#CBD5E0" stroke-width="1"/>';
+                    h += '<line x1="50" y1="370" x2="650" y2="370" stroke="#CBD5E0" stroke-width="1"/>';
+                    h += '<text x="50" y="14" font-size="12" fill="#718096">Combined Objective Score (Energy + Speed + Quality)</text>';
+                    h += '<text x="350" y="410" font-size="12" fill="#718096" text-anchor="middle">Configuration Space X_feasible (Token Length, Batch Size, Precision, GPU Layers, CPU Threads)</text>';
+
+                    h += '<g><title>GP Uncertainty ±2σ(x): Wide in unexplored regions</title><polygon class="gp-unc-poly" points="' + up + ' ' + lo + '" fill="#48BB78" opacity="0.2" style="transition: all 0.6s ease-in-out;"/></g>';
+                    if (document.getElementById('gp-tr').checked) { let d = ''; for (let i = 0; i <= 150; i++) { const x = i / 150; d += (i ? 'L' : 'M') + X(x) + ' ' + Y(f(x)); } h += '<g class="gp-true-path"><title>True unknown function</title><path d="' + d + '" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="4 4"/></g>'; }
+                    h += '<g><title>GP Predicted Mean μ(x)</title><path class="gp-mean-path" d="' + meanD + '" fill="none" stroke="#38A169" stroke-width="2" style="transition: all 0.6s ease-in-out;"/></g>';
+                    h += '<g><title>Acquisition Function: Maximizes EI to find next candidate</title><polygon class="gp-acq-poly" points="' + acqPoints + '" fill="#3182CE" opacity="0.3" style="transition: all 0.6s ease-in-out;"/></g>';
+                    h += '<g><title>Step 3: Acquire Next Config xₙ₊₁</title><line class="gp-cand-line" x1="' + X(nx.x) + '" y1="20" x2="' + X(nx.x) + '" y2="370" stroke="#3182CE" stroke-width="1" stroke-dasharray="4 3" style="transition: all 0.6s ease-in-out;"/>';
+                    h += '<text class="gp-cand-text" x="' + Math.min(X(nx.x) + 6, 600) + '" y="34" font-size="12" fill="#718096" style="transition: all 0.6s ease-in-out;">candidate xₙ₊₁</text></g>';
+
+                    h += '<g id="gp-dots">' + dotsHtml + '</g>';
+                    svg.innerHTML = h;
+                } else {
+                    svg.querySelector('.gp-unc-poly').setAttribute('points', up + ' ' + lo);
+                    svg.querySelector('.gp-mean-path').setAttribute('d', meanD);
+                    svg.querySelector('.gp-acq-poly').setAttribute('points', acqPoints);
+                    svg.querySelector('.gp-cand-line').setAttribute('x1', X(nx.x));
+                    svg.querySelector('.gp-cand-line').setAttribute('x2', X(nx.x));
+                    svg.querySelector('.gp-cand-text').setAttribute('x', Math.min(X(nx.x) + 6, 600));
+                    document.getElementById('gp-dots').innerHTML = dotsHtml;
+                }
+                window._nx = nx.x;
+                document.getElementById('gp-demo-info').innerHTML = '<strong>Evaluations |Dₙ|:</strong> ' + pts.length + ' &middot; <strong>Best observed f(x⁺):</strong> ' + best.toFixed(3) + ' &middot; <strong>Next candidate xₙ₊₁ at</strong> x = ' + nx.x.toFixed(2) + '<br>' + msg;
+            }
+            function step() { const x = window._nx, y = f(x); pts.push({ x, y }); it++; msg = '<b>Iteration ' + it + ' (Steps 4 & 5):</b> Evaluated xₙ₊₁ = ' + x.toFixed(2) + ' yielding E(x) = ' + y.toFixed(3) + '. Added to Dₙ and refit GP posterior (μₙ, σₙ²).'; draw(); }
+            function reset() { pts = [0.12, 0.5, 0.88].map(x => ({ x, y: f(x) })); it = 0; msg = '<b>Stage 1: Task Classification completed</b> (<a href="#" onclick="document.getElementById(\'table-t1-modal\').style.display=\'block\'; return false;" style="color:#3182CE;text-decoration:underline;">View Table T1</a>)<b>. Stage 2:</b> Initialized with 3 seed configs. Fit GP surrogate (Mean μ, Uncertainty σ²) to Dₙ. Ready for Step 3 (Acquire Next Config).'; draw(); }
+            document.getElementById('gp-b1').onclick = step;
+            document.getElementById('gp-b50').onclick = () => {
+                for (let i = 0; i < 49; i++) {
+                    const x = window._nx, y = f(x); pts.push({ x, y }); it++;
+                    const { G } = model();
+                    let nx = G[0]; G.forEach(g => { if (g.ei > nx.ei) nx = g; });
+                    window._nx = nx.x;
                 }
                 step(); // Does the 50th step and draws once at the end
             };
-            document.getElementById('gp-br').onclick=reset;
-            document.getElementById('gp-tr').onchange=draw;
+            document.getElementById('gp-br').onclick = reset;
+            document.getElementById('gp-tr').onchange = draw;
             reset();
         }
     </script>
 
     <!-- Table T1 Modal -->
-    <div id="table-t1-modal" class="panel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.3); max-width: 800px; width: 90%; padding: 20px; background:#fff; border-radius:10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">
+    <div id="table-t1-modal" class="panel"
+        style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.3); max-width: 800px; width: 90%; padding: 20px; background:#fff; border-radius:10px;">
+        <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">
             <h3 style="margin:0; font-size:15px; color:#2D3748;">Table T1. Task-Informed Prior Distribution</h3>
-            <button onclick="document.getElementById('table-t1-modal').style.display='none'" style="cursor:pointer; background:none; border:none; font-size:22px; line-height:1; padding:0; color:#A0AEC0;">&times;</button>
+            <button onclick="document.getElementById('table-t1-modal').style.display='none'"
+                style="cursor:pointer; background:none; border:none; font-size:22px; line-height:1; padding:0; color:#A0AEC0;">&times;</button>
         </div>
         <table class="explain-table" style="width:100%; text-align:center;">
             <thead>
@@ -7859,17 +8056,82 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td style="text-align:left;">Open QA</td><td><b>Low</b></td><td>0.53</td><td>0.235</td><td>0.235</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
-                <tr><td style="text-align:left;">Closed QA</td><td><b>High</b></td><td>0.69</td><td>0.233</td><td>0.077</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
-                <tr><td style="text-align:left;">Summarization</td><td><b>Low</b></td><td>0.47</td><td>0.265</td><td>0.265</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
-                <tr><td style="text-align:left;">Classification</td><td><b>Low</b></td><td>0.39</td><td>0.305</td><td>0.305</td><td>P(Q8_0)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
-                <tr><td style="text-align:left;">Creative Writing</td><td><b>Low</b></td><td>0.53</td><td>0.235</td><td>0.235</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
-                <tr><td style="text-align:left;">Brainstorming</td><td><b>Low</b></td><td>0.39</td><td>0.305</td><td>0.305</td><td>P(Q8_0)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
-                <tr><td style="text-align:left;">Info Extraction</td><td><b>High</b></td><td>0.69</td><td>0.233</td><td>0.077</td><td>P(F16)</td><td style="text-align:right;">Lee et al. (2025)</td></tr>
-                <tr><td style="text-align:left;">General Instr.</td><td><b>Medium</b></td><td>0.56</td><td>0.264</td><td>0.176</td><td>P(F16)</td><td style="text-align:right;">Shi et al. (2025)</td></tr>
+                <tr>
+                    <td style="text-align:left;">Open QA</td>
+                    <td><b>Low</b></td>
+                    <td>0.53</td>
+                    <td>0.235</td>
+                    <td>0.235</td>
+                    <td>P(F16)</td>
+                    <td style="text-align:right;">Lee et al. (2025)</td>
+                </tr>
+                <tr>
+                    <td style="text-align:left;">Closed QA</td>
+                    <td><b>High</b></td>
+                    <td>0.69</td>
+                    <td>0.233</td>
+                    <td>0.077</td>
+                    <td>P(F16)</td>
+                    <td style="text-align:right;">Lee et al. (2025)</td>
+                </tr>
+                <tr>
+                    <td style="text-align:left;">Summarization</td>
+                    <td><b>Low</b></td>
+                    <td>0.47</td>
+                    <td>0.265</td>
+                    <td>0.265</td>
+                    <td>P(F16)</td>
+                    <td style="text-align:right;">Lee et al. (2025)</td>
+                </tr>
+                <tr>
+                    <td style="text-align:left;">Classification</td>
+                    <td><b>Low</b></td>
+                    <td>0.39</td>
+                    <td>0.305</td>
+                    <td>0.305</td>
+                    <td>P(Q8_0)</td>
+                    <td style="text-align:right;">Lee et al. (2025)</td>
+                </tr>
+                <tr>
+                    <td style="text-align:left;">Creative Writing</td>
+                    <td><b>Low</b></td>
+                    <td>0.53</td>
+                    <td>0.235</td>
+                    <td>0.235</td>
+                    <td>P(F16)</td>
+                    <td style="text-align:right;">Lee et al. (2025)</td>
+                </tr>
+                <tr>
+                    <td style="text-align:left;">Brainstorming</td>
+                    <td><b>Low</b></td>
+                    <td>0.39</td>
+                    <td>0.305</td>
+                    <td>0.305</td>
+                    <td>P(Q8_0)</td>
+                    <td style="text-align:right;">Lee et al. (2025)</td>
+                </tr>
+                <tr>
+                    <td style="text-align:left;">Info Extraction</td>
+                    <td><b>High</b></td>
+                    <td>0.69</td>
+                    <td>0.233</td>
+                    <td>0.077</td>
+                    <td>P(F16)</td>
+                    <td style="text-align:right;">Lee et al. (2025)</td>
+                </tr>
+                <tr>
+                    <td style="text-align:left;">General Instr.</td>
+                    <td><b>Medium</b></td>
+                    <td>0.56</td>
+                    <td>0.264</td>
+                    <td>0.176</td>
+                    <td>P(F16)</td>
+                    <td style="text-align:right;">Shi et al. (2025)</td>
+                </tr>
             </tbody>
         </table>
-        <p style="font-size:11px; color:#718096; margin-top:10px; text-align:center;">Values dictate the seed configuration draw probabilities prior to the Bayesian surrogate fitting.</p>
+        <p style="font-size:11px; color:#718096; margin-top:10px; text-align:center;">Values dictate the seed
+            configuration draw probabilities prior to the Bayesian surrogate fitting.</p>
     </div>
 </body>
 
