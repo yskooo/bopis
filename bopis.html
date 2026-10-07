@@ -3407,6 +3407,28 @@
                                 Random Search Baseline Performance (SQ1)
                             </summary>
                             <div class="pareto-readout" style="margin-top:6px; border-radius: 6px;">
+                                <div class="pareto-key-metrics" id="rs-key-metrics" aria-label="Random Search key metrics">
+                                    <div class="pareto-key-metric is-primary">
+                                        <span class="metric-label">RS selected energy</span>
+                                        <span class="metric-value">—</span>
+                                        <span class="metric-unit">joules / prompt</span>
+                                    </div>
+                                    <div class="pareto-key-metric">
+                                        <span class="metric-label">RS selected speed</span>
+                                        <span class="metric-value">—</span>
+                                        <span class="metric-unit">tokens / second</span>
+                                    </div>
+                                    <div class="pareto-key-metric">
+                                        <span class="metric-label">RS selected quality</span>
+                                        <span class="metric-value">—</span>
+                                        <span class="metric-unit">BERTScore F1</span>
+                                    </div>
+                                    <div class="pareto-key-metric">
+                                        <span class="metric-label">RS selected iteration</span>
+                                        <span class="metric-value">—</span>
+                                        <span class="metric-unit">search evaluation</span>
+                                    </div>
+                                </div>
                                 <div class="pareto-readout-scroll">
                                     <table aria-label="Random Search numeric readout">
                                     <thead>
@@ -6931,10 +6953,14 @@
 
         function renderRsReadout(points) {
             const body = document.getElementById('rs-readout-body');
+            const metrics = document.getElementById('rs-key-metrics');
             if (!body) return;
+            
+            const rsSelectedKey = RUN_DATA && RUN_DATA.random_search_selection ? RUN_DATA.random_search_selection.config_key : null;
+            
             const rsPoints = (points || []).map(point => ({
                 energy: Number(point.energy_j), speed: Number(point.tokens_per_s), quality: Number(point.quality_f1),
-                front: false, selected: false, label: point.label, config: point.config,
+                front: false, selected: (point.config === rsSelectedKey), label: point.label, config: point.config,
                 precision: point.precision, iteration: point.iteration, arm: 'random'
             })).filter(point => [point.energy, point.speed, point.quality].every(Number.isFinite))
             .sort((a, b) => a.energy - b.energy);
@@ -6953,13 +6979,39 @@
 
             if (!rsPoints.length) {
                 body.innerHTML = `<tr><td colspan="9" style="text-align:left;color:#718096;padding:8px 12px;">No random search data found for this run.</td></tr>`;
+                if (metrics) {
+                    metrics.innerHTML = `
+                        <div class="pareto-key-metric is-primary"><span class="metric-label">RS selected energy</span><span class="metric-value">—</span><span class="metric-unit">joules / prompt</span></div>
+                        <div class="pareto-key-metric"><span class="metric-label">RS selected speed</span><span class="metric-value">—</span><span class="metric-unit">tokens / second</span></div>
+                        <div class="pareto-key-metric"><span class="metric-label">RS selected quality</span><span class="metric-value">—</span><span class="metric-unit">BERTScore F1</span></div>
+                        <div class="pareto-key-metric"><span class="metric-label">RS selected iteration</span><span class="metric-value">—</span><span class="metric-unit">search evaluation</span></div>`;
+                }
                 return;
             }
 
+            const selected = rsPoints.find(p => p.selected);
+            if (metrics) {
+                const values = selected ? [
+                    [selected.energy.toFixed(2), 'joules / prompt'],
+                    [selected.speed.toFixed(2), 'tokens / second'],
+                    [selected.quality.toFixed(4), 'BERTScore F1'],
+                    [selected.iteration == null ? '-' : String(selected.iteration), 'search evaluation']
+                ] : [['-', 'joules / prompt'], ['-', 'tokens / second'], ['-', 'BERTScore F1'], ['-', 'search evaluation']];
+                
+                metrics.innerHTML = values.map((entry, index) => `
+                    <div class="pareto-key-metric${index === 0 ? ' is-primary' : ''}">
+                        <span class="metric-label">${['RS selected energy', 'RS selected speed', 'RS selected quality', 'RS selected iteration'][index]}</span>
+                        <span class="metric-value">${escapeHtml(entry[0])}</span>
+                        <span class="metric-unit">${entry[1]}</span>
+                    </div>`).join('');
+            }
+
             const rows = rsPoints.map(point => {
-                return `<tr onclick="inspectParetoRow('${encodeURIComponent(point.config)}')">
-                    <td>${escapeHtml(pointLabel(point))}</td>
-                    <td class="metric-number metric-energy">${point.energy.toFixed(2)}</td>
+                const badges = point.selected ? '<span class="xstar-badge" style="background:#718096; margin-left:8px;">RS Pick</span>' : '';
+                const cls = point.selected ? 'hl' : '';
+                return `<tr class="${cls}" onclick="inspectParetoRow('${encodeURIComponent(point.config)}')">
+                    <td style="text-align:left;"><code>${escapeHtml(pointLabel(point))}</code> ${badges}</td>
+                    <td class="metric-number metric-energy" style="${point.selected ? 'font-weight:700;' : ''}">${point.energy.toFixed(2)}</td>
                     <td class="metric-number metric-speed">${point.speed.toFixed(2)}</td>
                     <td class="metric-number metric-quality">${point.quality.toFixed(4)}</td>
                     <td class="metric-number">${point.iteration == null ? '—' : point.iteration}</td>
