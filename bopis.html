@@ -3322,14 +3322,13 @@
                                 <button id="gp-br" class="dolly-btn" style="padding:4px 8px; background:transparent; color:#3182CE; border:1px solid #3182CE">Reset</button>
                                 <label style="font-size:12px;color:#718096;display:flex;gap:6px;align-items:center;margin-left:auto"><input type="checkbox" id="gp-tr">Reveal true curve</label>
                             </div>
-                            <svg id="gp-demo-svg" width="100%" viewBox="0 0 680 420" role="img"><title>Bayesian optimization demo</title></svg>
-                            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#718096;margin:4px 0 8px">
+                            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#718096;margin:4px 0 12px">
                                 <span title="Approximates unknown energy function from observations"><span style="color:#38A169">■</span> GP Surrogate: Mean μ(x) & Uncertainty σ²(x)</span>
                                 <span title="Observed configuration-energy pairs D_n"><span style="color:#276749">●</span> Evaluated configurations Dₙ</span>
                                 <span title="Best energy value observed so far"><span style="color:#D69E2E">●</span> Best observed f(x⁺)</span>
                                 <span title="Balances exploration of uncertain regions and exploitation"><span style="color:#3182CE">■</span> Acquisition Function: Expected Improvement EI(x)</span>
                             </div>
-                            </div>
+                            <svg id="gp-demo-svg" width="100%" viewBox="0 0 680 420" role="img"><title>Bayesian optimization demo</title></svg>
                             <style>
                                 .hover-math { position: relative; cursor: help; padding: 0 2px; }
                                 .hover-math::after {
@@ -7504,7 +7503,7 @@
                 const e = p.y * (0.34 + 0.05 * Math.sin(p.x * 20));
                 const s = p.y * (0.33 + 0.05 * Math.cos(p.x * 20));
                 const q = p.y - e - s;
-                const titleStr = `Combined Score: ${p.y.toFixed(3)}&#10;⚡ Energy: ${e.toFixed(3)}&#10;🚀 Speed: ${s.toFixed(3)}&#10;✨ Quality: ${q.toFixed(3)}`;
+                const titleStr = `Combined Score: ${p.y.toFixed(3)}&#10;Energy: ${e.toFixed(3)}&#10;Speed: ${s.toFixed(3)}&#10;Quality: ${q.toFixed(3)}`;
                 dotsHtml+='<g><title>'+titleStr+'</title><circle cx="'+X(p.x)+'" cy="'+Y(p.y)+'" r="'+(b?7:5)+'" fill="'+(b?'#D69E2E':'#276749')+'"/><text x="'+(X(p.x)+6)+'" y="'+(Y(p.y)-6)+'" font-size="10" font-weight="bold" fill="'+(b?'#B7791F':'#4A5568')+'" stroke="none">'+p.y.toFixed(2)+'</text></g>';
             });
 
@@ -7515,7 +7514,7 @@
                 for(let i=0;i<=10;i++){const x=50+(i/10)*600; h+='<line x1="'+x+'" y1="20" x2="'+x+'" y2="250"/>'; h+='<text x="'+x+'" y="265" font-size="10" fill="#A0AEC0" text-anchor="middle" stroke="none">'+(i*0.1).toFixed(1)+'</text>';}
                 h+='</g><line x1="50" y1="250" x2="650" y2="250" stroke="#CBD5E0" stroke-width="1"/><line x1="50" y1="20" x2="50" y2="250" stroke="#CBD5E0" stroke-width="1"/>';
                 h+='<line x1="50" y1="370" x2="650" y2="370" stroke="#CBD5E0" stroke-width="1"/>';
-                h+='<text x="50" y="14" font-size="12" fill="#718096">Combined Objective Score (⚡ Energy + 🚀 Speed + ✨ Quality)</text>';
+                h+='<text x="50" y="14" font-size="12" fill="#718096">Combined Objective Score (Energy + Speed + Quality)</text>';
                 h+='<text x="350" y="410" font-size="12" fill="#718096" text-anchor="middle">Configuration Space X_feasible (Token Length, Batch Size, Precision, GPU Layers, CPU Threads)</text>';
                 
                 h+='<g><title>GP Uncertainty ±2σ(x): Wide in unexplored regions</title><polygon class="gp-unc-poly" points="'+up+' '+lo+'" fill="#48BB78" opacity="0.2" style="transition: all 0.6s ease-in-out;"/></g>';
