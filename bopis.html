@@ -3174,17 +3174,17 @@
                     <span class="hw-widget-chevron">▾</span>
                 </button>
                 <div class="hw-widget-panel" id="hw-widget-panel">
-                    <div class="hw-widget-row probe-hidden"><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong>
+                    <div class="hw-widget-row"><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong>
                     </div>
-                    <div class="hw-widget-row probe-hidden"><span>RAM</span><strong data-summary="ram">Profile unavailable</strong>
+                    <div class="hw-widget-row"><span>RAM</span><strong data-summary="ram">Profile unavailable</strong>
                     </div>
-                    <div class="hw-widget-row probe-hidden"><span>GPU / VRAM</span><strong data-summary="gpu">Profile
+                    <div class="hw-widget-row"><span>GPU / VRAM</span><strong data-summary="gpu">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row probe-hidden"><span>Feasible space</span><strong data-summary="space">Profile
+                    <div class="hw-widget-row"><span>Feasible space</span><strong data-summary="space">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row probe-hidden"><span>Energy</span><strong data-summary="energy">Profile
+                    <div class="hw-widget-row"><span>Energy</span><strong data-summary="energy">Profile
                             unavailable</strong></div>
-                    <div class="hw-widget-row probe-hidden"><span>Timestamp</span><strong data-summary="timestamp">Profile
+                    <div class="hw-widget-row"><span>Timestamp</span><strong data-summary="timestamp">Profile
                             unavailable</strong></div>
                     <p id="runtime-status" class="hw-widget-note"><strong>Live chatbot ready.</strong> llama.cpp
                         endpoint connected.</p>
@@ -4693,7 +4693,7 @@
                 const element = document.querySelector(`[data-summary="${name}"]`);
                 if (element) {
                     element.dataset.realValue = value;
-                    element.textContent = '—'; // Keep it blank/hidden until scanned
+                    element.textContent = '—'; // Hidden until scan animation reveals it
                 }
             };
             const formatGiB = value => `${Number(value).toFixed(2)} GiB`;
