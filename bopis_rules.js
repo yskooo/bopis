@@ -1,5 +1,5 @@
 window.BOPIS_TASK_RULES = {
-  "generated_utc": "2026-10-06T23:00:05.905900+00:00",
+  "generated_utc": "2026-10-07T12:53:28.626940+00:00",
   "confidence_margin": 0.15,
   "fallback_task": "general_qa",
   "gate_penalty": 0.35,
