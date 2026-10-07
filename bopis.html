@@ -7342,13 +7342,28 @@
             const vBody = document.getElementById('variant-body');
             if (vBody) vBody.innerHTML = vHtml;
 
-            // 2. Wilcoxon mock (thesis baseline demo)
+            // 2. Wilcoxon Table
             const wBody = document.getElementById('wilcoxon-body');
             if (wBody) {
-                wBody.innerHTML =
-                    "<tr><td><b>Energy (J/token)</b></td><td>BOPIS < RS</td><td>W = 142.5</td><td><b style='color:#38A169'>p < 0.001</b></td><td><span style='color:#38A169;font-weight:bold'>Significant (Reject H0)</span></td></tr>" +
-                    "<tr><td><b>Speed (tok/s)</b></td><td>BOPIS > RS</td><td>W = 210.0</td><td><b style='color:#38A169'>p = 0.012</b></td><td><span style='color:#38A169;font-weight:bold'>Significant (Reject H0)</span></td></tr>" +
-                    "<tr><td><b>Quality (F1)</b></td><td>BOPIS > RS</td><td>W = 405.5</td><td><b style='color:#718096'>p = 0.145</b></td><td><span style='color:#718096'>Not Significant (Fail to reject H0)</span></td></tr>";
+                if (!data.statistical_tests) {
+                    wBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#718096">Load a validated run (e.g., ran without --skip-validation) to compute p-values</td></tr>';
+                } else {
+                    const stats = data.statistical_tests;
+                    const getRow = (name, altHypothesis, key) => {
+                        const obj = stats[key]?.wilcoxon;
+                        if (!obj) return `<tr><td><b>${name}</b></td><td>${altHypothesis}</td><td colspan="3" style="color:#718096">N/A</td></tr>`;
+                        const isSig = obj.significant;
+                        const color = isSig ? '#38A169' : '#718096';
+                        const text = isSig ? 'Significant (Reject H0)' : 'Not Significant (Fail to reject H0)';
+                        const wVal = obj.w_statistic.toFixed(1);
+                        const pVal = obj.p_value < 0.001 ? '< 0.001' : '= ' + obj.p_value.toFixed(3);
+                        return `<tr><td><b>${name}</b></td><td>${altHypothesis}</td><td>W = ${wVal}</td><td><b style='color:${color}'>p ${pVal}</b></td><td><span style='color:${color};font-weight:${isSig ? 'bold' : 'normal'}'>${text}</span></td></tr>`;
+                    };
+                    
+                    wBody.innerHTML = getRow('Energy (J/token)', 'BOPIS < RS', 'energy_j') +
+                                      getRow('Speed (tok/s)', 'BOPIS > RS', 'speed_tok_s') +
+                                      getRow('Quality (F1)', 'BOPIS > RS', 'quality');
+                }
             }
         }
 
