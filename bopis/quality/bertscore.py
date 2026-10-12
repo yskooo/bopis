@@ -128,9 +128,17 @@ class BertScoreScorer:
     # ------------------------------------------------------------------ #
 
     def score(
-        self, candidates: Sequence[str], references: Sequence[str]
-    ) -> List[QualityScore]:
-        """Score each candidate against its reference, pairwise."""
+        self,
+        candidates: Sequence[str],
+        references: Sequence[str],
+        fallback_to_self: bool = False,
+    ) -> List[Optional[QualityScore]]:
+        """Score each candidate against its reference, pairwise.
+
+        If a reference is empty and fallback_to_self is True, the candidate is
+        scored against itself (score = 1.0). If fallback_to_self is False and
+        a reference is empty, that position returns None.
+        """
         if len(candidates) != len(references):
             raise ValueError(
                 f"{len(candidates)} candidates but {len(references)} references"
@@ -138,10 +146,36 @@ class BertScoreScorer:
         if not candidates:
             return []
 
-        self._ensure_loaded()
-        if self._backend == "bert_score":
-            return self._score_with_package(candidates, references)
-        return self._score_with_transformers(candidates, references)
+        safe_cands, safe_refs = [], []
+        results: List[Optional[QualityScore]] = [None] * len(candidates)
+        safe_indices = []
+
+        for i, (c, r) in enumerate(zip(candidates, references)):
+            if not r or not str(r).strip():
+                if fallback_to_self:
+                    results[i] = QualityScore(
+                        f1=1.0, precision=1.0, recall=1.0,
+                        scorer=f"bertscore/{self.model}@{self.layer} (self-reference)",
+                        baseline_rescaled=self.rescale_with_baseline,
+                    )
+                else:
+                    results[i] = None
+            else:
+                safe_cands.append(c)
+                safe_refs.append(r)
+                safe_indices.append(i)
+
+        if safe_cands:
+            self._ensure_loaded()
+            if self._backend == "bert_score":
+                safe_scores = self._score_with_package(safe_cands, safe_refs)
+            else:
+                safe_scores = self._score_with_transformers(safe_cands, safe_refs)
+            
+            for idx, sc in zip(safe_indices, safe_scores):
+                results[idx] = sc
+
+        return results
 
     def _score_with_package(
         self, candidates: Sequence[str], references: Sequence[str]

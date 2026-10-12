@@ -424,7 +424,7 @@ class Instruments:
         return self.study is not None and self.study.poll() is None
 
     def study_command(self, request: Dict[str, object]) -> List[str]:
-        """The ``bopis run`` command for a dashboard preset.
+        r"""The ``bopis run`` command for a dashboard preset.
 
         ``sim`` runs the analytic simulator on the Dolly pool (or synthetic
         prompts without it): about a minute, simulated energy. ``real`` runs
@@ -448,7 +448,7 @@ class Instruments:
             raise ValueError(f"unknown preset {preset!r}; expected sim or real")
         if not self.llama_binary:
             raise ValueError("a real study needs llama-server; none was found in "
-                             "tools\vulkan or tools\cpu")
+                             r"tools\vulkan or tools\cpu")
         if not self.model_paths:
             raise ValueError("a real study needs GGUF files in models\\")
         command += ["--backend", "llama-server", "--model-aware",
@@ -556,7 +556,8 @@ class Instruments:
         mem_mib = window.memory_mib_mean
         if pid:
             try:
-                import psutil
+                import importlib
+                psutil = importlib.import_module("psutil")
                 proc = psutil.Process(pid)
                 # Ensure we use rss memory
                 proc_mem = proc.memory_info().rss
@@ -700,7 +701,7 @@ class Instruments:
                     )
                     for row, score in zip(scorable, scores):
                         row["quality"] = score.as_dict()
-                except RuntimeError as exc:
+                except Exception as exc:
                     for row in scorable:
                         row["quality_error"] = str(exc)
         return {
@@ -952,7 +953,8 @@ def make_handler(instruments: Instruments, port: int):
             if url.path == "/api/utilization":
                 cpu, ram, gpu, gpu_ram = 0, 0, 0, 0
                 try:
-                    import psutil
+                    import importlib
+                    psutil = importlib.import_module("psutil")
                     cpu = psutil.cpu_percent(interval=None)
                     ram = psutil.virtual_memory().percent
                 except Exception:
