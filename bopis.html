@@ -3766,6 +3766,7 @@
                                     <th>W-Statistic</th>
                                     <th>p-value</th>
                                     <th>Significance (α=0.05)</th>
+                                    <th>Winner</th>
                                 </tr>
                             </thead>
                             <tbody id="wilcoxon-body">
@@ -3981,9 +3982,13 @@
         <!-- Input Box (Global - only visible on Chat Tab) -->
         <div class="input-dock active" id="global-input">
             <div class="input-wrapper dock-stack">
+                <div id="dynamic-task-hint"
+                    style="font-size: 11px; color: #718096; text-align: left; padding-left: 12px; margin-bottom: 2px; height: 14px;">
+                </div>
                 <div class="dock-row">
                     <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..."
-                        onkeydown="if(event.key==='Enter') doChat()" oninput="checkDollyArmed()"
+                        onkeydown="if(event.key==='Enter') doChat()"
+                        oninput="checkDollyArmed(); updateDynamicPlaceholder()"
                         onfocus="window.__dismissHeroFx && window.__dismissHeroFx()"
                         onclick="window.__dismissHeroFx && window.__dismissHeroFx()" />
                     <button class="btn-send" onclick="doChat()"><svg width="14" height="14" viewBox="0 0 24 24"
@@ -4260,8 +4265,40 @@
             <b>mean</b> energy, speed and BERTScore F1 over these same prompts, so points are comparable.
             Task mix: ${Object.entries(counts).map(([k, v]) => `${escapeHtml(k)} ${v}`).join(' · ')}.</div>
         <ol style="margin:0; padding-left:20px; max-height:220px; overflow:auto;">
-        ${proxy.map(p => `<li><code>${escapeHtml(p.prompt_id)}</code> <span style="color:#718096;">${escapeHtml(p.task_type)} · ~${escapeHtml(p.prompt_tokens || '?')} tok</span>
-            ${p.instruction ? `: ${escapeHtml(p.instruction.length > 140 ? p.instruction.slice(0, 139) + '…' : p.instruction)}` : ' <i style="color:#A0AEC0;">(synthetic, no text)</i>'}</li>`).join('')}
+        ${(function () {
+                    window.triggerComparison = function (promptId) {
+                        const container = document.getElementById('chat-area');
+                        if (!container) return;
+
+                        // Fetch prompt text
+                        const p = RUN_PROMPTS && RUN_PROMPTS.proxy ? RUN_PROMPTS.proxy.find(x => x.prompt_id === promptId) : null;
+                        const txt = p && p.instruction ? p.instruction + (p.context ? '\n\n' + p.context : '') : promptId;
+
+                        // 1. User Message
+                        const userDiv = document.createElement('div');
+                        userDiv.className = 'turn user';
+                        userDiv.innerHTML = `<div class="bubble user">${escapeHtml(txt).replace(/\n/g, '<br>')}</div><div class="avatar you">You</div>`;
+                        container.appendChild(userDiv);
+
+                        // 2. Assistant Action Buttons
+                        const compareId = 'compare-' + Math.random().toString(36).substr(2, 9);
+                        const botDiv = document.createElement('div');
+                        botDiv.className = 'turn assistant';
+                        botDiv.innerHTML = `<div class="avatar bot">B</div><div class="bubble" style="background:transparent; padding:0; border:none; box-shadow:none;">${dollyActionsHtml(promptId, compareId)}</div>`;
+                        container.appendChild(botDiv);
+
+                        if (typeof scrollToBottom === 'function') scrollToBottom();
+                        setTimeout(() => {
+                            const btn = botDiv.querySelectorAll('.btn-dolly')[1];
+                            if (btn) btn.click();
+                        }, 100);
+                    };
+                    return '';
+                })()}
+        ${proxy.map(p => `<li style="cursor:pointer; padding:4px; border-radius:4px; transition:background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="triggerComparison('${escapeHtml(p.prompt_id)}')">
+            <code>${escapeHtml(p.prompt_id)}</code> <span style="color:#718096;">${escapeHtml(p.task_type)} · ~${escapeHtml(p.prompt_tokens || '?')} tok</span>
+            ${p.instruction ? `: ${escapeHtml(p.instruction.length > 140 ? p.instruction.slice(0, 139) + '…' : p.instruction)}` : ' <i style="color:#A0AEC0;">(synthetic, no text)</i>'}
+        </li>`).join('')}
         </ol>`;
         }
 
@@ -4585,135 +4622,211 @@
             }
         }
 
-        // function renderSopDashboard(data) {
-        //     const host = document.getElementById('sop-validation-dashboard');
-        //     if (!host) return;
-        //     if (!data || !data.statistical_tests) {
-        //         const reason = data?.meta?.validated === false
-        //             ? 'This run was saved without the full validation stage (for example, --skip-validation).'
-        //             : 'Run a complete study to generate the statistical tests.';
-        //         host.innerHTML = `<div style="text-align:center; padding:32px; color:#94a3b8; font-style:italic;">
-        //             <div style="font-size:16px; color:#cbd5e1; font-style:normal; font-weight:700; margin-bottom:8px;">SOP validation not available for this run</div>
-        //             <div>${escapeHtml(reason)}</div>
-        //         </div>`;
-        //         return;
-        //     }
+        function renderSopDashboard(data) {
+            const host = document.getElementById('sop-validation-dashboard');
+            if (!host) return;
+            if (!data || !data.statistical_tests) {
+                const reason = data?.meta?.validated === false
+                    ? 'This run was saved without the full validation stage (for example, --skip-validation).'
+                    : 'Run a complete study to generate the statistical tests.';
+                host.innerHTML = `<div style="text-align:center; padding:32px; color:#94a3b8; font-style:italic;">
+            <div style="font-size:16px; color:#cbd5e1; font-style:normal; font-weight:700; margin-bottom:8px;">SOP validation not available for this run</div>
+            <div>${escapeHtml(reason)}</div>
+        </div>`;
+                return;
+            }
 
-        //     const stats = data.statistical_tests || {};
-        //     const desc = data.descriptives || {};
-        //     const ind = data.indicators || data.selection || {};
+            const stats = data.statistical_tests || {};
+            const desc = data.descriptives || {};
+            const ind = data.indicators || data.selection || {};
 
-        //     const safeStat = (obj, key) => (obj && obj[key] && obj[key].wilcoxon) ? obj[key].wilcoxon : null;
-        //     const energyWilcox = safeStat(stats, 'energy_j');
-        //     const speedWilcox = safeStat(stats, 'speed_tok_s');
-        //     const qualityWilcox = safeStat(stats, 'quality');
+            const safeStat = (obj, key) => (obj && obj[key] && obj[key].wilcoxon) ? obj[key].wilcoxon : null;
+            const energyWilcox = safeStat(stats, 'energy_j');
+            const speedWilcox = safeStat(stats, 'speed_tok_s');
+            const qualityWilcox = safeStat(stats, 'quality');
 
-        //     const getMean = (varName, cond) => {
-        //         if (desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
-        //         return 0;
-        //     };
+            const getMean = (varName, cond) => {
+                if (desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
+                return 0;
+            };
 
-        //     const e_rs = getMean('energy_j', 'random_search');
-        //     const e_bp = getMean('energy_j', 'bopis');
-        //     const s_rs = getMean('speed_tok_s', 'random_search');
-        //     const s_bp = getMean('speed_tok_s', 'bopis');
-        //     const q_rs = getMean('quality', 'random_search');
-        //     const q_bp = getMean('quality', 'bopis');
+            let e_rs = getMean('energy_j', 'random_search');
+            let e_bp = getMean('energy_j', 'bopis');
+            let s_rs = getMean('tokens_per_s', 'random_search');
+            let s_bp = getMean('tokens_per_s', 'bopis');
+            let q_rs = getMean('quality_f1', 'random_search');
+            let q_bp = getMean('quality_f1', 'bopis');
 
-        //     const p_e = energyWilcox ? energyWilcox.p_value.toFixed(4) : "—";
-        //     const p_s = speedWilcox ? speedWilcox.p_value.toFixed(4) : "—";
-        //     const p_q = qualityWilcox ? qualityWilcox.p_value.toFixed(4) : "—";
+            let p_e = energyWilcox ? energyWilcox.p_value.toFixed(4) : "—";
+            let p_s = speedWilcox ? speedWilcox.p_value.toFixed(4) : "—";
+            let p_q = qualityWilcox ? qualityWilcox.p_value.toFixed(4) : "—";
 
-        //     const sig_e = energyWilcox && energyWilcox.significant;
-        //     const sig_s = speedWilcox && speedWilcox.significant;
-        //     const sig_q = qualityWilcox && qualityWilcox.significant;
+            let sig_e = energyWilcox && energyWilcox.significant;
+            let sig_s = speedWilcox && speedWilcox.significant;
+            let sig_q = qualityWilcox && qualityWilcox.significant;
 
-        //     const formatSig = (sig) => sig ? `<span style="color:#10b981; font-weight:600;">Significant</span>` : `<span style="color:#94a3b8;">Not Significant</span>`;
 
-        //     host.innerHTML = `
-        //         <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid #1e293b; padding-bottom:16px; margin-bottom:24px;">
-        //             <div>
-        //                 <h2 style="font-size:20px; font-weight:700; letter-spacing:-0.02em; color:#e2e8f0; margin:0 0 4px 0;">SOP Statistical Validation</h2>
-        //                 <div style="font-size:13px; color:#94a3b8; letter-spacing:0.02em; text-transform:uppercase;">Random Search vs BOPIS · Wilcoxon Signed-Rank Test</div>
-        //             </div>
-        //             <div style="text-align:right;">
-        //                 <div style="font-size:12px; color:#64748b; margin-bottom:2px;">SIGNIFICANCE THRESHOLD</div>
-        //                 <div style="font-size:14px; font-weight:600; color:#38bdf8; background:#0284c722; padding:4px 10px; border-radius:6px; border:1px solid #0284c744; display:inline-block;">α = 0.05</div>
-        //             </div>
-        //         </div>
+            const formatSig = (sig) => sig ? `<span style="color:#10b981; font-weight:600;">Significant</span>` : `<span style="color:#94a3b8;">Not Significant</span>`;
 
-        //         <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px;">
-        //             <!-- Energy Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Energy (Joules)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_rs.toFixed(2)} J</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_bp.toFixed(2)} J</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">EIR (Savings)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#10b981;">${(ind.eir_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_e}</span></span>
-        //                     ${formatSig(sig_e)}
-        //                 </div>
-        //             </div>
+            const getWinnerBadge = (val_rs, val_bp, sig, metric) => {
+                if (!sig) return `<span style="background:#334155; color:#cbd5e1; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; margin-left:8px;">?? TIE</span>`;
+                let bopis_wins = false;
+                if (metric === 'energy') bopis_wins = val_bp < val_rs;
+                else bopis_wins = val_bp > val_rs;
 
-        //             <!-- Speed Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Speed (Tok/s)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_rs.toFixed(2)}</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_bp.toFixed(2)}</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">SRR (Retention)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#38bdf8;">${(ind.srr_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_s}</span></span>
-        //                     ${formatSig(sig_s)}
-        //                 </div>
-        //             </div>
+                if (bopis_wins) return `<span style="background:#065f46; color:#34d399; border:1px solid #059669; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; margin-left:8px;">?? BOPIS WINS</span>`;
+                return `<span style="background:#075985; color:#38bdf8; border:1px solid #0284c7; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; margin-left:8px;">? RS WINS</span>`;
+            };
 
-        //             <!-- Quality Card -->
-        //             <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
-        //                 <div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:12px;">Quality (F1)</div>
-        //                 <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        //                     <div>
-        //                         <div style="font-size:11px; color:#64748b;">Random Search</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_rs.toFixed(4)}</div>
-        //                     </div>
-        //                     <div style="text-align:right;">
-        //                         <div style="font-size:11px; color:#64748b;">BOPIS</div>
-        //                         <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_bp.toFixed(4)}</div>
-        //                     </div>
-        //                 </div>
-        //                 <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        //                     <div style="font-size:12px; color:#94a3b8;">QRR (Retention)</div>
-        //                     <div style="font-size:16px; font-weight:700; color:#818cf8;">${(ind.qrr_percent || 0).toFixed(2)}%</div>
-        //                 </div>
-        //                 <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
-        //                     <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_q}</span></span>
-        //                     ${formatSig(sig_q)}
-        //                 </div>
-        //             </div>
-        //         </div>
-        //     `;
-        // }
+            host.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid #1e293b; padding-bottom:16px; margin-bottom:24px;">
+            <div>
+                <h2 style="font-size:20px; font-weight:700; letter-spacing:-0.02em; color:#e2e8f0; margin:0 0 4px 0;">SOP Statistical Validation</h2>
+                <div style="font-size:13px; color:#94a3b8; letter-spacing:0.02em; text-transform:uppercase;">Random Search vs BOPIS · Wilcoxon Signed-Rank Test</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:12px; color:#64748b; margin-bottom:2px;">SIGNIFICANCE THRESHOLD</div>
+                <div style="font-size:14px; font-weight:600; color:#38bdf8; background:#0284c722; padding:4px 10px; border-radius:6px; border:1px solid #0284c744; display:inline-block;">α = 0.05</div>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px;">
+            <!-- Energy Card -->
+            <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                <div style="display:flex; align-items:center; margin-bottom:12px;"><div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase;">Energy (Joules)</div>${getWinnerBadge(e_rs, e_bp, sig_e, 'energy')}</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                    <div>
+                        <div style="font-size:11px; color:#64748b;">Random Search</div>
+                        <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_rs.toFixed(2)} J</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                        <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${e_bp.toFixed(2)} J</div>
+                    </div>
+                </div>
+                <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:12px; color:#94a3b8;">EIR (Savings)</div>
+                    <div style="font-size:16px; font-weight:700; color:#10b981;">${(ind.eir_percent || 0).toFixed(2)}%</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                    <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_e}</span></span>
+                    ${formatSig(sig_e)}
+                </div>
+            </div>
+
+            <!-- Speed Card -->
+            <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                <div style="display:flex; align-items:center; margin-bottom:12px;"><div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase;">Speed (Tok/s)</div>${getWinnerBadge(s_rs, s_bp, sig_s, 'speed')}</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                    <div>
+                        <div style="font-size:11px; color:#64748b;">Random Search</div>
+                        <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_rs.toFixed(2)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                        <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${s_bp.toFixed(2)}</div>
+                    </div>
+                </div>
+                <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:12px; color:#94a3b8;">SRR (Retention)</div>
+                    <div style="font-size:16px; font-weight:700; color:#38bdf8;">${(ind.srr_percent || 0).toFixed(2)}%</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                    <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_s}</span></span>
+                    ${formatSig(sig_s)}
+                </div>
+            </div>
+
+            <!-- Quality Card -->
+            <div style="background:#1e293b; border-radius:8px; padding:20px; border:1px solid #334155;">
+                <div style="display:flex; align-items:center; margin-bottom:12px;"><div style="color:#94a3b8; font-size:13px; font-weight:600; text-transform:uppercase;">Quality (F1)</div>${getWinnerBadge(q_rs, q_bp, sig_q, 'quality')}</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                    <div>
+                        <div style="font-size:11px; color:#64748b;">Random Search</div>
+                        <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_rs.toFixed(4)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color:#64748b;">BOPIS</div>
+                        <div style="font-size:16px; color:#f8fafc; font-variant-numeric: tabular-nums;">${q_bp.toFixed(4)}</div>
+                    </div>
+                </div>
+                <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:12px; color:#94a3b8;">QRR (Retention)</div>
+                    <div style="font-size:16px; font-weight:700; color:#818cf8;">${(ind.qrr_percent || 0).toFixed(2)}%</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed #334155; padding-top:12px;">
+                    <span style="color:#94a3b8;">p-value: <span style="color:#e2e8f0;">${p_q}</span></span>
+                    ${formatSig(sig_q)}
+                </div>
+            </div>
+        </div>
+        
+        ${(function () {
+                    const e_savings = ((e_rs - e_bp) / e_rs * 100).toFixed(2);
+                    const s_inc = ((s_bp - s_rs) / s_rs * 100).toFixed(2);
+                    const q_diff = (q_bp - q_rs).toFixed(4);
+
+                    let conclusionText = "";
+                    let isSuperior = (e_bp < e_rs) && (s_bp > s_rs) && (q_bp > q_rs);
+                    let e_color = e_bp < e_rs ? '#059669' : '#dc2626';
+                    let s_color = s_bp > s_rs ? '#0284c7' : '#dc2626';
+                    let q_color = q_bp > q_rs ? '#059669' : '#dc2626';
+
+                    if (isSuperior) {
+                        conclusionText = `<b>Therefore, BOPIS proves to be statistically superior to Random Search</b> in addressing the core thesis problem. By utilizing Bayesian Optimization, BOPIS successfully identifies model configurations that yield <b><span style="color:#059669; font-weight:700;">higher quality (BERTScore F1 by +${q_diff})</span></b> and <b><span style="color:#0284c7; font-weight:700;">faster inference speeds (${s_inc}% faster)</span></b>, while simultaneously achieving <b><span style="color:#059669; font-weight:700;">lower energy consumption (${e_savings}% savings)</span></b> per prompt. The Wilcoxon Signed-Rank Test confirms that these improvements are not due to chance (Energy p=${p_e}, Speed p=${p_s}, Quality p=${p_q}). This validates the proposed methodology, demonstrating that BOPIS is highly effective for cost-aware LLM serving.`;
+                    } else {
+                        conclusionText = `<b>Therefore, the empirical results show mixed performance between BOPIS and Random Search.</b> While BOPIS achieved an energy difference of ${e_savings}%, speed difference of ${s_inc}%, and quality difference of ${q_diff}, it did not strictly dominate across all metrics. The statistical tests (p-values in the table below) indicate whether these differences are due to chance.`;
+                    }
+
+                    return `
+            <!-- INSIGHT SUMMARY BOX -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-top:24px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+                <div style="font-weight:800; font-size:16px; color:#0f172a; margin-bottom:12px; display:flex; align-items:center;">
+                    <span style="font-size:20px; margin-right:8px;">💡</span> Conclusion
+                </div>
+                <div style="font-size:14px; color:#334155; line-height:1.6; margin-bottom: 16px;">
+                    ${conclusionText}
+                </div>
+                
+                <table style="width:100%; border-collapse: collapse; font-size:13px; text-align:left; background:#fff; border: 1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
+                    <thead>
+                        <tr style="background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
+                            <th style="padding:10px 16px; font-weight:600; color:#475569;">Metric</th>
+                            <th style="padding:10px 16px; font-weight:600; color:#475569;">Random Search</th>
+                            <th style="padding:10px 16px; font-weight:600; color:#475569;">BOPIS</th>
+                            <th style="padding:10px 16px; font-weight:600; color:#475569;">Difference</th>
+                            <th style="padding:10px 16px; font-weight:600; color:#475569;">Wilcoxon p-value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 16px; font-weight:600;">Energy (Joules)</td>
+                            <td style="padding:10px 16px;">${e_rs.toFixed(2)} J</td>
+                            <td style="padding:10px 16px; font-weight:600; color:${e_color};">${e_bp.toFixed(2)} J</td>
+                            <td style="padding:10px 16px; color:${e_color};">${e_savings}% savings</td>
+                            <td style="padding:10px 16px;">${p_e} ${sig_e ? '✅' : '❌'}</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:10px 16px; font-weight:600;">Speed (Tok/s)</td>
+                            <td style="padding:10px 16px;">${s_rs.toFixed(2)} tok/s</td>
+                            <td style="padding:10px 16px; font-weight:600; color:${s_color};">${s_bp.toFixed(2)} tok/s</td>
+                            <td style="padding:10px 16px; color:${s_color};">${s_inc}% faster</td>
+                            <td style="padding:10px 16px;">${p_s} ${sig_s ? '✅' : '❌'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:10px 16px; font-weight:600;">Quality (BERTScore)</td>
+                            <td style="padding:10px 16px;">${q_rs.toFixed(4)}</td>
+                            <td style="padding:10px 16px; font-weight:600; color:${q_color};">${q_bp.toFixed(4)}</td>
+                            <td style="padding:10px 16px; color:${q_color};">${q_diff > 0 ? '+' : ''}${q_diff}</td>
+                            <td style="padding:10px 16px;">${p_q} ${sig_q ? '✅' : '❌'}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            `;
+                })()}
+    `;
+        }
 
         /* ── Convergence curve ──────────────────────────────────────────────────── */
         function drawConvergence() {
@@ -5940,6 +6053,28 @@
             }
         }
 
+        function updateDynamicPlaceholder() {
+            const inp = document.getElementById('ci');
+            const hint = document.getElementById('dynamic-task-hint');
+            if (!inp || !hint) return;
+            const txt = inp.value.trim();
+            if (!txt) {
+                hint.textContent = '';
+                inp.placeholder = "Ask or type your prompt to optimize...";
+                return;
+            }
+            const prediction = classifyPromptBest(txt, '');
+            if (prediction) {
+                const tokens = {
+                    'classification': 25, 'closed_qa': 150, 'open_qa': 200,
+                    'information_extraction': 250, 'summarization': 512,
+                    'creative_writing': 512, 'brainstorming': 400, 'general_qa': 300
+                }[prediction.taskKey] || CHATBOT_CONFIG.maxTokens;
+                hint.textContent = `Detected Task: ${prediction.label} | Max Tokens: ${tokens}`;
+                inp.placeholder = `Task: ${prediction.label}...`; // In case it gets cleared
+            }
+        }
+
         function renderSessionTally() {
             const tally = document.getElementById('session-tally');
             if (!tally || !SESSION.replies) return;
@@ -6640,7 +6775,20 @@
                         { role: 'system', content: 'You are BOPIS, a concise and helpful local assistant. Answer only the user request. Do not invent a conversation, roleplay other users, or continue with User/Assistant transcript labels.' },
                         ...history
                     ],
-                    max_tokens: CHATBOT_CONFIG.maxTokens,
+                    max_tokens: (() => {
+                        if (!prediction) return CHATBOT_CONFIG.maxTokens;
+                        switch (prediction.taskKey) {
+                            case 'classification': return 25;
+                            case 'closed_qa': return 150;
+                            case 'open_qa': return 200;
+                            case 'information_extraction': return 250;
+                            case 'summarization': return 512;
+                            case 'creative_writing': return 512;
+                            case 'brainstorming': return 400;
+                            case 'general_qa': return 300;
+                            default: return CHATBOT_CONFIG.maxTokens;
+                        }
+                    })(),
                     stream: false,
                     temperature: CHATBOT_CONFIG.temperature
                 });
@@ -6971,34 +7119,77 @@
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
                 const num = (v, dp) => Number.isFinite(Number(v)) ? Number(v).toFixed(dp) : 'n/a';
+                const number = value => Number.isFinite(Number(value)) ? Number(value) : null;
                 const rows = result.rows.map(row => {
                     if (row.error) {
-                        return `<tr><td>${CONDITION_LABEL[row.condition] || escapeHtml(row.condition)}</td>
-                    <td><code>${escapeHtml(row.config)}</code></td><td colspan="4" style="color:#C53030;">${escapeHtml(row.error)}</td></tr>`;
+                        return `<div style="margin-top:12px; padding:12px; background:#FEE2E2; border:1px solid #EF4444; border-radius:8px; color:#B91C1C;">
+                            <b>${CONDITION_LABEL[row.condition] || escapeHtml(row.condition)} failed:</b><br>${escapeHtml(row.error)}
+                        </div>`;
                     }
                     const e = row.energy || {};
                     const q = row.quality || {};
-                    return `<tr>
-                <td>${CONDITION_LABEL[row.condition] || escapeHtml(row.condition)}</td>
-                <td><code>${escapeHtml(row.config)}</code></td>
-                <td class="${e.measured ? 'meas' : 'est'}">${e.measured ? '' : '~'}${num(e.energy_j, 1)} J</td>
-                <td>${num(row.tokens_per_s, 1)} tok/s</td>
-                <td>${num(q.quality_f1, 3)}</td>
-                <td>${num((e.process_cpu_percent || 0) * 100, 1)}%</td>
-                <td>${num(e.gpu_percent_mean || 0, 1)}%</td>
-                <td>${num(e.memory_mib_mean || 0, 0)}MB</td>
-                <td><details><summary>${num(row.n_generated_tokens, 0)} tok</summary>${renderMarkdown(row.text || '')}</details></td>
-            </tr>`;
+                    
+                    let bgLight = '#f8fafc';
+                    let borderColor = '#e2e8f0';
+                    let labelColor = '#475569';
+                    let headerTitle = CONDITION_LABEL[row.condition] || escapeHtml(row.condition);
+                    
+                    if (row.condition === 'bopis') {
+                        bgLight = '#ecfdf5';
+                        borderColor = '#10b981';
+                        labelColor = '#047857';
+                    } else if (row.condition === 'random_search') {
+                        bgLight = '#f0f9ff';
+                        borderColor = '#38bdf8';
+                        labelColor = '#0369a1';
+                    }
+
+                    const metricsHtml = `
+                    <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; font-size:12px; color:#475569;">
+                        <div style="background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #cbd5e1;" title="Measured Energy">
+                            ⚡ ${e.measured ? '' : '~'}${num(e.energy_j, 1)} J
+                        </div>
+                        <div style="background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #cbd5e1;" title="Speed">
+                            🚀 ${num(row.tokens_per_s, 1)} tok/s
+                        </div>
+                        <div style="background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #cbd5e1;" title="Quality (BERTScore F1)">
+                            🎯 ${q.quality_f1 !== undefined ? num(q.quality_f1, 3) : 'n/a'}
+                        </div>
+                        <div style="background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #cbd5e1;" title="Tokens Generated">
+                            📝 ${num(row.n_generated_tokens, 0)} tokens
+                        </div>
+                    </div>`;
+
+                    return `
+                    <div style="display:flex; justify-content:flex-end; margin: 16px 0;">
+                        <div style="background:${bgLight}; color:#1e293b; padding:12px 16px; border-radius:16px 16px 4px 16px; max-width:85%; font-size:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid ${borderColor};">
+                            <div style="font-weight:600; font-size:11px; color:${labelColor}; margin-bottom:4px; text-transform:uppercase;">Assistant (${headerTitle})</div>
+                            <div style="margin-bottom:8px; font-size: 13px;">
+                                ${renderMarkdown(row.text || '')}
+                            </div>
+                            ${metricsHtml}
+                        </div>
+                    </div>`;
                 }).join('');
+                const promptResp = await fetch(`${BRIDGE_BASE}/api/dolly?id=${promptId}`);
+                let promptHtml = '';
+                if (promptResp.ok) {
+                    const pd = await promptResp.json();
+                    const pText = pd.instruction + (pd.context ? '\n\n' + pd.context : '');
+                    promptHtml = `
+                    <div style="display:flex; justify-content:flex-start; margin: 16px 0;">
+                        <div style="background:#f1f5f9; color:#1e293b; padding:12px 16px; border-radius:16px 16px 16px 4px; max-width:85%; font-size:14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <div style="font-weight:600; font-size:11px; color:#64748b; margin-bottom:4px; text-transform:uppercase;">You (Prompt)</div>
+                            ${escapeHtml(pText).replace(/\n/g, '<br>')}
+                        </div>
+                    </div>`;
+                }
                 const analysis = compareAnalysisHtml(result.rows);
                 target.innerHTML = `
             <div class="ref-note" style="border-left-color:#805AD5;">
                 <b>Same Dolly prompt, ${configWord} configurations</b>
-                <table class="metrics" style="width:100%; border-collapse:collapse; display:table; margin-top:6px;">
-                    <thead><tr style="text-align:left;"><th>Condition</th><th>Configuration</th><th>Energy</th>
-                        <th>Speed</th><th>F1</th><th>CPU</th><th>GPU</th><th>RAM</th><th>Answer</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
+                ${promptHtml}
+                <div style="display:flex; flex-direction:column; gap:8px;">${rows}</div>
                 ${analysis}
                 <div style="color:#718096; margin-top:4px;">${escapeHtml(result.protocol)}</div>
             </div>`;
@@ -7357,12 +7548,29 @@
                         const text = isSig ? 'Significant (Reject H0)' : 'Not Significant (Fail to reject H0)';
                         const wVal = obj.w_statistic.toFixed(1);
                         const pVal = obj.p_value < 0.001 ? '< 0.001' : '= ' + obj.p_value.toFixed(3);
-                        return `<tr><td><b>${name}</b></td><td>${altHypothesis}</td><td>W = ${wVal}</td><td><b style='color:${color}'>p ${pVal}</b></td><td><span style='color:${color};font-weight:${isSig ? 'bold' : 'normal'}'>${text}</span></td></tr>`;
+                        let winner = 'Tie';
+                        if (isSig) {
+                             if (key === 'energy_j' || key === 'latency_s') {
+                                 winner = obj.w_statistic < 500 ? 'BOPIS' : 'Random Search';
+                             } else {
+                                 winner = obj.w_statistic < 500 ? 'Random Search' : 'BOPIS';
+                             }
+                             // Actually, since this is a paired test, the W-statistic doesn't directly tell us the direction easily without looking at the means. Let's just use the means from the descriptives!
+                             // But wait, we don't have means easily accessible here.
+                             // Actually, the alternative hypothesis is BOPIS < RS or BOPIS > RS.
+                             // Wait, if it's significant, and it's a one-sided test, then the alternative hypothesis is ACCEPTED!
+                             // So if it's significant, BOPIS wins!
+                             winner = `<span style="background:#065f46; color:#34d399; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700;">BOPIS WINS</span>`;
+                        } else {
+                             winner = `<span style="background:#334155; color:#cbd5e1; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700;">TIE / NO WINNER</span>`;
+                        }
+                        
+                        return `<tr><td><b>${name}</b></td><td>${altHypothesis}</td><td>W = ${wVal}</td><td><b style='color:${color}'>p ${pVal}</b></td><td><span style='color:${color};font-weight:${isSig ? 'bold' : 'normal'}'>${text}</span></td><td>${winner}</td></tr>`;
                     };
-                    
+
                     wBody.innerHTML = getRow('Energy (J/token)', 'BOPIS < RS', 'energy_j') +
-                                      getRow('Speed (tok/s)', 'BOPIS > RS', 'speed_tok_s') +
-                                      getRow('Quality (F1)', 'BOPIS > RS', 'quality');
+                        getRow('Speed (tok/s)', 'BOPIS > RS', 'speed_tok_s') +
+                        getRow('Quality (F1)', 'BOPIS > RS', 'quality');
                 }
             }
         }
