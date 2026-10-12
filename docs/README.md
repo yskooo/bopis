@@ -16,6 +16,7 @@ Five documents, in the order you probably want them.
 | 4 | **[CHATBOT_INTEGRATION.md](CHATBOT_INTEGRATION.md)** | You are wiring the chatbot, choosing a model, or running the classifiers. |
 | 5 | **[ENERGY_ESTIMATOR_AND_ML_BRIEF.md](ENERGY_ESTIMATOR_AND_ML_BRIEF.md)** | You need the energy-estimator defence, the cancellation proof, or the 2025/2026 energy literature. |
 | 6 | **[ML_ELEMENTS.md](ML_ELEMENTS.md)** | You need the five elements of the machine learning — data, task, model, learning algorithm, evaluation — for both learned components, with worked examples, measured figures and references. Written for the adviser/panel. |
+| 7 | **[DATASET_MIXING_REVISIONS.md](DATASET_MIXING_REVISIONS.md)** | Post-defense panel recommendation: 60/40 mix across Databricks Dolly 15k and four independent external NLP benchmarks (Natural Questions, TriviaQA, CNN/DailyMail, SQuAD 2.0), empty-reference fallback handling in BERTScore, and source provenance. |
 
 Reference material:
 
