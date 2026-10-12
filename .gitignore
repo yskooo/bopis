@@ -44,9 +44,28 @@ qa-*.png
 .DS_Store
 Thumbs.db
 
-# Temporary patch scripts
+# Temporary patch and scratch scripts
 *.js
 !bopis.js
-!dashboard_data.js
+!bopis_model.js
+!bopis_profile.js
+!bopis_rules.js
 !check.js
 !test_script.js
+
+/fix*.py
+/fix*.js
+/patch*.py
+/patch*.js
+/temp*.py
+/temp*.js
+/run_and_test*.py
+/test_*.py
+/test_*.js
+/test_*.html
+/check_*.py
+/check_*.js
+/rewrite_readme.js
+/rep.js
+/inject.js
+/replacement.txt

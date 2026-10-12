@@ -2459,7 +2459,20 @@
                         { role: 'system', content: 'You are BOPIS, a concise and helpful local assistant. Answer only the user request. Do not invent a conversation, roleplay other users, or continue with User/Assistant transcript labels.' },
                         ...history
                     ],
-                    max_tokens: CHATBOT_CONFIG.maxTokens,
+                    max_tokens: (() => {
+                        if (!prediction) return CHATBOT_CONFIG.maxTokens;
+                        switch(prediction.taskKey) {
+                            case 'classification': return 25;
+                            case 'closed_qa': return 150;
+                            case 'open_qa': return 200;
+                            case 'information_extraction': return 250;
+                            case 'summarization': return 512;
+                            case 'creative_writing': return 512;
+                            case 'brainstorming': return 400;
+                            case 'general_qa': return 300;
+                            default: return CHATBOT_CONFIG.maxTokens;
+                        }
+                    })(),
                     stream: false,
                     temperature: CHATBOT_CONFIG.temperature
                 });

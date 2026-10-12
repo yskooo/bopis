@@ -75,20 +75,21 @@ Below is the comprehensive dictionary of the repository's architecture, separate
 
 ### Classification & Quality
 * `bopis/tasks.py` / `classify.py` / `classify_trained.py` — Defines the 8 task categories, implements rule-based and Naive Bayes Stage 1 Task Classification, and handles the precision prior distributions.
-* `bopis/quality/bertscore.py` — The offline scoring stage for output quality evaluation using BERTScore.
-* `bopis/dataset.py` — Fetches, filters, and performs stratified sampling on the Databricks Dolly 15k dataset.
+* `bopis/quality/bertscore.py` — Offline scoring stage for output quality evaluation using BERTScore (`roberta-large` layer 17). Supports empty-reference fallback (`fallback_to_self=True`) for live arbitrary prompts.
+* `bopis/dataset.py` — Fetches, filters, and performs stratified sampling on the Databricks Dolly 15k dataset. Supports post-defense 60/40 mixed evaluation (300 Dolly 15k + 200 independent NLP benchmark prompts: Natural Questions, TriviaQA, CNN/DailyMail, SQuAD 2.0).
+* `DATASET_MIXING_REVISIONS.md` / `docs/DATASET_MIXING_REVISIONS.md` — Complete specification of post-defense dataset generalizability revisions and prompt allocations.
 
 ### UI & Presentation
-* `bopis.html` — The primary interactive User Interface for demonstrating the thesis (Chat UI, GP Demo, Pareto Charts, Random Search comparisons).
+* `bopis.html` — The primary interactive User Interface for demonstrating the thesis (Optimization Chat UI with dynamic task hints and token budgets, interactive click-to-compare proxy prompts, GP Demo, Pareto frontiers, Random Search baseline comparisons, and Wilcoxon signed-rank test table with winner indicators).
 * `dashboard_data.js` — The auto-published payload containing all metrics from the latest run, consumed by the UI.
 * `bopis_rules.js` / `bopis_model.js` — Exported Stage 1 Task Classification rules and trained weights for local UI execution.
-* `bopis_profile.js` — Exported hardware profile data for the UI.
+* `bopis_profile.js` — Exported hardware profile data and feasibility status for the UI.
 
 ### Miscellaneous
 * `runs/` — Automatically generated directory where all study artifacts, tables (CSV), and logs are saved per run.
 * `models/` — Default directory for downloaded GGUF model weights.
 * `tests/` — Standard library `unittest` suite ensuring mathematical correctness without external dependencies.
-* `docs/` — Contains supplementary documentation (`AMENDMENTS.md`, `ENERGY_MODES.md`, `UI_GUIDE.md`).
+* `docs/` — Contains supplementary documentation (`AMENDMENTS.md`, `ENERGY_MODES.md`, `UI_GUIDE.md`, `DATASET_MIXING_REVISIONS.md`).
 
 ---
 
