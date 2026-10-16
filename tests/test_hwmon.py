@@ -345,6 +345,11 @@ class TestUiBridge(unittest.TestCase):
             log=lambda _m: None,
         )
         cls.instruments.source.refresh_s = 0.1  # the fake updates every read
+        # These assertions are about the RAPL path only: pin the host's GPU off
+        # so a machine whose NVML reports energy cannot widen the window to
+        # "gpu_nvml+cpu_package_rapl" (or inflate energy_gross_j with it).
+        cls.instruments.gpu_method = EnergyMethod.UNAVAILABLE
+        cls.instruments.gpu_name = None
         cls.ui = _Server(ui_server.make_handler(cls.instruments, 0))
 
     @classmethod

@@ -16,7 +16,7 @@ Table F1 cites   Actual artifact
 A.7              ``B.7`` calibration log -- one row per BO iteration
 A.1-A.6          ``B.1`` trials, ``B.2`` per-configuration, ``B.3`` energy,
                  ``B.4`` speed, ``B.5`` quality, ``B.6`` resources
-A.6              ``B.8`` summary comparison (carries the Friedman/Nemenyi rows)
+A.6              ``B.8`` summary comparison (carries the Wilcoxon rows)
 A.10             ``B.9``  x* selection *(new)*
 A.11             ``B.10`` Pareto front and hypervolume *(new)*
 M1               ``B.11`` surrogate reliability *(new)*
@@ -41,11 +41,9 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple
 
-#: The six configuration-vector columns, shared by every table that records a
+#: The five configuration-vector columns, shared by every table that records a
 #: configuration. Produced by :meth:`bopis.config_space.Config.as_row`.
-#: ``m_model`` was added by amendment A-40.
 CONFIG_COLUMNS: Tuple[str, ...] = (
-    "m_model",
     "t_max_gen_tokens",
     "b_batch_size",
     "p_precision",
@@ -53,7 +51,9 @@ CONFIG_COLUMNS: Tuple[str, ...] = (
     "c_cpu_threads",
 )
 
-#: The three experimental conditions of the three-way comparison, in order.
+#: The three conditions measured in the three-way design, in order. Only
+#: ``random_search`` and ``bopis`` are compared inferentially; ``unoptimized``
+#: is the reference point the run is scored against and carries no test.
 CONDITIONS: Tuple[str, ...] = ("unoptimized", "random_search", "bopis")
 
 CONDITION_LABELS: Dict[str, str] = {
@@ -62,10 +62,10 @@ CONDITION_LABELS: Dict[str, str] = {
     "bopis": "BOPIS",
 }
 
-#: Dependent variables, with the orientation each one is ranked by. The
-#: orientation matters: Friedman mean ranks are only interpretable if rank 1
-#: means "best", which is the *smallest* value for energy and memory and the
-#: *largest* for speed and quality.
+#: Dependent variables, one column each. The "higher is better" flag records the
+#: orientation each one is *interpreted* by, which is what tells a human which
+#: direction of a significant difference favours BOPIS. It is not consumed by
+#: the paired Wilcoxon test itself, whose two-sided result is orientation-free.
 DEPENDENT_VARIABLES: Tuple[Tuple[str, str, bool], ...] = (
     # (column, label, higher_is_better)
     ("energy_j", "Energy -- Total (J)", False),
@@ -207,7 +207,6 @@ B7_CALIBRATION: Tuple[str, ...] = (
     "gp_sigma",
     "gp_predictive_sigma",
     "expected_improvement",
-    "p_feasible",
     "best_energy_so_far",
     "delta_energy",
     "on_pareto_front",
@@ -269,6 +268,7 @@ DATASET_SAMPLE: Tuple[str, ...] = (
     "prompt_index",
     "prompt_id",
     "task_type",
+    "source",
     "in_proxy_subset",
     "instruction_chars",
     "context_chars",

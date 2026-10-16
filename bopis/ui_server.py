@@ -20,12 +20,14 @@ localhost:
 ``POST /api/score``
     BERTScore F1 of a reply against a reference, with the study's scorer
     configuration. Loaded lazily on the first request; this is the only path
-    by which the UI process imports ``torch``.
+    by which the UI process imports ``torch``. An empty reference is filled by
+    retrieving the nearest pooled Q/A pair, matched on the user's prompt.
 
 ``GET /api/dolly``
     A random Dolly 15k prompt, rendered with the study's own template, together
-    with its human reference -- so a chat reply can be scored at all. Free chat
-    has no reference, and still reports ``n/a``.
+    with its human reference -- so a chat reply can be scored against a real
+    answer. Free chat has no reference of its own; the pool's nearest match
+    stands in, with its similarity reported so the UI can flag a weak one.
 
 ``GET /api/status``
     What is available: llama-server, the energy instrument, the scorer.
@@ -303,12 +305,32 @@ class Instruments:
             cpu_idle_w=cpu_idle_w,
             gpu_idle_w=0.0,
         )
+
+        # The GPU's own power/energy telemetry, probed once -- and *before* the
+        # hardware-monitor connection, whose fallback log line reports which
+        # instrument is actually in use. When the driver reports power or an
+        # energy counter the chat's energy is a *measurement* (NVML), exactly as
+        # a study uses it; the estimator stays the last rung.
+        self.gpu_name: Optional[str] = None
+        self.gpu_method: str = EnergyMethod.UNAVAILABLE
+        self.gpu_error: Optional[str] = None
+        self._probe_gpu()
+
         self._connect_hwmon(hwmon_url, hwmon_sensor, idle_seconds)
 
         self.bertscore_model = bertscore_model
         self.bertscore_layer = bertscore_layer
         self._scorer = None
         self.scorer_error: Optional[str] = None
+
+        # Retrieval-based reference matching: when a prompt has no Dolly
+        # reference (free chat, or a prompt typed live), the nearest Q/A pair in
+        # the pool supplies one so BERTScore can still fire. Built eagerly but
+        # with TF-IDF so it stays light (no torch) and is ready on the first
+        # message.
+        self._retriever = None
+        self.retriever_error: Optional[str] = None
+        self._get_retriever()
 
         self.dolly: List[dataset.Prompt] = []
         self.data_dir = data_dir
@@ -322,6 +344,30 @@ class Instruments:
             log(f"  Dolly pool                   none ({path} not found)")
 
     # ------------------------------------------------------------------ #
+    # GPU telemetry
+    # ------------------------------------------------------------------ #
+
+    def _probe_gpu(self) -> None:
+        """Read the GPU's power/energy capability once, at startup.
+
+        Mirrors :meth:`bopis.hardware.HostProfile.can_measure_energy`: any
+        method other than ``unavailable`` means the chat's energy is measured.
+        """
+        try:
+            from bopis.monitor.nvml import Nvml
+
+            with Nvml.open() as nv:
+                device = nv.device(0)
+                self.gpu_name = device.name
+                self.gpu_method = device.energy_method
+        except Exception as exc:  # noqa: BLE001 - reported, never fatal
+            self.gpu_error = str(exc)
+
+    @property
+    def gpu_measuring(self) -> bool:
+        return self.gpu_method != EnergyMethod.UNAVAILABLE
+
+    # ------------------------------------------------------------------ #
     # Energy
     # ------------------------------------------------------------------ #
 
@@ -333,8 +379,12 @@ class Instruments:
             sensor = source.discover()
         except hwmon.HwmonUnavailable as exc:
             self.source_error = str(exc)
-            self.log("  Energy                       Mode C estimate "
-                     "(no RAPL feed; see `bopis profile`)")
+            self.log(
+                "  Energy                       GPU energy via NVML"
+                if self.gpu_measuring
+                else "  Energy                       Mode C estimate "
+                     "(no RAPL feed; see `bopis profile`)"
+            )
             return
         self.log(
             f"  RAPL sensor                  {sensor.label} ({sensor.watts:.2f} W)"
@@ -358,7 +408,8 @@ class Instruments:
 
     @property
     def measuring(self) -> bool:
-        return self.source is not None
+        """True when some sensor -- GPU (NVML) or CPU package (RAPL) -- measures."""
+        return self.source is not None or self.gpu_measuring
 
     def llama_pid(self) -> Optional[int]:
         if self._fixed_pid is not None:
@@ -456,9 +507,16 @@ class Instruments:
                     "--llama-port", "8084", "--label", "ui-real"]
         for key, path in sorted(self.model_paths.items()):
             command += ["--model", f"{key}={path}"]
-        # Measured CPU package energy when the sensor feed is up; otherwise the
-        # labelled Mode C estimate (this laptop's MX330 reports no power).
-        command += ["--energy-mode", "cpu-rapl" if self.measuring else "resource-estimate"]
+        # A study started from the UI measures with the best instrument this
+        # host has: NVML GPU energy when the driver reports it (auto), else the
+        # CPU package (RAPL), else the labelled resource-allocation estimate.
+        if self.gpu_measuring:
+            energy_mode = "auto"
+        elif self.source is not None:
+            energy_mode = "cpu-rapl"
+        else:
+            energy_mode = "resource-estimate"
+        command += ["--energy-mode", energy_mode]
         return command
 
     def start_study(self, request: Dict[str, object]) -> Dict[str, object]:
@@ -514,19 +572,24 @@ class Instruments:
                 target = self.llama_url
             from bopis.monitor.nvml import Nvml
             from contextlib import ExitStack
-            
+
             with ExitStack() as stack:
                 device = None
-                try:
-                    nv = stack.enter_context(Nvml.open())
-                    device = nv.device(0)
-                except Exception:
-                    pass
+                # Only when the startup probe said the driver reports power or
+                # an energy counter -- the same flag status() and the study
+                # command trust, so no path can report a measurement the probe
+                # never confirmed.
+                if self.gpu_measuring:
+                    try:
+                        nv = stack.enter_context(Nvml.open())
+                        device = nv.device(0)
+                    except Exception:
+                        pass
 
                 sampler = TelemetrySampler(
                     device=device,
                     pid=pid,
-                    estimator_budget=None if self.measuring else self.budget,
+                    estimator_budget=self.budget,
                     logical_cores=os.cpu_count(),
                     cpu_power_source=self.source,
                     p_cpu_idle_w=float(self.idle.get("p_cpu_idle_w") or 0.0),
@@ -550,7 +613,11 @@ class Instruments:
         }
 
     def _energy_summary(self, window, pid: Optional[int]) -> Dict[str, object]:
-        measured = window.energy_method == EnergyMethod.RAPL_HWMON_POWER_INTEGRATION
+        method = window.energy_method or EnergyMethod.UNAVAILABLE
+        estimated = method == EnergyMethod.RESOURCE_ALLOCATION_ESTIMATE
+        measured = not estimated and method != EnergyMethod.UNAVAILABLE
+        gpu_measured = "nvml" in str(method)
+        rapl_measured = EnergyMethod.RAPL_HWMON_POWER_INTEGRATION in str(method)
         joules = window.energy_j
         
         mem_mib = window.memory_mib_mean
@@ -568,9 +635,16 @@ class Instruments:
                 
         return {
             "measured": measured,
-            "method": window.energy_method,
+            "method": method,
+            "gpu_measured": gpu_measured,
+            "rapl_measured": rapl_measured,
             "scope": (
-                "cpu_package_rapl" if measured else "estimated_resource_allocation"
+                "gpu_nvml"
+                if gpu_measured and not rapl_measured
+                else ("gpu_nvml+cpu_package_rapl" if gpu_measured and rapl_measured
+                      else ("cpu_package_rapl" if rapl_measured
+                            else ("estimated_resource_allocation"
+                                  if estimated else "unavailable")))
             ),
             "energy_j": joules,
             "energy_low_j": window.energy_low_j,
@@ -595,15 +669,33 @@ class Instruments:
                 * metrics.DEFAULT_TARIFF_PHP_PER_KWH
             ),
             "tariff_php_per_kwh": metrics.DEFAULT_TARIFF_PHP_PER_KWH,
-            "caveat": (
+            "caveat": self._energy_caveat(method, gpu_measured, rapl_measured),
+        }
+
+    @staticmethod
+    def _energy_caveat(method: str, gpu_measured: bool, rapl_measured: bool) -> str:
+        if gpu_measured and rapl_measured:
+            return (
+                "Measured GPU board energy (NVML) plus measured CPU package energy "
+                "(RAPL), net of calibrated idle where the sensor allows. Covers the "
+                "whole GPU board and the CPU package; excludes DRAM and display."
+            )
+        if gpu_measured:
+            return (
+                "Measured GPU board energy from the NVIDIA driver's energy counter "
+                "(NVML), net of idle. Covers the whole GPU board; the CPU side is "
+                "not included unless a RAPL feed (LibreHardwareMonitor) is running."
+            )
+        if rapl_measured:
+            return (
                 "Measured CPU package energy (Intel RAPL via hardware monitor), "
                 "net of idle. Excludes DRAM, display and the discrete GPU; "
                 "valid as inference energy only when llama-server runs with "
                 "--n-gpu-layers 0."
-                if measured
-                else estimator.caveat()
-            ),
-        }
+            )
+        if method == EnergyMethod.RESOURCE_ALLOCATION_ESTIMATE:
+            return estimator.caveat()
+        return "No power telemetry was available for this window; energy is null."
 
     # ------------------------------------------------------------------ #
     # Quality
@@ -622,7 +714,81 @@ class Instruments:
             self._scorer = get_scorer("bertscore", model=model, layer=layer)
         return self._scorer
 
-    def score(self, candidate: str, reference: str) -> Dict[str, object]:
+    def _get_retriever(self):
+        """Lazy reference retriever over the fitted Q/A pool.
+
+        Built from ``data/fitted_references.json`` when present (the offline
+        pool the study produced), otherwise from an already-built pool. Returns
+        None -- never raises -- when no pool is available, so the caller can
+        fall back to a self-reference or report ``n/a``.
+        """
+        if self._retriever is not None or self.retriever_error is not None:
+            return self._retriever
+        try:
+            from bopis.retrieval import DEFAULT_FITTED_PATH, ReferenceRetriever
+
+            # TF-IDF only: no torch, no model download, instant on startup.
+            retriever = ReferenceRetriever(use_sentence_transformers=False)
+            if os.path.exists(DEFAULT_FITTED_PATH):
+                retriever.build_from_fitted()
+            elif not retriever.load_pool() or not retriever.questions:
+                raise FileNotFoundError(
+                    "no reference pool (run the study, or build "
+                    "data/fitted_references.json)"
+                )
+            self._retriever = retriever
+            self.log(
+                f"  Reference pool               {len(retriever.questions)} Q/A pairs "
+                f"({retriever.backend})"
+            )
+        except Exception as exc:  # noqa: BLE001 - reported, never fatal
+            self.retriever_error = str(exc)
+            self.log(f"  Reference pool               unavailable ({exc})")
+        return self._retriever
+
+    def score(
+        self,
+        candidate: str,
+        reference: str,
+        min_match_similarity: float = 0.5,
+        prompt: str = "",
+    ) -> Dict[str, object]:
+        """BERTScore *candidate* against *reference*.
+
+        With an empty *reference* the nearest Q/A pair in the reference pool is
+        retrieved and its answer used -- so a live, arbitrary prompt can still
+        be scored. The retrieval query is *prompt* (the user's question) when
+        given, falling back to *candidate* only for callers that predate this
+        argument: matching the reply instead of the question would score the
+        reply against an unrelated answer. The match (and its confidence) is
+        returned alongside the F1 so the UI can show it honestly; below
+        *min_match_similarity* the match is flagged low-confidence.
+        """
+        match_info = None
+        if not reference.strip():
+            retriever = self._get_retriever()
+            if retriever is None:
+                raise ValueError(
+                    "no reference supplied and no reference pool available "
+                    f"({self.retriever_error or 'pool not built'})"
+                )
+            match = retriever.find_match(prompt.strip() or candidate)
+            if match is None:
+                # Report the threshold that actually rejected it -- the
+                # backend's accept threshold, not min_match_similarity, which
+                # only decides whether an accepted match is flagged.
+                raise ValueError(
+                    "no reference matched this prompt above the similarity "
+                    f"threshold ({retriever.accept_similarity:.2f})"
+                )
+            reference = match.reference
+            match_info = {
+                "similarity": float(match.similarity),
+                "matched_question": match.matched_question,
+                "matched_source": match.matched_source,
+                "low_confidence": bool(match.similarity < min_match_similarity),
+            }
+
         with self.lock:
             scorer = self._get_scorer()
             started = time.monotonic()
@@ -631,6 +797,9 @@ class Instruments:
         payload = result.as_dict()
         payload["model"] = scorer.describe().get("model")
         payload["seconds"] = elapsed
+        payload["reference"] = reference
+        if match_info is not None:
+            payload["reference_match"] = match_info
         return payload
 
     # ------------------------------------------------------------------ #
@@ -716,21 +885,32 @@ class Instruments:
 
     def _run_one(self, backend, config, prompt, row: Dict[str, object]) -> None:
         """Load *config*, measure one generation of *prompt*, stop the server."""
+        from contextlib import ExitStack
+        from bopis.monitor.nvml import Nvml
+
         try:
             backend.start(config)  # model load: outside the energy window
-            sampler = TelemetrySampler(
-                device=None,
-                pid=backend.pid,
-                estimator_budget=None if self.measuring else self.budget,
-                logical_cores=os.cpu_count(),
-                cpu_power_source=self.source,
-                p_cpu_idle_w=float(self.idle.get("p_cpu_idle_w") or 0.0),
-            )
-            sampler.start()
-            try:
-                result = backend.generate(prompt.text, config)
-            finally:
-                window = sampler.stop()
+            with ExitStack() as stack:
+                device = None
+                if self.gpu_measuring:  # same probe as chat() and status()
+                    try:
+                        nv = stack.enter_context(Nvml.open())
+                        device = nv.device(0)
+                    except Exception:
+                        pass
+                sampler = TelemetrySampler(
+                    device=device,
+                    pid=backend.pid,
+                    estimator_budget=self.budget,
+                    logical_cores=os.cpu_count(),
+                    cpu_power_source=self.source,
+                    p_cpu_idle_w=float(self.idle.get("p_cpu_idle_w") or 0.0),
+                )
+                sampler.start()
+                try:
+                    result = backend.generate(prompt.text, config)
+                finally:
+                    window = sampler.stop()
             pid = backend.pid
         finally:
             backend.stop()
@@ -796,6 +976,11 @@ class Instruments:
             "llama": {"url": self.llama_url, "ready": llama_ok, "pid": self._pid},
             "energy": {
                 "measured": self.measuring,
+                "gpu_measured": self.gpu_measuring,
+                "gpu_name": self.gpu_name,
+                "gpu_method": self.gpu_method,
+                "gpu_error": self.gpu_error,
+                "cpu_measured": self.source is not None,
                 "instrument": self.source.describe() if self.source else None,
                 "p_cpu_idle_w": self.idle.get("p_cpu_idle_w"),
                 "idle_quiet": self.idle.get("quiet"),
@@ -805,6 +990,13 @@ class Instruments:
                 "available": quality_ready,
                 "loaded": self._scorer is not None,
                 "model": self.bertscore_model or "roberta-large",
+                "reference_pool": (
+                    len(self._retriever.questions) if self._retriever else None
+                ),
+                "reference_backend": (
+                    self._retriever.backend if self._retriever else None
+                ),
+                "reference_error": self.retriever_error,
             },
             "dolly": {"n": len(self.dolly)},
             "deployed": self.deployed_config.key() if self.deployed_config else None,
@@ -1045,10 +1237,17 @@ def make_handler(instruments: Instruments, port: int):
                     request = json.loads(self._body() or b"{}")
                     candidate = str(request.get("candidate") or "")
                     reference = str(request.get("reference") or "")
-                    if not candidate.strip() or not reference.strip():
-                        return self._json(400, {"error": "candidate and reference "
-                                                "are both required"})
-                    return self._json(200, instruments.score(candidate, reference))
+                    if not candidate.strip():
+                        return self._json(400, {"error": "candidate is required"})
+                    # An empty reference is allowed: the reference pool supplies
+                    # the nearest match so live prompts can still be scored. The
+                    # user's prompt is the retrieval query, not the reply.
+                    prompt = str(request.get("prompt") or "")
+                    min_sim = float(request.get("min_match_similarity") or 0.5)
+                    return self._json(
+                        200,
+                        instruments.score(candidate, reference, min_sim, prompt=prompt),
+                    )
                 if url.path == "/api/refresh":
                     return self._json(200, instruments.refresh_js())
             except urllib.error.HTTPError as exc:

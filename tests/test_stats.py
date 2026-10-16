@@ -1,4 +1,9 @@
-"""Friedman test, Nemenyi post-hoc, chi-square CDF, and descriptives.
+"""Wilcoxon signed-rank test, the two-condition comparison, and descriptives.
+
+The study compares two conditions -- the random-search baseline and the
+BOPIS-recommended configuration -- on shared prompts, so the inferential test is
+the Wilcoxon signed-rank test. (A three-condition ordering test is not used, so
+neither the Friedman test nor a Nemenyi post-hoc exists in :mod:`bopis.stats`.)
 
 Correctness is established two ways rather than by citing a printed table:
 
@@ -7,10 +12,6 @@ Correctness is established two ways rather than by citing a printed table:
   trust.
 * **A cross-check against scipy** on larger random inputs, including a
   tie-heavy case, skipped automatically when scipy is absent.
-
-The Nemenyi critical-difference constant ``q_alpha`` for k=3 at alpha=0.05 is
-2.343, tabulated by Demsar (2006), "Statistical Comparisons of Classifiers over
-Multiple Data Sets", JMLR 7:1-30, Table 5.
 """
 
 from __future__ import annotations
@@ -19,249 +20,147 @@ import math
 import unittest
 
 from bopis.stats import (
-    NEMENYI_Q,
-    average_ranks,
     bootstrap_ci,
-    chi2_sf,
     coefficient_of_variation,
     compare_conditions,
     describe,
-    friedman,
-    nemenyi,
+    wilcoxon,
 )
 
 
-class TestChiSquareSurvival(unittest.TestCase):
-    def test_df2_is_exact_closed_form(self) -> None:
-        """At df=2 the survival function is exp(-x/2) exactly."""
-        for x in (0.1, 1.0, 2.0, 5.991, 9.21, 20.0):
-            self.assertAlmostEqual(chi2_sf(x, 2), math.exp(-x / 2.0), places=14)
+class TestWilcoxon(unittest.TestCase):
+    def test_hand_computed_all_positive_differences(self) -> None:
+        """Four blocks, every first condition larger, distinct magnitudes.
 
-    def test_critical_values(self) -> None:
-        # Standard 0.05 critical values.
-        self.assertAlmostEqual(chi2_sf(5.991, 2), 0.05, places=4)
-        self.assertAlmostEqual(chi2_sf(7.815, 3), 0.05, places=4)
-        self.assertAlmostEqual(chi2_sf(9.488, 4), 0.05, places=4)
-        self.assertAlmostEqual(chi2_sf(3.841, 1), 0.05, places=4)
+        Differences are 1, 2, 3, 4, so their ranks are 1, 2, 3, 4 and
+        ``W- = 0`` (no negative ranks), giving ``W = 0``. With n=4::
 
-    def test_monotone_decreasing(self) -> None:
-        values = [chi2_sf(x, 3) for x in (0.5, 1, 2, 5, 10, 20)]
-        self.assertEqual(values, sorted(values, reverse=True))
-
-    def test_bounds(self) -> None:
-        self.assertEqual(chi2_sf(0.0, 2), 1.0)
-        self.assertEqual(chi2_sf(-1.0, 2), 1.0)
-        self.assertLess(chi2_sf(200.0, 2), 1e-40)
-
-    def test_general_path_agrees_with_closed_form_at_df2(self) -> None:
-        """The incomplete-gamma path must reproduce the df=2 special case."""
-        from bopis.stats import _gamma_p_series, _gamma_q_continued_fraction
-
-        for x in (0.5, 3.0, 12.0):
-            half = x / 2.0
-            general = (
-                1.0 - _gamma_p_series(1.0, half)
-                if half < 2.0
-                else _gamma_q_continued_fraction(1.0, half)
-            )
-            self.assertAlmostEqual(general, math.exp(-half), places=10)
-
-
-class TestRanking(unittest.TestCase):
-    def test_lower_is_rank_one_by_default(self) -> None:
-        self.assertEqual(average_ranks([10.0, 20.0, 30.0]), [1.0, 2.0, 3.0])
-
-    def test_higher_is_rank_one_when_requested(self) -> None:
-        self.assertEqual(
-            average_ranks([10.0, 20.0, 30.0], higher_is_better=True), [3.0, 2.0, 1.0]
+            mean W = n(n+1)/4 = 5
+            var W  = n(n+1)(2n+1)/24 = 7.5
+            z = (0 - 5 + 0.5) / sqrt(7.5)     [continuity correction]
+            p = erfc(|z| / sqrt(2))
+        """
+        result = wilcoxon([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]])
+        self.assertEqual(result.n_effective, 4)
+        self.assertEqual(result.w_statistic, 0.0)
+        self.assertEqual(result.tie_correction, 0.0)
+        expected_z = (0.0 - 5.0 + 0.5) / math.sqrt(7.5)
+        self.assertAlmostEqual(result.z_statistic, expected_z, places=12)
+        self.assertAlmostEqual(
+            result.p_value, math.erfc(abs(expected_z) / math.sqrt(2.0)), places=14
         )
-
-    def test_ties_receive_the_average_rank(self) -> None:
-        # Two values tied for ranks 1 and 2 both get 1.5.
-        self.assertEqual(average_ranks([5.0, 5.0, 9.0]), [1.5, 1.5, 3.0])
-        # Three-way tie across ranks 1-3 gives 2.0 each.
-        self.assertEqual(average_ranks([7.0, 7.0, 7.0]), [2.0, 2.0, 2.0])
-
-    def test_rank_sum_is_invariant(self) -> None:
-        """Ranks of k items always sum to k(k+1)/2, ties or not."""
-        for row in ([1.0, 2.0, 3.0], [4.0, 4.0, 9.0], [2.0, 2.0, 2.0]):
-            self.assertAlmostEqual(sum(average_ranks(row)), 6.0, places=12)
-
-
-class TestFriedman(unittest.TestCase):
-    def test_hand_computed_perfect_separation(self) -> None:
-        """A case small enough to verify with arithmetic on paper.
-
-        Four blocks, three conditions, each block ordered 1 < 2 < 3::
-
-            rank sums   R = [4, 8, 12]           sum R^2 = 224
-            chi2 = 12/(n k (k+1)) * sum R^2 - 3 n (k+1)
-                 = 12/(4*3*4) * 224 - 3*4*4
-                 = 0.25 * 224 - 48
-                 = 8.0
-            p = exp(-chi2 / 2) = exp(-4)          [df = 2]
-
-        8.0 is also the maximum attainable statistic for n=4, k=3, which is
-        what perfect separation should produce.
-        """
-        blocks = [[1.0, 2.0, 3.0]] * 4
-        result = friedman(blocks, ["a", "b", "c"])
-        self.assertEqual(result.n_blocks, 4)
-        self.assertEqual(result.df, 2)
-        self.assertEqual(result.rank_sums, [4.0, 8.0, 12.0])
-        self.assertAlmostEqual(result.chi_square, 8.0, places=12)
-        self.assertAlmostEqual(result.p_value, math.exp(-4.0), places=14)
-
-    def test_hand_computed_mixed_orderings(self) -> None:
-        """A second paper-checkable case, this time not fully separated.
-
-        Blocks ``[1,2,3], [2,1,3], [1,3,2], [3,1,2]`` are already rank rows::
-
-            R = [7, 7, 10]                        sum R^2 = 198
-            chi2 = 0.25 * 198 - 48 = 1.5
-            p = exp(-0.75)
-        """
-        blocks = [
-            [1.0, 2.0, 3.0],
-            [2.0, 1.0, 3.0],
-            [1.0, 3.0, 2.0],
-            [3.0, 1.0, 2.0],
-        ]
-        result = friedman(blocks, ["a", "b", "c"])
-        self.assertEqual(result.rank_sums, [7.0, 7.0, 10.0])
-        self.assertAlmostEqual(result.chi_square, 1.5, places=12)
-        self.assertAlmostEqual(result.p_value, math.exp(-0.75), places=14)
         self.assertFalse(result.significant)
 
-    def test_identical_conditions_give_zero_statistic(self) -> None:
-        blocks = [[5.0, 5.0, 5.0] for _ in range(20)]
-        result = friedman(blocks, ["a", "b", "c"])
-        self.assertAlmostEqual(result.chi_square, 0.0, places=12)
-        self.assertAlmostEqual(result.p_value, 1.0, places=12)
-        self.assertFalse(result.significant)
-
-    def test_perfectly_separated_conditions_are_significant(self) -> None:
-        blocks = [[3.0, 2.0, 1.0] for _ in range(30)]
-        result = friedman(blocks, ["a", "b", "c"])
+    def test_large_consistent_effect_is_significant(self) -> None:
+        blocks = [[float(i), 0.0] for i in range(1, 21)]  # every diff positive
+        result = wilcoxon(blocks)
         self.assertLess(result.p_value, 0.001)
         self.assertTrue(result.significant)
-        # Mean ranks must be 3, 2, 1 for a perfectly consistent ordering.
-        self.assertEqual(result.mean_ranks, [3.0, 2.0, 1.0])
 
-    def test_orientation_flips_mean_ranks(self) -> None:
-        blocks = [[1.0, 2.0, 3.0] for _ in range(10)]
-        low = friedman(blocks, ["a", "b", "c"], higher_is_better=False)
-        high = friedman(blocks, ["a", "b", "c"], higher_is_better=True)
-        self.assertEqual(low.mean_ranks, [1.0, 2.0, 3.0])
-        self.assertEqual(high.mean_ranks, [3.0, 2.0, 1.0])
-        # The statistic itself is orientation-invariant.
-        self.assertAlmostEqual(low.chi_square, high.chi_square, places=12)
+    def test_zero_differences_are_dropped(self) -> None:
+        # One tied pair (diff 0) contributes no sign information.
+        result = wilcoxon([[1.0, 1.0], [2.0, 1.0], [3.0, 1.0]])
+        self.assertEqual(result.n_effective, 2)
+
+    def test_all_ties_is_not_significant(self) -> None:
+        result = wilcoxon([[5.0, 5.0], [5.0, 5.0], [5.0, 5.0]])
+        self.assertEqual(result.n_effective, 0)
+        self.assertEqual(result.w_statistic, 0.0)
+        self.assertEqual(result.p_value, 1.0)
+        self.assertFalse(result.significant)
 
     def test_tie_correction_is_applied(self) -> None:
-        blocks = [[1.0, 1.0, 2.0], [2.0, 2.0, 1.0], [1.0, 2.0, 2.0]]
-        result = friedman(blocks, ["a", "b", "c"])
-        self.assertLess(result.tie_correction, 1.0)
+        # Two tied absolute differences of size 1 → one tie group of size 2.
+        result = wilcoxon([[2.0, 1.0], [2.0, 1.0], [5.0, 1.0]])
         self.assertGreater(result.tie_correction, 0.0)
 
-    def test_rejects_ragged_blocks(self) -> None:
-        with self.assertRaises(ValueError):
-            friedman([[1.0, 2.0], [1.0, 2.0, 3.0]], ["a", "b", "c"])
+    def test_p_value_is_in_the_unit_interval(self) -> None:
+        for blocks in (
+            [[1.0, 2.0], [2.0, 3.0], [3.0, 5.0]],
+            [[10.0, 1.0], [9.0, 2.0], [8.0, 3.0], [7.0, 4.0]],
+        ):
+            result = wilcoxon(blocks)
+            self.assertGreaterEqual(result.p_value, 0.0)
+            self.assertLessEqual(result.p_value, 1.0)
+
+    def test_orientation_is_symmetric(self) -> None:
+        """Swapping the two columns flips z but not W or the p-value."""
+        forward = wilcoxon([[1.0, 3.0], [2.0, 2.0], [4.0, 1.0], [5.0, 6.0]])
+        reverse = wilcoxon([[3.0, 1.0], [2.0, 2.0], [1.0, 4.0], [6.0, 5.0]])
+        self.assertEqual(forward.w_statistic, reverse.w_statistic)
+        self.assertAlmostEqual(forward.p_value, reverse.p_value, places=12)
+        self.assertAlmostEqual(forward.z_statistic, -reverse.z_statistic, places=12)
 
     def test_rejects_empty(self) -> None:
         with self.assertRaises(ValueError):
-            friedman([], ["a"])
+            wilcoxon([])
 
-    def test_rejects_single_condition(self) -> None:
+    def test_rejects_three_conditions(self) -> None:
         with self.assertRaises(ValueError):
-            friedman([[1.0], [2.0]], ["only"])
+            wilcoxon([[1.0, 2.0, 3.0]])
 
     def test_matches_scipy_when_available(self) -> None:
         try:
-            from scipy.stats import friedmanchisquare
+            from scipy.stats import wilcoxon as scipy_wilcoxon
         except ImportError:
             self.skipTest("scipy not installed (core does not need it)")
         import random
 
-        rng = random.Random(17)
-        blocks = [
-            [rng.gauss(100, 12), rng.gauss(92, 12), rng.gauss(80, 12)]
-            for _ in range(60)
-        ]
-        mine = friedman(blocks, ["a", "b", "c"])
-        stat, p_value = friedmanchisquare(*list(zip(*blocks)))
-        self.assertAlmostEqual(mine.chi_square, float(stat), places=9)
-        self.assertAlmostEqual(mine.p_value, float(p_value), places=12)
+        rng = random.Random(7)
+        x = [round(rng.gauss(100, 15), 1) for _ in range(40)]
+        y = [round(v + rng.gauss(0, 8), 1) for v in x]
+        mine = wilcoxon(list(zip(x, y)))
+        reference = scipy_wilcoxon(
+            x, y, zero_method="wilcox", correction=True, method="asymptotic"
+        )
+        self.assertAlmostEqual(mine.w_statistic, float(reference.statistic), places=9)
+        self.assertAlmostEqual(mine.p_value, float(reference.pvalue), places=12)
 
     def test_matches_scipy_with_ties(self) -> None:
         try:
-            from scipy.stats import friedmanchisquare
+            from scipy.stats import wilcoxon as scipy_wilcoxon
         except ImportError:
             self.skipTest("scipy not installed")
         blocks = [
-            [1.0, 1.0, 2.0],
-            [2.0, 2.0, 1.0],
-            [1.0, 2.0, 2.0],
-            [3.0, 1.0, 1.0],
-            [2.0, 2.0, 2.0],
-            [1.0, 3.0, 2.0],
+            [1.0, 1.0], [2.0, 2.0], [3.0, 2.0],
+            [2.0, 3.0], [1.0, 2.0], [3.0, 1.0],
         ]
-        mine = friedman(blocks, ["a", "b", "c"])
-        stat, p_value = friedmanchisquare(*list(zip(*blocks)))
-        self.assertAlmostEqual(mine.chi_square, float(stat), places=9)
-        self.assertAlmostEqual(mine.p_value, float(p_value), places=12)
-
-
-class TestNemenyi(unittest.TestCase):
-    def test_critical_difference_formula(self) -> None:
-        """CD = q_alpha * sqrt(k(k+1) / 6n)."""
-        blocks = [[3.0, 2.0, 1.0] for _ in range(100)]
-        result = friedman(blocks, ["a", "b", "c"])
-        post = nemenyi(result, alpha=0.05)
-        expected = NEMENYI_Q[0.05][3] * math.sqrt(3 * 4 / (6.0 * 100))
-        self.assertAlmostEqual(post.critical_difference, expected, places=12)
-
-    def test_tabulated_constant_for_three_conditions(self) -> None:
-        self.assertAlmostEqual(NEMENYI_Q[0.05][3], 2.343, places=3)
-
-    def test_all_pairs_reported(self) -> None:
-        blocks = [[3.0, 2.0, 1.0] for _ in range(40)]
-        post = nemenyi(friedman(blocks, ["u", "r", "b"]))
-        self.assertEqual(len(post.pairs), 3)
-        labels = {pair["pair"] for pair in post.pairs}
-        self.assertEqual(labels, {"u vs r", "u vs b", "r vs b"})
-
-    def test_detects_separation(self) -> None:
-        blocks = [[3.0, 2.0, 1.0] for _ in range(60)]
-        post = nemenyi(friedman(blocks, ["a", "b", "c"]))
-        self.assertEqual(len(post.significant_pairs()), 3)
-
-    def test_finds_nothing_when_identical(self) -> None:
-        blocks = [[1.0, 1.0, 1.0] for _ in range(60)]
-        post = nemenyi(friedman(blocks, ["a", "b", "c"]))
-        self.assertEqual(post.significant_pairs(), [])
-
-    def test_critical_difference_shrinks_with_more_blocks(self) -> None:
-        small = nemenyi(friedman([[3.0, 2.0, 1.0]] * 10, ["a", "b", "c"]))
-        large = nemenyi(friedman([[3.0, 2.0, 1.0]] * 500, ["a", "b", "c"]))
-        self.assertLess(large.critical_difference, small.critical_difference)
-
-    def test_rejects_untabulated_alpha(self) -> None:
-        result = friedman([[3.0, 2.0, 1.0]] * 10, ["a", "b", "c"])
-        with self.assertRaises(ValueError):
-            nemenyi(result, alpha=0.01)
+        mine = wilcoxon(blocks)
+        reference = scipy_wilcoxon(
+            [b[0] for b in blocks], [b[1] for b in blocks],
+            zero_method="wilcox", correction=True, method="asymptotic",
+        )
+        self.assertAlmostEqual(mine.w_statistic, float(reference.statistic), places=9)
+        self.assertAlmostEqual(mine.p_value, float(reference.pvalue), places=12)
 
 
 class TestCompareConditions(unittest.TestCase):
-    def test_runs_posthoc_only_when_significant(self) -> None:
-        separated = compare_conditions(
-            [[3.0, 2.0, 1.0]] * 40, ["a", "b", "c"]
-        )
-        self.assertIsNotNone(separated["nemenyi"])
+    def test_compares_random_search_against_bopis_only(self) -> None:
+        """The unoptimized reference column is ignored, not tested."""
+        # columns: [unoptimized, random_search, bopis]
+        blocks = [[100.0, 10.0, 1.0] for _ in range(30)]
+        payload = compare_conditions(blocks, ["unoptimized", "random_search", "bopis"])
+        self.assertIn("wilcoxon", payload)
+        self.assertNotIn("friedman", payload)
+        self.assertNotIn("nemenyi", payload)
+        self.assertEqual(payload["conditions"], ["random_search", "bopis"])
+        self.assertEqual(payload["n_blocks"], 30)
+        self.assertTrue(payload["wilcoxon"]["significant"])
 
-        identical = compare_conditions(
-            [[1.0, 1.0, 1.0]] * 40, ["a", "b", "c"]
-        )
-        self.assertIsNone(identical["nemenyi"])
+    def test_identical_conditions_are_not_significant(self) -> None:
+        blocks = [[7.0, 7.0, 7.0] for _ in range(30)]
+        payload = compare_conditions(blocks, ["unoptimized", "random_search", "bopis"])
+        self.assertFalse(payload["wilcoxon"]["significant"])
+        self.assertEqual(payload["wilcoxon"]["p_value"], 1.0)
+
+    def test_indexes_by_name_not_position(self) -> None:
+        """Ordering of the condition list must not silently pick the wrong pair."""
+        names = ["bopis", "unoptimized", "random_search"]
+        # bopis is column 0 (value 1), random_search is column 2 (value 10):
+        # the same 9-unit gap, so it stays significant regardless of position.
+        blocks = [[1.0, 100.0, 10.0] for _ in range(30)]
+        payload = compare_conditions(blocks, names)
+        self.assertTrue(payload["wilcoxon"]["significant"])
 
 
 class TestDescriptives(unittest.TestCase):

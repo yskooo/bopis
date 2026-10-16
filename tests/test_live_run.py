@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from bopis import ui_server
+from bopis.monitor.nvml import EnergyMethod
 
 
 def _run(root, name):
@@ -90,6 +91,9 @@ class LiveRunTests(unittest.TestCase):
     def test_study_command(self):
         instruments = ui_server.Instruments.__new__(ui_server.Instruments)
         instruments.dolly, instruments.data_dir, instruments.source = [], "data", None
+        # gpu_method drives the study's energy-mode; the real constructor sets
+        # it from _probe_gpu(), which __new__ here bypasses.
+        instruments.gpu_method = EnergyMethod.UNAVAILABLE
         instruments.llama_binary = None
         instruments.model_paths = {}
         sim = instruments.study_command({"preset": "sim", "iterations": 500,

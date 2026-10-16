@@ -1,7 +1,313 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+<<<<<<< Updated upstream
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOPIS — AI Optimizer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { 
+    font-family: 'IBM Plex Sans', sans-serif; 
+    background-color: #E8F0F8;
+    color: #1A202C; 
+    display: flex; 
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ─ SIEDB​​AR ────────── */
+.sidebar {
+    width: 260px;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    border-right: 1px solid #E2E8F0;
+    z-index: 10;
+}
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+    padding: 0 8px;
+}
+.avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #EDF2F7;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; color: #2B6CB0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.user-name { font-weight: 600; font-size: 15px; color: #2D3748; }
+
+.nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4A5568;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.nav-item:hover { background: #F7FAFC; }
+.nav-item.active {
+    background: #EDF2F7;
+    color: #1A202C;
+}
+.nav-icon { width: 18px; height: 18px; fill: currentColor; }
+
+.sidebar-bottom { margin-top: auto; }
+.status-card {
+    background: #F7FAFC;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+.status-card h4 { font-size: 12px; color: #4A5568; margin-bottom: 4px; font-weight: 600; }
+.status-card p { font-size: 11px; color: #718096; margin-bottom: 12px; }
+.btn-upgrade {
+    background: #4299E1;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+}
+.btn-upgrade:hover { background: #3182CE; }
+
+/* ─ MAIN CONTENT ────────── */
+.main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-y: auto;
+    padding: 40px 60px;
+}
+.panel { display: none; flex-direction: column; gap: 24px; padding-bottom: 100px; }
+.panel.active { display: flex; }
+
+.page-header { margin-bottom: 16px; }
+.page-title { margin-bottom: 8px; font-size: 32px; font-weight: 700; color: #2B6CB0; }
+.page-subtitle { font-size: 24px; font-weight: 500; color: #718096; }
+
+/* ─ DASHBOARD CARDS ────────── */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.app-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    border: 1px solid #E2E8F0;
+}
+.app-card.yellow-tint { background: #FFFFF0; border-color: #F6E05E; }
+.card-header { font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 12px; display: flex; justify-content: space-between;}
+.card-value { font-size: 28px; font-weight: 700; color: #1A202C; margin-bottom: 4px; }
+.card-subtext { font-size: 12px; color: #718096; display: flex; gap: 6px; align-items: center;}
+.tag { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+.tag.green { background: #C6F6D5; color: #22543D; }
+.tag.red { background: #FED7D7; color: #822727; }
+.tag.blue { background: #BEE3F8; color: #2C5282; }
+
+/* ─ CHAT ────────── */
+.chat-container { display: flex; flex-direction: column; gap: 24px; margin-top: 10px; padding-bottom: 60px; }
+.msg { display: flex; flex-direction: column; gap: 8px; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.user-prompt { font-size: 16px; font-weight: 500; color: #1A202C; background: #FFFBEA; padding: 6px 12px; border-radius: 8px; display: inline-block; align-self: flex-start;}
+.thought-process { font-size: 12px; color: #718096; display: flex; align-items: center; gap: 6px; font-weight: 500; font-style:italic;}
+
+.ai-response {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    border: 1px solid #E2E8F0;
+    max-width: 800px;
+    font-size: 14px;
+}
+.task-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #EDF2F7; border-radius: 12px; font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 12px;}
+.cfg-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #EDF2F7; font-size: 13px; }
+.cfg-row:last-child { border-bottom: none; }
+.cfg-k { color: #718096; }
+.cfg-v { font-weight: 600; color: #2D3748; }
+
+.action-bar { display: flex; gap: 8px; margin-top: 16px; flex-wrap:wrap; }
+.btn-action {
+    background: #EDF2F7; border: none; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; color: #4A5568; cursor: pointer; transition: 0.2s;
+}
+.btn-action:hover { background: #E2E8F0; color: #2B6CB0; }
+
+/* ─ INPUT BAR ────────── */
+.input-dock {
+    position: fixed;
+    bottom: 30px;
+    left: 280px; 
+    right: 30px;
+    display: none; /* hidden by default, shown via JS */
+    justify-content: center;
+    pointer-events: none;
+    z-index: 20;
+}
+.input-dock.active { display: flex; }
+.input-wrapper {
+    background: #FFFFFF;
+    border-radius: 30px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 700px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    border: 1px solid #E2E8F0;
+    pointer-events: auto;
+}
+.input-wrapper input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: #2D3748;
+    background: transparent;
+    padding: 8px 4px;
+    font-family: inherit;
+}
+.input-wrapper input::placeholder { color: #A0AEC0; }
+.btn-add { background: transparent; border: none; color: #A0AEC0; cursor: pointer; font-size: 24px; padding: 0 4px;}
+.btn-add:hover { color: #2B6CB0; }
+.btn-send {
+    background: #E2E8F0; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #4A5568; cursor: pointer; transition: 0.2s;
+}
+.btn-send:hover { background: #4299E1; color: #FFF; }
+
+/* ─ CHARTS / TABLES ────────── */
+.chart-container { margin-top: 16px; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; background: #FFF; }
+.pareto-legend { display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:12px; color:#718096; font-size:11px; }
+.pareto-legend span { display:inline-flex; align-items:center; gap:6px; }
+.legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.pareto-viewport { position:relative; overflow:hidden; border-radius:8px; background:linear-gradient(145deg, #fbfdff, #f4f8fc); }
+.pareto-viewport canvas { cursor:grab; touch-action:none; }
+.pareto-viewport canvas:active { cursor:grabbing; }
+.pareto-hint { position:absolute; right:12px; top:10px; padding:5px 8px; border-radius:5px; background:rgba(255,255,255,.86); color:#718096; font-size:10px; pointer-events:none; }
+.pareto-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:10px; }
+.pareto-control-button { border:1px solid #C9D5D8; background:#FFFFFF; color:#294957; border-radius:4px; padding:6px 10px; font:500 11px 'IBM Plex Mono', monospace; cursor:pointer; }
+.pareto-control-button:hover { border-color:#0C8C9B; color:#0C707B; background:#F0FAF9; }
+.pareto-selection { min-height:28px; color:#6B7F86; font:11px 'IBM Plex Mono', monospace; }
+.rules-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.rules-table th { text-align: left; padding: 12px 8px; color: #718096; font-weight: 500; border-bottom: 1px solid #E2E8F0; }
+.rules-table td { padding: 12px 8px; border-bottom: 1px solid #EDF2F7; color: #2D3748; }
+
+.hw-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #EBF8FF; color: #2B6CB0; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #90CDF4; margin-bottom: 4px; }
+.hw-dot { width: 6px; height: 6px; background: #3182CE; border-radius: 50%; }
+.hardware-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #F6E05E; }
+.hardware-summary div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.hardware-summary span { color: #718096; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.hardware-summary strong { color: #2D3748; font-size: 11px; overflow-wrap: anywhere; }
+
+.detail-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid #EDF2F7; }
+.detail-row:last-child { border-bottom: none; }
+.detail-n { font-weight: 600; font-size: 14px; color: #2B6CB0; }
+.detail-d { font-size: 13px; color: #4A5568; line-height: 1.5; }
+.formula-box { background: #F7FAFC; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #2D3748; margin-top: 6px; border: 1px dashed #CBD5E0;}
+
+/* ── RESEARCH INSTRUMENT THEME ───────────────────────── */
+:root {
+    --ink: #102231;
+    --ink-soft: #1A3447;
+    --paper: #F5F8F6;
+    --paper-bright: #FFFFFF;
+    --line: #D7E2E1;
+    --muted: #6B7F86;
+    --cyan: #0C8C9B;
+    --cyan-soft: #DDF3F2;
+    --amber: #C17A29;
+    --amber-soft: #FFF1D9;
+    --green: #2B8765;
+}
+
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+}
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: .42;
+    background-image: linear-gradient(rgba(12,140,155,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(12,140,155,.045) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+.sidebar {
+    width: 248px;
+    background: var(--ink);
+    border-right: 1px solid #294557;
+    padding: 28px 16px 20px;
+}
+.avatar { background: #DDF3F2; color: var(--cyan); box-shadow: none; }
+.user-name, .nav-item.active, .nav-item:hover { color: #F2FAF9; }
+.nav-item { color: #A9C1C7; border-radius: 5px; letter-spacing: .01em; }
+.nav-item:hover { background: rgba(255,255,255,.08); }
+.nav-item.active { background: #1D4558; box-shadow: inset 3px 0 var(--cyan); }
+.nav-icon { color: currentColor; }
+.sidebar-bottom { border-top: 1px solid #294557; padding-top: 16px; }
+.status-card { background: #173244; border: 1px solid #2B5569; border-radius: 5px; }
+.status-card h4 { color: #E6F4F2; letter-spacing: .08em; text-transform: uppercase; }
+.status-card p { color: #A9C1C7; font-family: 'IBM Plex Mono', monospace; }
+.btn-upgrade { background: var(--cyan); border-radius: 4px; }
+.btn-upgrade:hover { background: #0A707B; }
+.main-area { padding: 44px 58px; background: transparent; }
+.page-header { border-left: 3px solid var(--cyan); padding-left: 16px; }
+.page-title { color: var(--ink); font-size: 30px; letter-spacing: -.02em; }
+.page-subtitle { color: var(--muted); font-size: 18px; }
+.app-card { background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgba(16,34,49,.055); }
+.app-card.yellow-tint { background: var(--amber-soft); border-color: #E8CB9D; }
+.card-header { color: var(--ink-soft); letter-spacing: .07em; text-transform: uppercase; font-size: 11px; }
+.card-value { color: var(--ink); font-family: 'IBM Plex Mono', monospace; letter-spacing: -.04em; }
+.card-subtext, .detail-d, .cfg-k { color: var(--muted); }
+.tag { border-radius: 3px; letter-spacing: .04em; text-transform: uppercase; }
+.tag.blue { background: var(--cyan-soft); color: #09616B; }
+.tag.green { background: #DDF2E7; color: #226A4D; }
+.tag.red { background: #FCE1DD; color: #9A3E35; }
+.hw-pill { background: var(--cyan-soft); color: #09616B; border-color: #9DD9D6; border-radius: 4px; }
+.chart-container, .pareto-viewport { background: #FBFDFC; border-color: var(--line); border-radius: 5px; }
+.pareto-hint { background: rgba(245,248,246,.9); color: var(--muted); border: 1px solid var(--line); font-family: 'IBM Plex Mono', monospace; }
+.pareto-legend { font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
+.formula-box { background: #F1F7F6; border-color: #A8CCCA; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; }
+.cfg-v, .detail-n { color: var(--ink-soft); }
+.input-wrapper { border-radius: 5px; border-color: #A8CCCA; box-shadow: 0 10px 28px rgba(16,34,49,.12); }
+.btn-send { background: var(--cyan); color: white; border-radius: 4px; }
+.btn-send:hover { background: #0A707B; }
+.ai-response { border-radius: 5px; border-color: var(--line); }
+.user-prompt { border-radius: 4px; background: var(--amber-soft); }
+.hardware-summary { border-top-color: #E8CB9D; }
+.hardware-summary span { font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
+.note.info { background: var(--cyan-soft); border-left-color: var(--cyan); color: #155A61; }
+
+@media (max-width: 900px) {
+    .main-area { padding: 30px 22px 90px; }
+    .sidebar { width: 220px; }
+}
+
+@media (max-width: 900px) {
+    .cards-grid[style*="repeat(4"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .hardware-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+</style>
+=======
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BOPIS — AI Optimizer</title>
@@ -413,6 +719,19 @@
 
         .metrics .q-ok {
             color: #2B6CB0;
+        }
+
+        .metrics .q-low {
+            color: #B7791F;
+        }
+
+        .metrics .ref-ok {
+            color: #2F855A;
+        }
+
+        .metrics .ref-low {
+            color: #C05621;
+            font-weight: 600;
         }
 
         .ref-note {
@@ -3177,565 +3496,153 @@
             font-weight: 500 !important;
         }
     </style>
+>>>>>>> Stashed changes
 </head>
+<body>
 
-<body class="landing">
+<nav class="sidebar">
+    <div class="user-profile">
+        <div class="avatar">B</div>
+        <div style="display:flex; flex-direction:column">
+            <span class="user-name">BOPIS System</span>
+            <span style="font-size:11px; color:#718096">Local LLM Optimizer</span>
+        </div>
+    </div>
+    
+    <ul class="nav-links">
+        <li class="nav-item active" onclick="sw('chat', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+            Optimization Chat
+        </li>
+        <li class="nav-item" onclick="sw('tech', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            Dashboard Overview
+        </li>
+        <li class="nav-item" onclick="sw('cfg', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 C11.57,21.83,11.77,22,12,22h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.7z"/></svg>
+            System Settings
+        </li>
+    </ul>
 
-    <div id="hero-fx" aria-hidden="true">
-        <div id="hero-fx-black"></div>
-        <canvas id="hero-canvas"></canvas>
+    <div class="sidebar-bottom">
+        <div class="status-card">
+            <h4>Hardware profile active</h4>
+            <p id="calibration-status">Run data not loaded</p>
+            <button class="btn-upgrade" type="button" onclick="recalibrateHardware()">Recalibrate HW</button>
+        </div>
+    </div>
+</nav>
+
+<main class="main-area">
+    <!-- ─ CHAT PANEL ────────── -->
+    <div id="panel-chat" class="panel active">
+        
+        <div class="page-header">
+            <h1 class="page-title">Welcome, BOPIS-er! 👋</h1>
+            <h2 class="page-subtitle">How can I optimize your prompts today?</h2>
+        </div>
+
+        <div class="cards-grid">
+            <div class="app-card yellow-tint">
+                <div class="card-header">Hardware Status</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <span class="hw-pill"><div class="hw-dot"></div>GPU detected</span>
+                    <span class="hw-pill"><div class="hw-dot"></div>CPU profiled</span>
+                    <span class="hw-pill"><div class="hw-dot"></div>RAM checked</span>
+                </div>
+                <p id="runtime-status" style="margin-top:12px; font-size:12px; color:#4A5568"><strong>Live chatbot ready.</strong> llama.cpp endpoint connected.</p>
+                <div class="hardware-summary" aria-label="Live hardware summary">
+                    <div><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong></div>
+                    <div><span>RAM</span><strong data-summary="ram">Profile unavailable</strong></div>
+                    <div><span>GPU / VRAM</span><strong data-summary="gpu">Profile unavailable</strong></div>
+                    <div><span>Feasible space</span><strong data-summary="space">Profile unavailable</strong></div>
+                    <div><span>Energy</span><strong data-summary="energy">Profile unavailable</strong></div>
+                </div>
+            </div>
+            <div class="app-card" style="cursor:pointer;" onclick="sendPrompt('Summarize the key findings from this climate policy report.')">
+                <div class="card-header">Suggested Task</div>
+                <h3 style="font-size:16px; color:#2D3748; margin-bottom:8px">Summarize a document</h3>
+                <p style="font-size:12px; color:#718096">Optimized with INT8 for efficiency</p>
+            </div>
+            <div class="app-card" style="cursor:pointer;" onclick="sendPrompt('What is the capital of France?')">
+                <div class="card-header">Suggested Task</div>
+                <h3 style="font-size:16px; color:#2D3748; margin-bottom:8px">Run a factual query</h3>
+                <p style="font-size:12px; color:#718096">Optimized with FP16 for precision</p>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chat-area">
+            <!-- Dynamic chat messages go here -->
+        </div>
+
     </div>
 
-    <nav class="sidebar">
-        <div class="user-profile">
-            <span class="sidebar-brand-slot" id="sidebar-brand-slot" aria-hidden="true">
-                <canvas id="sidebar-canvas"></canvas>
-            </span>
-            <div style="display:flex; flex-direction:column">
-                <span class="user-name">BOPIS</span>
-                <!-- <span style="font-size:11px; color:#718096">Local LLM Optimizer</span> -->
+    <!-- ─ DASHBOARD PANEL ────────── -->
+    <div id="panel-tech" class="panel">
+        <div class="page-header">
+            <h1 class="page-title">Optimization Dashboard</h1>
+            <h2 class="page-subtitle">Follow the evidence from search to deployment.</h2>
+        </div>
+
+        <div class="app-card" style="background:#EBF8FF; border-color:#90CDF4;">
+            <div class="card-header">BOPIS user journey</div>
+            <div class="cards-grid" style="grid-template-columns:repeat(4, minmax(0, 1fr));">
+                <div><span class="tag blue">1 · Define</span><p class="detail-d" style="margin-top:8px">Classify the prompt and choose quality and speed floors.</p></div>
+                <div><span class="tag blue">2 · Search</span><p class="detail-d" style="margin-top:8px">Measure seed configurations, then let the GP choose informative trials.</p></div>
+                <div><span class="tag blue">3 · Compare</span><p class="detail-d" style="margin-top:8px">Keep non-dominated energy, speed, and quality trade-offs on the Pareto front.</p></div>
+                <div><span class="tag green">4 · Deploy</span><p class="detail-d" style="margin-top:8px">Use x* for live inference and retain the run as evidence.</p></div>
             </div>
         </div>
 
-        <ul class="nav-links">
-            <li class="nav-item active" onclick="sw('chat', this)">
-                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M10.1 2.182a10 10 0 0 1 3.8 0" />
-                    <path d="M13.9 21.818a10 10 0 0 1-3.8 0" />
-                    <path d="M17.609 3.72a10 10 0 0 1 2.69 2.7" />
-                    <path d="M2.182 13.9a10 10 0 0 1 0-3.8" />
-                    <path d="M20.28 17.61a10 10 0 0 1-2.7 2.69" />
-                    <path d="M21.818 10.1a10 10 0 0 1 0 3.8" />
-                    <path d="M3.721 6.391a10 10 0 0 1 2.7-2.69" />
-                    <path d="m6.163 21.117-2.906.85a1 1 0 0 1-1.236-1.169l.965-2.98" />
-                </svg>
-                Optimization Chat
-            </li>
-            <li class="nav-item" onclick="sw('tech', this)">
-                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path
-                        d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" />
-                    <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
-                    <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
-                </svg>
-                Dashboard Overview
-            </li>
-            <li class="nav-item" onclick="enterWorkspace(this)">
-                <svg class="nav-icon" viewBox="0 0 24 24">
-                    <path d="M3 5h8v14H3V5zm10 0h8v6h-8V5zm0 8h8v6h-8v-6z" />
-                </svg>
-                Workspace
-            </li>
-
-            <li class="nav-item" onclick="sw('cfg', this)">
-                <svg class="nav-icon" viewBox="0 0 24 24">
-                    <path
-                        d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 C11.57,21.83,11.77,22,12,22h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.7z" />
-                </svg>
-                System & Configs
-            </li>
-        </ul>
-
-        <div class="sidebar-bottom">
-            <!-- <div class="dark-mode-container">
-                <span>Dark mode</span>
-                <div class="dark-mode-switch"></div>
-            </div> -->
-
-            <div class="status-card">
-                <h4>HARDWARE PROFILE<br>ACTIVE</h4>
-                <p id="calibration-status">30 configurations evaluated</p>
-                <button class="btn-upgrade" type="button" onclick="recalibrateHardware()">Recalibrate HW</button>
-                <button class="btn-upgrade" type="button" id="refresh-js-btn" onclick="refreshFiles()"
-                    title="Regenerate bopis_profile.js, bopis_rules.js, bopis_model.js and sync dashboard_data.js from the newest run.">
-                    ⟳ Refresh Files
-                </button>
-                <div id="refresh-status" style="font-size:10px; margin-top:6px; line-height:1.6; display:none;"></div>
-            </div>
-
-            <ul class="nav-links" style="margin-top: 16px; margin-bottom: 0;">
-                <li class="nav-item" id="nav-explain" onclick="openExplain(this)">
-                    <svg class="nav-icon" viewBox="0 0 24 24">
-                        <path
-                            d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z" />
-                    </svg>
-                    How BOPIS chose
-                </li>
-            </ul>
-        </div>
-    </nav>
-
-    <main class="main-area">
-        <!-- ─ CHAT PANEL ────────── -->
-        <div id="panel-chat" class="panel active">
-            <div class="landing-title" id="landing-title">
-                <h1>Welcome, BOPIS-er. </h1>
-                <p>How can I optimize your prompts today?</p>
-            </div>
-
-            <div class="chat-hero">
-                <div class="chat-brand" id="chat-brand">
-                    <span class="brand-slot" id="brand-slot"></span>
-                    <span class="brand-title">Welcome, BOPIS-er.</span>
-                </div>
-                <div class="session-tally" id="session-tally"></div>
-
-                <button class="hw-widget" id="hw-widget" type="button" onclick="toggleHwWidget()"
-                    title="Hardware status — click for detail">
-                    <span class="hw-widget-dot"></span>
-                    <span class="hw-widget-label">Hardware ready</span>
-                    <span class="hw-widget-chevron">▾</span>
-                </button>
-                <div class="hw-widget-panel" id="hw-widget-panel">
-                    <div class="hw-widget-row"><span>CPU</span><strong data-summary="cpu">Profile unavailable</strong>
-                    </div>
-                    <div class="hw-widget-row"><span>RAM</span><strong data-summary="ram">Profile unavailable</strong>
-                    </div>
-                    <div class="hw-widget-row"><span>GPU / VRAM</span><strong data-summary="gpu">Profile
-                            unavailable</strong></div>
-                    <div class="hw-widget-row"><span>Feasible space</span><strong data-summary="space">Profile
-                            unavailable</strong></div>
-                    <div class="hw-widget-row"><span>Energy</span><strong data-summary="energy">Profile
-                            unavailable</strong></div>
-                    <div class="hw-widget-row"><span>Timestamp</span><strong data-summary="timestamp">Profile
-                            unavailable</strong></div>
-                    <p id="runtime-status" class="hw-widget-note"><strong>Live chatbot ready.</strong> llama.cpp
-                        endpoint connected.</p>
-                    <!-- Scan bar -->
-                    <div class="hw-scan-bar" id="hw-scan-bar">
-                        <div class="hw-scan-fill" id="hw-scan-fill"></div>
-                    </div>
-                    <!-- Hardware scan button -->
-                    <button class="hw-probe-btn" id="hw-probe-btn" type="button" onclick="probeHardware()">
-                        <span id="hw-probe-label">Run Hardware Scan</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="chat-container" id="chat-area">
-                <!-- Dynamic chat messages go here -->
-            </div>
-
+        <div class="app-card" id="run-evidence">
+            <div class="card-header"><span>Run evidence</span><button class="btn-action" onclick="document.getElementById('run-file-input').click()">Load run data</button></div>
+            <input type="file" id="run-file-input" accept=".js,.json" style="display:none">
+            <div id="dashboard-status" class="note info">Loading generated run data...</div>
         </div>
 
-        <!-- ─ DASHBOARD PANEL ────────── -->
-        <div id="panel-tech" class="panel">
-            <div class="page-header">
-                <h1 class="page-title">Optimization Dashboard</h1>
-                <h2 class="page-subtitle">Follow the evidence from search to deployment.</h2>
-            </div>
-
-            <!-- <div id="sop-validation-dashboard" style="background:#0f172a; border-radius:12px; padding:24px; color:#f8fafc; margin-bottom:24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #334155; font-family: 'Inter', sans-serif;">
-                <!-- Content injected via JS renderSopDashboard()
-                <div style="text-align:center; padding:40px; color:#94a3b8; font-style:italic;">
-                    Awaiting SOP Validation Data...
-                </div>
-            </div> -->
-
+        <div class="cards-grid">
             <div class="app-card">
-                <div class="card-header">Methodology trace — what happens during one BOPIS run</div>
-                <div class="method-trace">
-                    <div class="method-step"><span class="num">01 · DEFINE</span><strong>Constrain</strong><span>Profile
-                            hardware and remove configurations it cannot run.</span></div>
-                    <div class="method-step"><span class="num">02 · SEED</span><strong>Observe</strong><span>Evaluate
-                            prior-weighted seed configurations on the proxy prompts.</span></div>
-                    <div class="method-step"><span class="num">03 · MODEL</span><strong>Predict</strong><span>Fit the GP
-                            surrogate and obtain energy mean μ and uncertainty σ.</span></div>
-                    <div class="method-step"><span class="num">04 · ACQUIRE</span><strong>Choose</strong><span>Use
-                            constrained Expected Improvement to select the next trial.</span></div>
-                    <div class="method-step"><span class="num">05 · DECIDE</span><strong>Compare</strong><span>Build the
-                            Pareto front, apply floors, and select x*.</span></div>
+                <div class="card-header">Session Prompts</div>
+                <div class="card-value" data-run="iterations">—</div>
+                <div class="card-subtext"><span class="tag blue">Search budget</span> measured configurations</div>
+            </div>
+            <div class="app-card">
+                <div class="card-header">Energy Total & Savings</div>
+                <div class="card-value" data-run="eir">—</div>
+                <div class="card-subtext"><span class="tag green">EIR</span> vs unoptimized default</div>
+            </div>
+            <div class="app-card">
+                <div class="card-header">Avg Generation Speed</div>
+                <div class="card-value" data-run="speed">—</div>
+                <div class="card-subtext"><span class="tag blue">SRR</span> retention vs default</div>
+            </div>
+            <div class="app-card">
+                <div class="card-header">Overall Quality</div>
+                <div class="card-value" data-run="quality">—</div>
+                <div class="card-subtext"><span class="tag blue">QRR</span> retention vs default</div>
+            </div>
+        </div>
+
+        <div class="cards-grid" style="margin-top:16px;">
+            <div class="app-card" style="grid-column: 1 / -1;">
+                <div class="card-header">Pareto Front — Energy vs. Quality vs. Speed (Bubble Size)</div>
+                <div class="chart-container pareto-viewport">
+                    <canvas id="pareto" width="800" height="420" style="max-width:100%"></canvas>
+                    <span class="pareto-hint">Drag to rotate · wheel to zoom</span>
                 </div>
-                <div class="method-note"><strong>How to demo:</strong> click <b>Replay search</b> after loading a run.
-                    The search log follows this trace: seeds first, then GP-guided acquisition, evaluation, update, and
-                    Pareto status.</div>
+                <div class="pareto-controls">
+                    <div class="pareto-selection" id="pareto-selection">Click a point to inspect its configuration.</div>
+                    <button class="pareto-control-button" type="button" onclick="resetParetoView()">Reset view</button>
+                </div>
+                <div class="pareto-legend">
+                    <span><i class="legend-dot" style="background:#000000"></i>Measured point</span>
+                    <span><i class="legend-dot" style="background:#2A788E"></i>Pareto front</span>
+                    <span><i class="legend-dot" style="background:#A0DA39"></i>Higher quality</span>
+                    <span><i class="legend-dot" style="background:#E53E3E"></i>Default reference</span>
+                </div>
+                <div class="card-subtext" style="margin-top:10px">Each point is an evaluated configuration. x* is the selected trade-off, not automatically the lowest-energy point.</div>
             </div>
 
-            <!-- Research split view: evidence/analysis on the left, the chart and
-             the trade-off surface on the right. Collapses to one column below
-             1200px so a projector or a laptop screen stays readable. -->
-            <div class="research-split" style="margin-top:16px;">
-                <div class="research-col research-right">
-
-                    <div class="app-card">
-                        <div class="card-header">Pareto Front — Energy vs. Quality vs. Speed (Bubble Size)</div>
-                        <div class="chart-toolbar">
-                            <button class="chart-btn" id="replay-btn" type="button" onclick="toggleReplay()"
-                                title="Replays the search in evaluation order: watch the seeds land, then Expected Improvement close in on the front.">
-                                &#9654; Replay search
-                            </button>
-                            <button class="chart-btn" id="step-btn" type="button" onclick="stepReplay()"
-                                title="Step through the search one evaluation at a time.">
-                                &rarr; Step
-                            </button>
-                            <button class="chart-btn" id="rotate-btn" type="button" onclick="toggleAutoRotate()"
-                                title="Slowly rotates the trade-off surface so the three objectives can be read from every angle.">
-                                &#8635; Auto-rotate
-                            </button>
-                            <button class="chart-btn chart-btn-primary" id="study-btn" type="button"
-                                onclick="toggleStudyPanel()">&#9654; New study</button>
-                            <span id="live-label" class="replay-readout"></span>
-                            <span class="replay-readout" id="replay-readout">showing all evaluations</span>
-                        </div>
-                        <div class="chart-run-controls">
-                            <span class="mode-toggle" role="group" aria-label="Run data source">
-                                <button id="mode-live" onclick="setDataMode('live')"
-                                    title="Follow the newest run as it happens."><span class="live-dot"></span>Follow
-                                    latest</button>
-                                <button id="mode-manual" onclick="setDataMode('manual')"
-                                    title="Keep the run you loaded until you choose another.">Choose a run</button>
-                            </span>
-                            <select id="run-select" class="btn-action" onchange="chooseRun(this.value)"
-                                title="Pick a run from the runs folder"></select>
-                            <input type="file" id="run-file-input" accept=".js,.json" style="display:none">
-                        </div>
-                        <div id="study-panel" class="note info chart-study-panel" style="display:none;">
-                            <div class="chart-study-fields">
-                                <label>Study
-                                    <select id="study-preset" onchange="presetDefaults(this.value)">
-                                        <option value="sim">Quick: simulated energy (about a minute)</option>
-                                        <option value="real">Real: llama-server on this laptop (slow)</option>
-                                    </select>
-                                </label>
-                                <label title="Number of configurations tested by BOPIS and Random Search.">Evaluations
-                                    <input id="study-iterations" type="number" min="4" max="60" value="30"></label>
-                                <label title="Prompts reused for every configuration during the fast search loop.">Proxy
-                                    prompts
-                                    <input id="study-proxy" type="number" min="8" max="100" value="20"></label>
-                                <button class="btn-action" onclick="startStudy()">Start in terminal</button>
-                                <button class="btn-action" onclick="stopStudy()">Stop</button>
-                            </div>
-                            <div id="study-note" class="chart-study-note">The study runs through the Python bridge. Keep
-                                <code>python -m bopis ui</code> open to see its terminal logs.
-                            </div>
-                        </div>
-                        <div id="dashboard-status" class="note info chart-status">Loading generated run data...</div>
-                        <div class="chart-container pareto-viewport">
-                            <canvas id="pareto" width="1100" height="520"
-                                style="max-width:100%; cursor:crosshair"></canvas>
-                            <span class="pareto-hint">Drag to rotate · wheel to zoom</span>
-                            <div id="pareto-tooltip" style="
-                                display:none; position:absolute; pointer-events:none;
-                                background:rgba(16,34,67,0.97); color:#E2E8F0;
-                                border:1px solid #2D4A7A; border-radius:8px;
-                                padding:10px 13px; max-width:280px; min-width:180px;
-                                font-size:12px; line-height:1.6; z-index:10;
-                                box-shadow:0 4px 20px rgba(0,0,0,0.45);
-                                backdrop-filter:blur(4px);
-                            "></div>
-                        </div>
-                        <div class="pareto-colorbar" aria-label="Surface color scale for quality">
-                            <span class="pareto-colorbar-title">Surface color = Quality (F1)</span>
-                            <div class="pareto-colorbar-scale">
-                                <div class="pareto-colorbar-gradient"></div>
-                                <div class="pareto-colorbar-labels">
-                                    <span id="pareto-quality-low">low</span>
-                                    <span id="pareto-quality-high">high</span>
-                                </div>
-                            </div>
-                            <span class="pareto-colorbar-note">purple → yellow = lower → higher quality</span>
-                        </div>
-                        <div class="pareto-controls">
-                            <div class="pareto-selection" id="pareto-selection">Click a point to inspect its
-                                configuration.</div>
-                            <div style="display:flex; gap:8px; align-items:center;">
-                                <label class="pareto-control-button"
-                                    style="cursor:pointer; display:inline-flex; gap:6px; align-items:center;">
-                                    <input type="checkbox" id="show-random" onchange="drawPareto3D()" style="margin:0">
-                                    Show random search
-                                </label>
-                                <label class="pareto-control-button"
-                                    style="cursor:pointer; display:inline-flex; gap:6px; align-items:center;"
-                                    title="Label every point with its evaluation number and configuration">
-                                    <input type="checkbox" id="show-labels" onchange="drawPareto3D()" style="margin:0"
-                                        checked>
-                                    Labels
-                                </label>
-                                <label class="pareto-control-button"
-                                    style="cursor:pointer; display:inline-flex; gap:6px; align-items:center;"
-                                    title="Plot your scored chat replies (Dolly prompts) as pink diamonds">
-                                    <input type="checkbox" id="show-chat" checked onchange="drawPareto3D()"
-                                        style="margin:0">
-                                    My chat prompts
-                                </label>
-                                <button class="pareto-control-button" type="button" onclick="resetParetoView()">Reset
-                                    view</button>
-                            </div>
-                        </div>
-                        <div class="pareto-legend">
-                            <span><i class="legend-dot" style="background:#000000"></i>Measured point</span>
-                            <span><i class="legend-dot" style="background:#2A788E"></i>Pareto front</span>
-                            <span><i class="legend-dot" style="background:#A0DA39"></i>Higher quality</span>
-                            <span><i class="legend-dot" style="background:#E53E3E"></i>Baseline reference</span>
-                            <span><i class="legend-dot" style="background:#B7791F; border-radius:2px"></i>Random search
-                                (square)</span>
-                            <span><i class="legend-dot"
-                                    style="background:#fff; border:2px solid #D53F8C; transform:rotate(45deg); border-radius:1px"></i>Your
-                                chat prompt (diamond)</span>
-                        </div>
-                        <div class="pareto-axis-callout">
-                            <strong>How to read this:</strong> lower energy is better, while speed and quality are
-                            better when higher. The table below is the exact numeric readout; click any row to inspect
-                            that point on the chart.
-                        </div>
-                        <div class="pareto-readout">
-                            <div class="pareto-readout-head">
-                                <span>Pareto numeric readout</span>
-                                <span class="pareto-readout-note">sorted by energy · click a row to inspect</span>
-                            </div>
-                            <div class="pareto-key-metrics" id="pareto-key-metrics"
-                                aria-label="Selected configuration key metrics">
-                                <div class="pareto-key-metric is-primary">
-                                    <span class="metric-label">Selected energy</span>
-                                    <span class="metric-value">—</span>
-                                    <span class="metric-unit">joules / prompt</span>
-                                </div>
-                                <div class="pareto-key-metric">
-                                    <span class="metric-label">Selected speed</span>
-                                    <span class="metric-value">—</span>
-                                    <span class="metric-unit">tokens / second</span>
-                                </div>
-                                <div class="pareto-key-metric">
-                                    <span class="metric-label">Selected quality</span>
-                                    <span class="metric-value">—</span>
-                                    <span class="metric-unit">BERTScore F1</span>
-                                </div>
-                                <div class="pareto-key-metric">
-                                    <span class="metric-label">Selected iteration</span>
-                                    <span class="metric-value">—</span>
-                                    <span class="metric-unit">search evaluation</span>
-                                </div>
-                            </div>
-                            <div class="pareto-readout-scroll">
-                                <table aria-label="Pareto numeric readout">
-                                    <thead>
-                                        <tr>
-                                            <th>Configuration</th>
-                                            <th>Energy (J) ↓</th>
-                                            <th>Speed (tok/s) ↑</th>
-                                            <th>Quality (F1) ↑</th>
-                                            <th>Iteration</th>
-                                            <th>CPU</th>
-                                            <th>GPU</th>
-                                            <th>RAM</th>
-                                            <th>VRAM</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="pareto-readout-body">
-                                        <tr>
-                                            <td colspan="9" style="text-align:left;color:#718096;">Load a run to see
-                                                exact values.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <details class="run-prompts" id="run-prompts" style="margin-top:10px; font-size:12px;">
-                            <summary style="cursor:pointer; font-weight:600; color:#2D3748;">Prompts this run measured
-                                on</summary>
-                            <div id="run-prompts-body" style="margin-top:6px; color:#4A5568;">No run loaded.</div>
-                        </details>
-                        <details class="rs-readout" id="rs-readout" style="margin-top:10px; font-size:12px;">
-                            <summary style="cursor:pointer; font-weight:600; color:#2D3748; padding: 4px 0;">
-                                Random Search
-                            </summary>
-                            <div class="pareto-readout" style="margin-top:6px; border-radius: 6px;">
-                                <div class="pareto-key-metrics" id="rs-key-metrics"
-                                    aria-label="Random Search key metrics">
-                                    <div class="pareto-key-metric is-primary">
-                                        <span class="metric-label">RS selected energy</span>
-                                        <span class="metric-value">—</span>
-                                        <span class="metric-unit">joules / prompt</span>
-                                    </div>
-                                    <div class="pareto-key-metric">
-                                        <span class="metric-label">RS selected speed</span>
-                                        <span class="metric-value">—</span>
-                                        <span class="metric-unit">tokens / second</span>
-                                    </div>
-                                    <div class="pareto-key-metric">
-                                        <span class="metric-label">RS selected quality</span>
-                                        <span class="metric-value">—</span>
-                                        <span class="metric-unit">BERTScore F1</span>
-                                    </div>
-                                    <div class="pareto-key-metric">
-                                        <span class="metric-label">RS selected iteration</span>
-                                        <span class="metric-value">—</span>
-                                        <span class="metric-unit">search evaluation</span>
-                                    </div>
-                                </div>
-                                <div class="pareto-readout-scroll">
-                                    <table aria-label="Random Search numeric readout">
-                                        <thead>
-                                            <tr>
-                                                <th>Configuration</th>
-                                                <th>Energy (J) ↓</th>
-                                                <th>Speed (tok/s) ↑</th>
-                                                <th>Quality (F1) ↑</th>
-                                                <th>Iteration</th>
-                                                <th>CPU</th>
-                                                <th>GPU</th>
-                                                <th>RAM</th>
-                                                <th>VRAM</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="rs-readout-body">
-                                            <tr>
-                                                <td colspan="9"
-                                                    style="text-align:left;color:#718096;padding: 8px 12px;">Load a run
-                                                    to see RS values.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </details>
-                        <div class="card-subtext" style="margin-top:8px; font-size:12px; color:#718096;">💡
-                            <strong>x★</strong> is the <em>knee of the curve</em> — lowest energy that still clears
-                            quality &amp; speed floors. Drag to rotate · wheel to zoom.
-                        </div>
-
-                        <!-- The search log shares the chart's replay clock. -->
-                        <!-- <div class="search-log" id="search-log">
-                            <div class="search-log-head">
-                                <span>Search log</span>
-                                <span class="log-count" id="log-count"></span>
-                                <span class="log-spacer"></span>
-                                <button class="log-btn on" id="log-follow-btn" type="button" onclick="toggleLogFollow()"
-                                    title="Keeps the newest line in view while a replay streams. Turns itself off if you scroll up to read back.">Follow</button>
-                                <button class="log-btn" type="button" onclick="copySearchLog()"
-                                    title="Copies the whole log to the clipboard as plain text.">Copy</button>
-                            </div>
-                            <div class="search-log-body" id="search-log-body">
-                                <div class="log-empty">No run data loaded.</div>
-                            </div>
-                            <div class="log-foot" id="log-foot"></div>
-                        </div> -->
-                    </div>
-
-                    <div class="app-card">
-                        <div class="card-header"
-                            style="display:flex; justify-content:space-between; align-items:center;">
-                            Search convergence — best energy found so far
-                            <button class="dolly-btn" type="button" style="padding: 2px 8px; font-size: 11px;"
-                                onclick="toggleGPDemo()">Interactive GP Demo</button>
-                        </div>
-                        <div id="convergence-actual-wrapper">
-                            <div class="chart-container" style="padding:8px">
-                                <canvas id="convergence" width="760" height="240" style="max-width:100%"></canvas>
-                            </div>
-                            <div class="card-subtext" style="margin-top:8px; font-size:12px; color:#718096;">
-                                💡 First 10 points = random seeds. Then EI takes over — watch the curve drop. A <em>flat
-                                    tail</em> means convergence, not failure.
-                            </div>
-                        </div>
-                        <div id="convergence-demo-wrapper" style="display:none; padding:8px">
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-                                <button id="gp-b1" class="dolly-btn" style="padding:4px 8px">Next iteration</button>
-                                <button id="gp-b50" class="dolly-btn" style="padding:4px 8px">Run 50</button>
-                                <button id="gp-br" class="dolly-btn"
-                                    style="padding:4px 8px; background:transparent; color:#3182CE; border:1px solid #3182CE">Reset</button>
-                                <label
-                                    style="font-size:12px;color:#718096;display:flex;gap:6px;align-items:center;margin-left:auto"><input
-                                        type="checkbox" id="gp-tr">Reveal true curve</label>
-                            </div>
-                            <div
-                                style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#718096;margin:4px 0 12px">
-                                <span title="Approximates unknown energy function from observations"><span
-                                        style="color:#38A169">■</span> GP Surrogate: Mean μ(x) & Uncertainty
-                                    σ²(x)</span>
-                                <span title="Observed configuration-energy pairs D_n"><span
-                                        style="color:#276749">●</span> Evaluated configurations Dₙ</span>
-                                <span title="Best energy value observed so far"><span style="color:#D69E2E">●</span>
-                                    Best observed f(x⁺)</span>
-                                <span title="Balances exploration of uncertain regions and exploitation"><span
-                                        style="color:#3182CE">■</span> Acquisition Function: Expected Improvement
-                                    EI(x)</span>
-                            </div>
-                            <svg id="gp-demo-svg" width="100%" viewBox="0 0 680 420" role="img">
-                                <title>Bayesian optimization demo</title>
-                            </svg>
-                            <style>
-                                .hover-math {
-                                    position: relative;
-                                    cursor: help;
-                                    padding: 0 2px;
-                                }
-
-                                .hover-math::after {
-                                    content: attr(data-title);
-                                    position: absolute;
-                                    bottom: 100%;
-                                    left: 50%;
-                                    transform: translateX(-50%);
-                                    background: #2D3748;
-                                    color: #fff;
-                                    padding: 5px 8px;
-                                    border-radius: 4px;
-                                    font-size: 11px;
-                                    font-family: sans-serif;
-                                    white-space: nowrap;
-                                    opacity: 0;
-                                    pointer-events: none;
-                                    transition: opacity 0.15s;
-                                    z-index: 100;
-                                    margin-bottom: 4px;
-                                }
-
-                                .hover-math::before {
-                                    content: '';
-                                    position: absolute;
-                                    bottom: 100%;
-                                    left: 50%;
-                                    transform: translateX(-50%);
-                                    border-width: 4px;
-                                    border-style: solid;
-                                    border-color: #2D3748 transparent transparent transparent;
-                                    opacity: 0;
-                                    pointer-events: none;
-                                    transition: opacity 0.15s;
-                                    z-index: 100;
-                                }
-
-                                .hover-math:hover::after,
-                                .hover-math:hover::before {
-                                    opacity: 1;
-                                }
-                            </style>
-                            <div
-                                style="font-size:12px; color:#718096; display:flex; align-items:center; gap:4px; font-family:sans-serif; margin-bottom:8px; padding:8px 10px; background:#F7FAFC; border-radius:4px; border:1px solid #E2E8F0;">
-                                <strong>Expected Improvement Formula:</strong>
-                                EI(x) = (
-                                <span class="hover-math" style="color:#38A169; border-bottom:1px dashed #38A169;"
-                                    data-title="μ(x): Predicted Mean. Higher is better (Exploitation).">μ(x)</span> -
-                                <span class="hover-math" style="color:#D69E2E; border-bottom:1px dashed #D69E2E;"
-                                    data-title="f(x⁺): Best energy score observed so far.">f(x⁺)</span>
-                                )
-                                <span class="hover-math" style="color:#3182CE; border-bottom:1px dashed #3182CE;"
-                                    data-title="Φ(Z): Cumulative Distribution Function (Probability of improving).">Φ(Z)</span>
-                                +
-                                <span class="hover-math" style="color:#48BB78; border-bottom:1px dashed #48BB78;"
-                                    data-title="σ(x): Predicted Uncertainty. Wider is better (Exploration).">σ(x)</span>
-                                <span class="hover-math" style="color:#3182CE; border-bottom:1px dashed #3182CE;"
-                                    data-title="φ(Z): Probability Density Function (Magnitude of improvement).">φ(Z)</span>
-                            </div>
-                            <div id="gp-demo-info" style="font-size:12px;color:#4A5568;line-height:1.6"></div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="research-col research-left">
-                    <div class="app-card">
-                        <div class="card-header">Selected configuration x* — and why it was chosen</div>
-                        <div id="selection-detail" class="detail-d">Load a run to see the selected configuration.</div>
-                        <div id="sop-validation-dashboard" style="margin-top:24px;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- <div class="cards-grid" style="margin-top:16px;">
             <div class="app-card" style="grid-column: 1 / -1;">
                 <div class="card-header">How Bayesian optimization works here</div>
                 <div class="cards-grid">
@@ -3747,64 +3654,9 @@
                 <div class="detail-d" style="margin-top:12px">The evidence panel uses the same run payload as <code>dashboard/index.html</code>: measured points, GP predictions, uncertainty, validation indicators, and the selected x*. No UI value is invented.</div>
                 <div class="note info" style="margin-top:12px"><strong>Where is the machine learning?</strong> After the seed configurations are measured, <code>GaussianProcess.fit()</code> learns an energy response surface from the observed configurations. Expected Improvement then selects the next configuration using the GP's predicted energy and uncertainty. The model is retrained after every BO evaluation.</div>
             </div>
-        </div> -->
-
-            <!-- NEW: Statistical Significance & Variant Analysis -->
-            <div class="cards-grid" style="margin-top:16px;">
-                <div class="app-card">
-                    <div class="card-header" style="display:flex; justify-content:space-between;">
-                        Wilcoxon Signed-Rank Test (BOPIS vs RS)
-                        <span style="font-size:11px; font-weight:normal; color:#718096">Paired test on 50 proxy
-                            prompts</span>
-                    </div>
-                    <div style="padding: 16px;">
-                        <table class="explain-table" style="width:100%; text-align:left;">
-                            <thead>
-                                <tr>
-                                    <th>Metric</th>
-                                    <th>Alternative Hypothesis</th>
-                                    <th>W-Statistic</th>
-                                    <th>p-value</th>
-                                    <th>Significance (α=0.05)</th>
-                                    <th>Winner</th>
-                                </tr>
-                            </thead>
-                            <tbody id="wilcoxon-body">
-                                <tr>
-                                    <td colspan="5" style="text-align:center; color:#718096">Load a run to compute
-                                        p-values</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="app-card">
-                    <div class="card-header">
-                        Variant Performance Summary (SQ3e)
-                    </div>
-                    <div style="padding: 16px;">
-                        <table class="explain-table" style="width:100%; text-align:left;">
-                            <thead>
-                                <tr>
-                                    <th>Precision</th>
-                                    <th>Points on Pareto Front</th>
-                                    <th>Avg Energy (J)</th>
-                                    <th>Avg Speed (t/s)</th>
-                                    <th>Avg Quality (F1)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="variant-body">
-                                <tr>
-                                    <td colspan="5" style="text-align:center; color:#718096">Load a run to see summary
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
         </div>
+<<<<<<< Updated upstream
+=======
 
 
         <div id="panel-explain" class="panel">
@@ -4642,8 +4494,8 @@
 
             const safeStat = (obj, key) => (obj && obj[key] && obj[key].wilcoxon) ? obj[key].wilcoxon : null;
             const energyWilcox = safeStat(stats, 'energy_j');
-            const speedWilcox = safeStat(stats, 'speed_tok_s');
-            const qualityWilcox = safeStat(stats, 'quality');
+            const speedWilcox = safeStat(stats, 'tokens_per_s');
+            const qualityWilcox = safeStat(stats, 'quality_f1');
 
             const getMean = (varName, cond) => {
                 if (desc[varName] && desc[varName][cond]) return desc[varName][cond].mean;
@@ -5964,19 +5816,27 @@
             const energy = BRIDGE.energy || {};
             const quality = BRIDGE.quality || {};
             const instrument = energy.instrument || {};
-            const energyText = energy.measured
-                ? `Energy: <b>measured</b> CPU package (RAPL, ${escapeHtml(instrument.sensor || 'package')}, `
-                + `idle ${Number(energy.p_cpu_idle_w || 0).toFixed(2)} W subtracted)`
-                : 'Energy: Mode C estimate from llama-server CPU time (no RAPL feed)';
+            const energyText = energy.gpu_measured
+                ? `Energy: <b>measured</b> GPU board (NVML, ${escapeHtml(energy.gpu_method || 'energy counter')}${escapeHtml(energy.gpu_name ? ', ' + energy.gpu_name : '')})`
+                  + (energy.cpu_measured ? ' + CPU package (RAPL)' : '')
+                : (energy.cpu_measured
+                    ? `Energy: <b>measured</b> CPU package (RAPL, ${escapeHtml(instrument.sensor || 'package')}, `
+                      + `idle ${Number(energy.p_cpu_idle_w || 0).toFixed(2)} W subtracted)`
+                    : 'Energy: Mode C estimate from llama-server CPU time (no sensor feed)');
+            const pool = quality.reference_pool;
             const qualityText = quality.available
-                ? `BERTScore: ${escapeHtml(quality.model)} on Dolly prompts`
+                ? (pool
+                    ? `BERTScore: ${escapeHtml(quality.model)} on Dolly prompts + pooled reference for free chat`
+                    : `BERTScore: ${escapeHtml(quality.model)} on Dolly prompts`)
                 : 'BERTScore: torch/transformers not installed';
             pill.className = 'instrument-pill' + (energy.measured ? ' measured' : '');
             pill.innerHTML = `${energyText} &middot; ${qualityText}`;
-            pill.title = energy.measured
-                ? 'Excludes DRAM, display and the discrete GPU; valid as inference energy '
-                + 'when llama-server runs with --n-gpu-layers 0.'
-                : (energy.reason || '');
+            pill.title = energy.gpu_measured
+                ? 'Measured GPU board energy from the NVIDIA driver (NVML); covers the whole GPU board.'
+                : energy.cpu_measured
+                    ? 'Excludes DRAM, display and the discrete GPU; valid as inference energy '
+                      + 'when llama-server runs with --n-gpu-layers 0.'
+                    : (energy.reason || '');
             if (dolly) dolly.style.display = (BRIDGE.dolly && BRIDGE.dolly.n) ? '' : 'none';
         }
 
@@ -6825,9 +6685,16 @@
                     : estimateEnergy(totalSeconds || wallSeconds, generatedTokens);
 
                 const scoreId = `q-${Date.now()}`;
-                const qualityHtml = reference
-                    ? `<span id="${scoreId}" class="q-pending">BERTScore scoring against the Dolly reference&hellip;</span>`
-                    : `<span title="BERTScore compares a reply against a human reference answer; free chat has none. Use the Dolly prompt button for a scorable prompt.">BERTScore <b>n/a</b> (free chat has no reference &mdash; use <i>Dolly prompt</i>)</span>`;
+                // Scorable when the prompt carries a Dolly reference, or the
+                // bridge has a reference pool to retrieve one from (free chat).
+                const retrieverReady = Boolean(viaBridge && BRIDGE && BRIDGE.quality && BRIDGE.quality.reference_pool);
+                const referenceText = reference ? reference.reference : '';
+                const scorable = Boolean(reference) || retrieverReady;
+                const qualityHtml = !scorable
+                    ? `<span title="BERTScore compares a reply against a human reference answer; free chat has none. Use the Dolly prompt button for a scorable prompt.">BERTScore <b>n/a</b> (free chat has no reference &mdash; use <i>Dolly prompt</i>)</span>`
+                    : reference
+                        ? `<span id="${scoreId}" class="q-pending">BERTScore scoring against the Dolly reference&hellip;</span>`
+                        : `<span id="${scoreId}" class="q-pending">BERTScore scoring against the nearest pooled reference&hellip;</span>`;
                 const compareId = `cmp-${Date.now()}`;
                 const referenceHtml = reference
                     ? `<details class="ref-note"><summary>Dolly reference (${escapeHtml(reference.prompt_id)}, ${escapeHtml(reference.task_type)})</summary>${renderMarkdown(reference.reference)}</details>`
@@ -6859,16 +6726,16 @@
                 clearInterval(liveUtilTimer);
                 scrollToBottom();
 
-                if (reference) scoreReply(scoreId, reply, reference.reference, {
+                if (scorable) scoreReply(scoreId, reply, referenceText, {
                     energy: energy.joules,
                     speed: decodeSeconds > 0 ? generatedTokens / decodeSeconds : NaN,
-                    text: reference.instruction || txt,
+                    text: reference ? (reference.instruction || txt) : txt,
                     config: DEPLOYED_KEY,
                     cpu_percent: envelope.energy?.process_cpu_percent != null ? envelope.energy.process_cpu_percent * 100 : null,
                     gpu_percent: envelope.energy?.gpu_percent_mean,
                     memory_mib: envelope.energy?.memory_mib_mean,
                     vram_mib: envelope.energy?.vram_mib_mean
-                });
+                }, reference ? '' : txt);
             } catch (error) {
                 clearInterval(liveUtilTimer);
                 chatHistory.pop();
@@ -6968,13 +6835,25 @@
             const band = Number.isFinite(low) && Number.isFinite(high)
                 ? ` <span title="resolution band">[${low.toFixed(1)}&ndash;${high.toFixed(1)}]</span>` : '';
             const detail = energy.measured
-                ? `Measured CPU package energy (Intel RAPL via hardware monitor) over `
-                + `${Number(energy.duration_s).toFixed(2)} s, mean package power `
-                + `${Number(energy.cpu_power_mean_w || 0).toFixed(2)} W, idle `
-                + `${Number(energy.p_cpu_idle_w || 0).toFixed(2)} W subtracted. ${energy.caveat}`
+                ? (energy.gpu_measured
+                    ? (energy.rapl_measured
+                        ? `Measured GPU board energy (NVML) plus CPU package (RAPL) over `
+                        : `Measured GPU board energy (NVML, energy counter) over `)
+                    : `Measured CPU package energy (Intel RAPL via hardware monitor) over `)
+                + `${Number(energy.duration_s).toFixed(2)} s`
+                + (energy.rapl_measured
+                    ? `, mean package power ${Number(energy.cpu_power_mean_w || 0).toFixed(2)} W, `
+                      + `idle ${Number(energy.p_cpu_idle_w || 0).toFixed(2)} W subtracted. `
+                    : `. `)
+                + `${energy.caveat || ''}`
                 : `Mode C estimate from llama-server's CPU time `
                 + `(${Number(energy.process_cpu_percent || 0).toFixed(0)}% of the CPU, `
                 + `${energy.cpu_attribution}). ${energy.caveat}`;
+            const methodLabel = energy.measured
+                ? (energy.gpu_measured
+                    ? (energy.rapl_measured ? 'measured (NVML + RAPL)' : 'measured (NVML GPU)')
+                    : 'measured (RAPL)')
+                : 'estimated (Mode C)';
             const resources = ` &middot; CPU: ${(Number(energy.process_cpu_percent) || 0).toFixed(1)}% `
                 + `&middot; RAM: ${Number(energy.memory_mib_mean || 0).toFixed(0)}MB `
                 + `&middot; GPU: ${(Number(energy.gpu_percent_mean) || 0).toFixed(1)}% `
@@ -6985,7 +6864,7 @@
                     + `${energy.measured ? '' : '~'}Energy <b>${joules.toFixed(1)} J</b>${band}`
                     + (perToken ? ` (<b>${perToken.toFixed(2)}</b> J/tok)` : '')
                     + ` &middot; <b>PHP ${(php * 1000).toFixed(3)}</b>/1k replies`
-                    + ` &middot; <b>${energy.measured ? 'measured (RAPL)' : 'estimated (Mode C)'}</b></span>`
+                    + ` &middot; <b>${methodLabel}</b></span>`
                     + `<span style="display:inline-block; margin-left:8px; font-size:11px; opacity:0.8;">${resources}</span>`
             };
         }
@@ -7200,13 +7079,13 @@
             }
         }
 
-        async function scoreReply(elementId, candidate, referenceText, point = null) {
+        async function scoreReply(elementId, candidate, referenceText, point = null, promptText = '') {
             const el = document.getElementById(elementId);
             try {
                 const response = await fetch(`${BRIDGE_BASE}/api/score`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ candidate, reference: referenceText })
+                    body: JSON.stringify({ candidate, reference: referenceText, prompt: promptText })
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
@@ -7217,13 +7096,25 @@
                     drawPareto3D();
                 }
                 if (!el) return;
-                el.className = 'q-ok';
+                const match = result.reference_match;
+                el.className = match && match.low_confidence ? 'q-ok q-low' : 'q-ok';
                 el.title = `BERTScore ${result.model}, ${result.baseline_rescaled ? 'baseline-rescaled' : 'raw'}; `
                     + `scored after the energy window closed, in ${Number(result.seconds).toFixed(1)} s. `
+                    + (match
+                        ? `Reference retrieved from the pool (nearest match to the prompt, similarity `
+                          + `${Number(match.similarity).toFixed(2)}${match.matched_source ? `, source ${match.matched_source}` : ''}). `
+                        : '')
                     + 'Chat uses a system prompt the study does not, so this is indicative, not a Table B.5 value.';
-                el.innerHTML = `BERTScore F1 <b>${Number(result.quality_f1).toFixed(3)}</b>`
+                let html = `BERTScore F1 <b>${Number(result.quality_f1).toFixed(3)}</b>`
                     + ` (P ${Number(result.quality_precision).toFixed(3)} / R ${Number(result.quality_recall).toFixed(3)}`
                     + `${result.baseline_rescaled ? ', rescaled' : ''})`;
+                if (match) {
+                    html += ` &middot; <span class="${match.low_confidence ? 'ref-low' : 'ref-ok'}"`
+                        + ` title="Nearest pooled question: ${escapeHtml(match.matched_question || '')}">`
+                        + `Reference match confidence <b>${Number(match.similarity).toFixed(2)}</b>`
+                        + `${match.low_confidence ? ' (low)' : ''}</span>`;
+                }
+                el.innerHTML = html;
             } catch (error) {
                 if (!el) return;
                 el.className = '';
@@ -7569,8 +7460,8 @@
                     };
 
                     wBody.innerHTML = getRow('Energy (J/token)', 'BOPIS < RS', 'energy_j') +
-                        getRow('Speed (tok/s)', 'BOPIS > RS', 'speed_tok_s') +
-                        getRow('Quality (F1)', 'BOPIS > RS', 'quality');
+                        getRow('Speed (tok/s)', 'BOPIS > RS', 'tokens_per_s') +
+                        getRow('Quality (F1)', 'BOPIS > RS', 'quality_f1');
                 }
             }
         }
@@ -8478,7 +8369,637 @@
         </table>
         <p style="font-size:11px; color:#718096; margin-top:10px; text-align:center;">Values dictate the seed
             configuration draw probabilities prior to the Bayesian surrogate fitting.</p>
+>>>>>>> Stashed changes
     </div>
-</body>
 
+    <!-- ─ SETTINGS PANEL ────────── -->
+    <div id="panel-cfg" class="panel">
+        <div class="page-header">
+            <h1 class="page-title">System Settings</h1>
+        </div>
+
+        <div class="cards-grid">
+            <div class="app-card">
+                <div class="card-header">Hardware Profile (Read-only)</div>
+                <div class="cfg-row"><span class="cfg-k">CPU model</span><span class="cfg-v" data-profile="cpu-model">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">CPU cores / threads</span><span class="cfg-v" data-profile="cores">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">GPU model</span><span class="cfg-v" data-profile="gpu-model">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Compute capability</span><span class="cfg-v" data-profile="compute">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">VRAM</span><span class="cfg-v" data-profile="vram">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">System RAM</span><span class="cfg-v" data-profile="ram">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Driver / CUDA</span><span class="cfg-v" data-profile="driver">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Telemetry platform</span><span class="cfg-v" data-profile="platform">Profile unavailable</span></div>
+                <p id="profile-timestamp" style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">No generated profile loaded. Run <code>py -3 -m bopis profile --model-aware --write-js bopis_profile.js</code>.</p>
+                <div style="margin-top:16px;">
+                    <button class="btn-action" onclick="showHardwareNote()">Hardware profile details</button>
+                </div>
+            </div>
+
+            <div class="app-card yellow-tint">
+                <div class="card-header">Feasible Configuration Space</div>
+                <div class="cfg-row"><span class="cfg-k">Model-aware feasible configs</span><span class="cfg-v" data-space="feasible">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Allowed precisions</span><span class="cfg-v" data-profile="precisions">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Allowed GPU layers</span><span class="cfg-v" data-profile="layers">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Batch sizes</span><span class="cfg-v" data-profile="batches">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">CPU threads</span><span class="cfg-v" data-profile="threads">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Rejected configurations</span><span class="cfg-v" data-space="rejected">Profile unavailable</span></div>
+                <p id="space-note" style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Feasibility data is loaded from the generated host profile.</p>
+            </div>
+
+            <div class="app-card">
+                <div class="card-header">Energy Instrument Status</div>
+                <div class="cfg-row"><span class="cfg-k">Power query</span><span class="cfg-v" data-profile="power">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Energy counter</span><span class="cfg-v" data-profile="counter">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Energy method</span><span class="cfg-v" data-profile="energy">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Live metrics</span><span class="cfg-v">tokens, speed, latency</span></div>
+                <div class="cfg-row"><span class="cfg-k">Research quality</span><span class="cfg-v">Dolly + BERTScore offline</span></div>
+                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">The laptop can compute, but cannot provide a valid GPU-joule claim. Use supported hardware or an external wattmeter for final energy evidence.</p>
+            </div>
+            
+            <div class="app-card">
+                <div class="card-header">Calibration Thresholds</div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Closed QA / extraction)</span><span class="cfg-v">0.82 F1</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Summarization / Open QA)</span><span class="cfg-v">0.78 F1</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Classification)</span><span class="cfg-v">0.78 F1</span></div>
+                <div class="cfg-row"><span class="cfg-k">Q_min (Creative / Brainstorming)</span><span class="cfg-v">0.72 F1</span></div>
+                <div class="cfg-row"><span class="cfg-k">S_min (Minimum speed floor)</span><span class="cfg-v">derived from p10</span></div>
+                <div class="cfg-row"><span class="cfg-k">BO iterations completed</span><span class="cfg-v">34</span></div>
+                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Thresholds are determined automatically. To update them, re-run calibration.</p>
+            </div>
+
+            <div class="app-card">
+                <div class="card-header">Model & Execution Backend</div>
+                <div class="cfg-row"><span class="cfg-k">Model Weight Format</span><span class="cfg-v">GGUF via llama.cpp</span></div>
+                <div class="cfg-row"><span class="cfg-k">Live demo server</span><span class="cfg-v">llama.cpp server</span></div>
+                <div class="cfg-row"><span class="cfg-k">Live model</span><span class="cfg-v">llama2:7b (Q4_0 demo)</span></div>
+                <div class="cfg-row"><span class="cfg-k">Generation cap</span><span class="cfg-v">512 tokens</span></div>
+                <div class="cfg-row"><span class="cfg-k">GPU layers</span><span class="cfg-v">0 (CPU runtime)</span></div>
+                <div class="cfg-row"><span class="cfg-k">Energy scope</span><span class="cfg-v" data-profile="scope">Profile unavailable</span></div>
+                <div class="cfg-row"><span class="cfg-k">Dolly quality metric</span><span class="cfg-v">BERTScore F1 (offline)</span></div>
+                <p style="font-size:12px; color:#718096; margin-top:12px; line-height:1.5;">Dolly 15K evaluates responses against references. It is not used as live chatbot memory.</p>
+            </div>
+
+            <div class="app-card" style="grid-column: 1 / -1; background:#F7FAFC; border:1px dashed #CBD5E0; text-align:center; padding: 32px 20px;">
+                <div class="card-header" style="justify-content:center;">About</div>
+                <h3 style="font-size:16px; color:#2D3748; margin-top:8px;">BOPIS</h3>
+                <p style="font-size:13px; color:#4A5568; margin-top:4px;">Bayesian Optimization and Pareto-Based Intelligent Configuration Selection</p>
+                <div style="margin-top:12px; font-size:12px; color:#718096;">
+                    Polytechnic University of the Philippines<br>
+                    BS Computer Science &middot; 2026
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Box (Global - only visible on Chat Tab) -->
+    <div class="input-dock active" id="global-input">
+        <div class="input-wrapper">
+            <button class="btn-add">+</button>
+            <input type="text" id="ci" placeholder="Ask or type your prompt to optimize..." onkeydown="if(event.key==='Enter') doChat()" />
+            <button class="btn-send" onclick="doChat()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+        </div>
+    </div>
+</main>
+
+<script src="bopis_profile.js"></script>
+<script src="dashboard_data.js" onerror="void 0"></script>
+<script>
+let RUN_DATA = window.BOPIS_DATA || null;
+
+function ingestRunData(text) {
+    try {
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start < 0 || end < start) throw new Error('No JSON object found');
+        applyRunData(JSON.parse(text.slice(start, end + 1)));
+    } catch (error) {
+        const status = document.getElementById('dashboard-status');
+        if (status) status.textContent = `Could not read run data: ${error.message}`;
+    }
+}
+
+function applyRunData(data) {
+    RUN_DATA = data;
+    const indicators = data.indicators || data.selection || {};
+    const set = (name, value) => {
+        const element = document.querySelector(`[data-run="${name}"]`);
+        if (element) element.textContent = value;
+    };
+    const pct = value => Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)}%` : '—';
+    set('iterations', data.meta?.n_total_iterations ?? '—');
+    set('eir', pct(indicators.eir_percent));
+    set('speed', pct(indicators.srr_percent));
+    set('quality', pct(indicators.qrr_percent));
+    const status = document.getElementById('dashboard-status');
+    if (status) {
+        const meta = data.meta || {};
+        const selection = data.selection || {};
+        let html = `<strong>${escapeHtml(meta.run || 'Loaded run')}</strong> · ${escapeHtml(meta.backend || 'unknown')} · ${escapeHtml(meta.energy_scope || 'unknown')} energy · x* ${escapeHtml(selection.config_key || 'unavailable')}`;
+        // An estimated run must not read as a measured one anywhere it is
+        // displayed, so the caveat and the formula render inline rather than
+        // living only in the manifest.
+        if (meta.energy_caveat) {
+            const est = meta.energy_estimator || {};
+            html += `<div style="margin-top:10px;padding:10px 12px;border-left:3px solid #c9820a;background:rgba(201,130,10,0.09);font-size:12px;line-height:1.55">`
+                + `<strong>Energy is estimated, not measured.</strong> ${escapeHtml(meta.energy_caveat)}`
+                + (est.formula ? `<div style="margin-top:6px;font-family:ui-monospace,monospace;font-size:11px">${escapeHtml(est.formula)}</div>` : '')
+                + (Array.isArray(est.assumptions) ? `<details style="margin-top:6px"><summary style="cursor:pointer">Assumptions (${est.assumptions.length})</summary><ul style="margin:6px 0 0 16px;padding:0">${est.assumptions.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul></details>` : '')
+                + `</div>`;
+        }
+        status.innerHTML = html;
+    }
+    const calibrationStatus = document.getElementById('calibration-status');
+    if (calibrationStatus) calibrationStatus.textContent = `${data.meta?.n_total_iterations ?? '—'} configurations evaluated`;
+    drawPareto3D();
+}
+
+const runFileInput = document.getElementById('run-file-input');
+if (runFileInput) runFileInput.addEventListener('change', event => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => ingestRunData(String(reader.result));
+    reader.readAsText(file);
+});
+
+function applyHardwareProfile() {
+    const profile = window.BOPIS_PROFILE;
+    if (!profile || !profile.host_profile || !profile.configuration_space) return;
+    const host = profile.host_profile;
+    const space = profile.configuration_space;
+    const set = (name, value) => {
+        const element = document.querySelector(`[data-profile="${name}"]`);
+        if (element) element.textContent = value;
+    };
+    const setSummary = (name, value) => {
+        const element = document.querySelector(`[data-summary="${name}"]`);
+        if (element) element.textContent = value;
+    };
+    const formatGiB = value => `${Number(value).toFixed(2)} GiB`;
+    const permittedLayers = (host.permitted_gpu_layers || []).join(', ');
+    set('cpu-model', host.cpu_model || 'unknown');
+    set('cores', `${host.physical_cores} physical / ${host.logical_cores} logical`);
+    set('gpu-model', host.gpu_name || 'none detected');
+    set('compute', host.compute_capability || 'unavailable');
+    set('vram', `${formatGiB(host.vram_total_gib)} total / ${formatGiB((host.vram_free_bytes || 0) / 1073741824)} available`);
+    set('ram', `${formatGiB(host.ram_total_gib)} total / ${formatGiB((host.ram_available_bytes || 0) / 1073741824)} available`);
+    set('driver', `${host.driver_version || 'n/a'} / ${host.cuda_driver_version || 'n/a'}`);
+    set('platform', `${host.platform_name || 'unknown'} (${host.telemetry_source || 'unknown'})`);
+    set('precisions', (host.permitted_precisions || []).join(', ') || 'none');
+    set('layers', permittedLayers || 'none');
+    set('batches', (host.permitted_batch_sizes || []).join(', ') || 'none');
+    set('threads', (host.permitted_cpu_threads || []).join(', ') || 'none');
+    set('power', host.power_supported ? 'supported' : 'NOT SUPPORTED');
+    set('counter', host.energy_counter_supported ? 'supported' : 'NOT SUPPORTED');
+    set('energy', host.energy_method || 'unavailable');
+    set('scope', host.energy_method === 'unavailable' ? 'GPU energy unavailable' : 'GPU telemetry active');
+    setSummary('cpu', `${host.physical_cores}C / ${host.logical_cores}T`);
+    setSummary('ram', `${formatGiB(host.ram_available_bytes / 1073741824)} free`);
+    setSummary('gpu', `${host.gpu_name || 'none'} / ${formatGiB(host.vram_total_gib)}`);
+    const setSpace = (name, value) => {
+        const element = document.querySelector(`[data-space="${name}"]`);
+        if (element) element.textContent = value;
+    };
+    setSpace('feasible', `${space.n_feasible} of ${space.n_unconstrained}`);
+    setSpace('rejected', `${space.n_rejected} · ${Object.entries(space.rejected_by_rule || {}).map(([rule, count]) => `${rule} (${count})`).join(', ') || 'none'}`);
+    setSummary('space', `${space.n_feasible} / ${space.n_unconstrained}`);
+    setSummary('energy', host.energy_method === 'unavailable' ? 'Unavailable' : host.energy_method);
+    const timestamp = document.getElementById('profile-timestamp');
+    if (timestamp) timestamp.textContent = `Live profile generated: ${profile.generated_utc}. Refresh with bopis profile --write-js.`;
+    const note = document.getElementById('space-note');
+    if (note) note.textContent = `Rules fired: ${(host.rules_fired || []).join(', ')}. Values are loaded from the generated profile, not embedded in this HTML.`;
+}
+
+applyHardwareProfile();
+if (RUN_DATA) applyRunData(RUN_DATA);
+
+function sw(name, btn) {
+    // Handle tab switching
+    document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    
+    // Handle panel switching
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    
+    // Toggle input bar (only show in chat)
+    const inputDock = document.getElementById('global-input');
+    if(name === 'chat') {
+        inputDock.classList.add('active');
+    } else {
+        inputDock.classList.remove('active');
+    }
+
+    if (name === 'tech') setTimeout(drawPareto3D, 100);
+}
+
+function sendPrompt(text) {
+    sw('chat', document.querySelector('.nav-item:nth-child(1)'));
+    const inp = document.getElementById('ci');
+    inp.value = text;
+    doChat();
+}
+
+const chatHistory = [];
+const CHATBOT_CONFIG = {
+    endpoint: 'http://127.0.0.1:8080/v1/chat/completions',
+    model: 'local',
+    maxTokens: 512,
+    temperature: 0
+};
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[character]));
+}
+
+async function doChat() {
+    const inp = document.getElementById('ci');
+    const txt = inp.value.trim();
+    if (!txt) return;
+    
+    sw('chat', document.querySelector('.nav-item:nth-child(1)')); 
+    
+    const area = document.getElementById('chat-area');
+    
+    const u = document.createElement('div');
+    u.className = 'msg';
+    u.innerHTML = `<span class="user-prompt">${txt.replace(/</g, '&lt;')}</span>`;
+    area.appendChild(u);
+    inp.value = '';
+    scrollToBottom();
+
+    chatHistory.push({ role: 'user', content: txt });
+    const pending = document.createElement('div');
+    pending.className = 'msg';
+    pending.innerHTML = '<div class="thought-process">Connecting to local chatbot...</div>';
+    area.appendChild(pending);
+    scrollToBottom();
+
+    try {
+        const response = await fetch(CHATBOT_CONFIG.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: CHATBOT_CONFIG.model,
+                messages: [
+                    { role: 'system', content: 'You are BOPIS, a concise and helpful local assistant. Answer only the user request. Do not invent a conversation, roleplay other users, or continue with User/Assistant transcript labels.' },
+                    ...chatHistory
+                ],
+                max_tokens: CHATBOT_CONFIG.maxTokens,
+                stream: false,
+                temperature: CHATBOT_CONFIG.temperature
+            })
+        });
+        if (!response.ok) throw new Error(`llama.cpp returned HTTP ${response.status}`);
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content || data.content;
+        if (!reply) throw new Error('The chatbot returned an empty response');
+        chatHistory.push({ role: 'assistant', content: reply });
+        const promptTokens = Number(data.usage?.prompt_tokens || data.tokens_evaluated || data.timings?.prompt_n || 0);
+        const generatedTokens = Number(data.usage?.completion_tokens || data.tokens_predicted || data.timings?.predicted_n || 0);
+        const decodeSeconds = Number(data.timings?.predicted_ms || 0) / 1000;
+        const reportedTotalSeconds = Number(data.timings?.total_ms || 0) / 1000;
+        const totalSeconds = reportedTotalSeconds || (decodeSeconds + Number(data.timings?.prompt_ms || 0) / 1000);
+        const decodeSpeed = decodeSeconds > 0
+            ? (generatedTokens / decodeSeconds).toFixed(2)
+            : 'n/a';
+        const latency = totalSeconds > 0 ? totalSeconds.toFixed(2) : 'n/a';
+        pending.innerHTML = `
+            <div class="ai-response" style="border-left: 4px solid #3182CE;">
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#3182CE; margin-bottom:8px;">Live model output · ${CHATBOT_CONFIG.model}</div>
+                <p style="font-size:14px; color:#2D3748; line-height:1.6; white-space:pre-wrap;">${escapeHtml(reply)}</p>
+                <div style="margin-top:16px; padding-top:12px; border-top:1px solid #EDF2F7; font-size:12px; color:#718096; display:flex; flex-wrap:wrap; gap:10px 18px;">
+                    <span>Prompt tokens: <strong>${promptTokens || 'n/a'}</strong></span>
+                    <span>Generated tokens: <strong>${generatedTokens || 'n/a'}</strong></span>
+                    <span>Decode speed: <strong>${decodeSpeed} tok/s</strong></span>
+                    <span>Latency: <strong>${latency} s</strong></span>
+                    <span>Energy: <strong>unavailable</strong></span>
+                    <span>BERTScore: <strong>offline Dolly evaluation</strong></span>
+                </div>
+            </div>`;
+    } catch (error) {
+        chatHistory.pop();
+        pending.innerHTML = `
+            <div class="ai-response" style="border-left: 4px solid #E53E3E;">
+                <strong>Chatbot unavailable</strong><br>
+                <span style="font-size:13px; color:#718096;">${escapeHtml(error.message)}. Start the llama.cpp server on port 8080 and try again.</span>
+            </div>`;
+    }
+    scrollToBottom();
+}
+
+function scrollToBottom() {
+    const mainArea = document.querySelector('.main-area');
+    mainArea.scrollTo({ top: mainArea.scrollHeight, behavior: 'smooth' });
+}
+
+function showHardwareNote() {
+    const status = document.getElementById('runtime-status');
+    if (status) {
+        status.innerHTML = '<strong>Profile loaded.</strong> This snapshot is from the latest hardware check; run <code>py -3 -m bopis profile --model-aware</code> to refresh it.';
+    }
+    sw('chat', document.querySelector('.nav-item:nth-child(1)'));
+}
+
+function recalibrateHardware() {
+    const command = 'python -m bopis profile --model-aware --write-js bopis_profile.js';
+    const status = document.getElementById('runtime-status');
+    if (status) status.innerHTML = `<strong>Hardware recalibration is a terminal operation.</strong><br>Run <code>${command}</code>, then refresh this page.`;
+    const calibrationStatus = document.getElementById('calibration-status');
+    if (calibrationStatus) calibrationStatus.textContent = 'Run profile command to refresh';
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(command).catch(() => {});
+}
+
+function runInference(btn, taskType) {
+    const prompt = taskType ? `Run a ${taskType} task using the selected BOPIS configuration.` : '';
+    if (prompt) sendPrompt(prompt);
+}
+
+function drawP() {
+    const c = document.getElementById('pareto');
+    if (!c || !RUN_DATA || !RUN_DATA.pareto) return;
+    const ratio = window.devicePixelRatio || 1;
+    const W = Math.max(320, c.parentElement.clientWidth - 32);
+    const H = Math.max(300, Math.min(420, W * 0.46));
+    c.style.width = `${W}px`;
+    c.style.height = `${H}px`;
+    c.width = Math.floor(W * ratio);
+    c.height = Math.floor(H * ratio);
+    const ctx = c.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    const pl = 64, pr = 24, pt = 24, pb = 54;
+    const dw = W - pl - pr, dh = H - pt - pb;
+    ctx.clearRect(0, 0, W, H);
+
+    const points = RUN_DATA.pareto.points || [];
+    const reference = RUN_DATA.reference_point || {};
+    const pts = points.map(point => ({
+        e: Number(point.energy_j), q: Number(point.quality_f1), s: Number(point.tokens_per_s),
+        par: Boolean(point.on_front), selected: Boolean(point.is_xstar), col: point.is_xstar ? '#48BB78' : point.on_front ? '#63B3ED' : '#CBD5E0'
+    })).filter(point => Number.isFinite(point.e) && Number.isFinite(point.q));
+    if (!pts.length) return;
+    const referencePoint = { e: Number(reference.energy_j), q: Number(reference.quality_f1), s: Number(reference.tokens_per_s) };
+    if (Number.isFinite(referencePoint.e) && Number.isFinite(referencePoint.q)) pts.push({ ...referencePoint, par: false, reference: true, col: '#FC8181' });
+    const rawEMin = Math.min(...pts.map(p => p.e)), rawEMax = Math.max(...pts.map(p => p.e));
+    const rawQMin = Math.min(...pts.map(p => p.q)), rawQMax = Math.max(...pts.map(p => p.q));
+    const ePad = (rawEMax - rawEMin) * 0.1 || 1;
+    const qPad = (rawQMax - rawQMin) * 0.12 || 0.01;
+    const eMin = rawEMin - ePad, eMax = rawEMax + ePad;
+    const qMin = rawQMin - qPad, qMax = rawQMax + qPad;
+    const sMax = Math.max(...pts.map(p => Number.isFinite(p.s) ? p.s : 0), 1);
+    const px = e => pl + (e - eMin) / (eMax - eMin) * dw;
+    const py = q => pt + dh - (q - qMin) / (qMax - qMin) * dh;
+    const pradius = s => Math.max(4, 4 + 8 * Math.sqrt(Math.max(0, s || 0) / sMax));
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = '11px IBM Plex Sans, sans-serif';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i += 1) {
+        const x = pl + dw * i / 4;
+        const y = pt + dh - dh * i / 4;
+        ctx.strokeStyle = '#EDF2F7';
+        ctx.beginPath(); ctx.moveTo(x, pt); ctx.lineTo(x, pt + dh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pl, y); ctx.lineTo(pl + dw, y); ctx.stroke();
+        ctx.fillStyle = '#718096';
+        ctx.textAlign = 'center';
+        ctx.fillText((eMin + (eMax - eMin) * i / 4).toFixed(0), x, pt + dh + 19);
+        ctx.textAlign = 'right';
+        ctx.fillText((qMin + (qMax - qMin) * i / 4).toFixed(3), pl - 10, y + 4);
+    }
+    ctx.strokeStyle = '#CBD5E0';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pl, pt); ctx.lineTo(pl, pt + dh); ctx.lineTo(pl + dw, pt + dh); ctx.stroke();
+    ctx.fillStyle = '#4A5568';
+    ctx.textAlign = 'center';
+    ctx.font = '600 11px IBM Plex Sans, sans-serif';
+    ctx.fillText('Energy per prompt (J) · lower is better', pl + dw / 2, H - 10);
+    ctx.save(); ctx.translate(16, pt + dh / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Quality (BERTScore F1) · higher is better', 0, 0); ctx.restore();
+
+    const pf = pts.filter(p => p.par).sort((a, b) => a.e - b.e);
+    ctx.strokeStyle = '#3182CE'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 5]);
+    ctx.beginPath(); pf.forEach((p, i) => i === 0 ? ctx.moveTo(px(p.e), py(p.q)) : ctx.lineTo(px(p.e), py(p.q))); ctx.stroke();
+    ctx.setLineDash([]);
+
+    pts.forEach(p => {
+        ctx.fillStyle = p.col;
+        const r = pradius(p.s);
+        ctx.beginPath();
+        ctx.arc(px(p.e), py(p.q), r, 0, Math.PI * 2);
+        ctx.fill();
+        if (p.selected) {
+            ctx.strokeStyle = '#22543D'; ctx.lineWidth = 2.5; ctx.stroke();
+        }
+        if (p.selected || p.reference) {
+            ctx.fillStyle = p.selected ? '#22543D' : '#822727';
+            ctx.font = '600 12px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(p.selected ? 'x*' : 'default', px(p.e), py(p.q) - r - 6);
+        }
+    });
+}
+function drawPareto3D() {
+    const canvas = document.getElementById('pareto');
+    if (!canvas || !RUN_DATA?.pareto) return;
+    const source = (RUN_DATA.pareto.points || []).map(point => ({
+        energy: Number(point.energy_j), speed: Number(point.tokens_per_s), quality: Number(point.quality_f1),
+        front: Boolean(point.on_front), selected: Boolean(point.is_xstar), label: point.label,
+        precision: point.precision, iteration: point.iteration
+    })).filter(point => [point.energy, point.speed, point.quality].every(Number.isFinite));
+    const reference = RUN_DATA.reference_point || {};
+    if (!source.length) return;
+    const referencePoint = { energy: Number(reference.energy_j), speed: Number(reference.tokens_per_s), quality: Number(reference.quality_f1), reference: true };
+    if ([referencePoint.energy, referencePoint.speed, referencePoint.quality].every(Number.isFinite)) source.push(referencePoint);
+    const values = {
+        energy: source.map(point => point.energy), speed: source.map(point => point.speed), quality: source.map(point => point.quality)
+    };
+    const range = name => {
+        const lo = Math.min(...values[name]), hi = Math.max(...values[name]);
+        return { lo, hi, span: hi - lo || 1 };
+    };
+    const bounds = { energy: range('energy'), speed: range('speed'), quality: range('quality') };
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(320, canvas.parentElement.clientWidth - 32);
+    const height = Math.max(320, Math.min(460, width * 0.58));
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    canvas.width = Math.floor(width * ratio);
+    canvas.height = Math.floor(height * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const state = canvas._pareto3d || (canvas._pareto3d = { yaw: -0.62, pitch: 0.48, zoom: 1, dragging: false });
+    const project = (point, yaw, pitch) => {
+        const normalized = [
+            (point.energy - bounds.energy.lo) / bounds.energy.span - 0.5,
+            (point.speed - bounds.speed.lo) / bounds.speed.span - 0.5,
+            (point.quality - bounds.quality.lo) / bounds.quality.span - 0.5
+        ];
+        const [x, y, z] = normalized;
+        const cy = Math.cos(yaw), sy = Math.sin(yaw);
+        const cp = Math.cos(pitch), sp = Math.sin(pitch);
+        const rx = x * cy - z * sy;
+        const rz = x * sy + z * cy;
+        const ry = y * cp - rz * sp;
+        const depth = y * sp + rz * cp;
+        const scale = Math.min(width, height) * 0.82 * state.zoom;
+        return { x: width / 2 + rx * scale, y: height / 2 - ry * scale, depth, scale };
+    };
+    const axis = (from, to, label, min, max, formatter) => {
+        ctx.strokeStyle = '#A0AEC0'; ctx.lineWidth = 1.3;
+        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+        ctx.fillStyle = '#4A5568'; ctx.font = '600 11px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(label, to.x, to.y + (to.y > from.y ? 18 : -10));
+        for (let index = 0; index <= 4; index += 1) {
+            const fraction = index / 4;
+            const x = from.x + (to.x - from.x) * fraction;
+            const y = from.y + (to.y - from.y) * fraction;
+            ctx.fillStyle = '#6B7F86'; ctx.font = '10px IBM Plex Mono, monospace';
+            ctx.fillText(formatter(min + (max - min) * fraction), x, y + (to.y >= from.y ? 15 : -8));
+        }
+    };
+    const origin = project({ energy: bounds.energy.lo, speed: bounds.speed.lo, quality: bounds.quality.lo }, state.yaw, state.pitch);
+    const energyEnd = project({ energy: bounds.energy.hi, speed: bounds.speed.lo, quality: bounds.quality.lo }, state.yaw, state.pitch);
+    const speedEnd = project({ energy: bounds.energy.lo, speed: bounds.speed.hi, quality: bounds.quality.lo }, state.yaw, state.pitch);
+    const qualityEnd = project({ energy: bounds.energy.lo, speed: bounds.speed.lo, quality: bounds.quality.hi }, state.yaw, state.pitch);
+    const drawLine = (a, b, color = '#D9E2EC', widthValue = 1) => {
+        ctx.strokeStyle = color; ctx.lineWidth = widthValue;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    };
+    // A quiet wireframe keeps the three competing objectives legible while rotating.
+    [0.25, 0.5, 0.75].forEach(step => {
+        const e = bounds.energy.lo + bounds.energy.span * step;
+        drawLine(project({ energy: e, speed: bounds.speed.lo, quality: bounds.quality.lo }, state.yaw, state.pitch), project({ energy: e, speed: bounds.speed.hi, quality: bounds.quality.lo }, state.yaw, state.pitch));
+        const s = bounds.speed.lo + bounds.speed.span * step;
+        drawLine(project({ energy: bounds.energy.lo, speed: s, quality: bounds.quality.lo }, state.yaw, state.pitch), project({ energy: bounds.energy.lo, speed: s, quality: bounds.quality.hi }, state.yaw, state.pitch));
+    });
+    axis(origin, energyEnd, 'Energy (J)', bounds.energy.lo, bounds.energy.hi, value => value.toFixed(0));
+    axis(origin, speedEnd, 'Speed (tok/s)', bounds.speed.lo, bounds.speed.hi, value => value.toFixed(1));
+    axis(origin, qualityEnd, 'Quality (F1)', bounds.quality.lo, bounds.quality.hi, value => value.toFixed(3));
+
+    const colorScale = value => {
+        const stops = ['#440154', '#31688E', '#35B779', '#A0DA39', '#FDE725'];
+        const position = Math.max(0, Math.min(0.999, value)) * (stops.length - 1);
+        const index = Math.floor(position), amount = position - index;
+        const parse = hex => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+        const first = parse(stops[index]), second = parse(stops[Math.min(index + 1, stops.length - 1)]);
+        return `rgb(${first.map((channel, i) => Math.round(channel + (second[i] - channel) * amount)).join(',')})`;
+    };
+    const estimateQuality = (energy, speed) => {
+        const candidates = source.filter(point => !point.reference);
+        let weighted = 0, weightTotal = 0;
+        candidates.forEach(point => {
+            const dx = (energy - point.energy) / bounds.energy.span;
+            const dy = (speed - point.speed) / bounds.speed.span;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const weight = 1 / Math.max(distance * distance, 0.0004);
+            weighted += point.quality * weight;
+            weightTotal += weight;
+        });
+        return weightTotal ? weighted / weightTotal : bounds.quality.lo;
+    };
+    // Interpolated visual surface: it explains the measured response shape;
+    // the black dots remain the actual observations used by BOPIS.
+    const surfaceStepsX = 18, surfaceStepsY = 14;
+    for (let ix = 0; ix < surfaceStepsX - 1; ix += 1) {
+        for (let iy = 0; iy < surfaceStepsY - 1; iy += 1) {
+            const e0 = bounds.energy.lo + bounds.energy.span * ix / (surfaceStepsX - 1);
+            const e1 = bounds.energy.lo + bounds.energy.span * (ix + 1) / (surfaceStepsX - 1);
+            const s0 = bounds.speed.lo + bounds.speed.span * iy / (surfaceStepsY - 1);
+            const s1 = bounds.speed.lo + bounds.speed.span * (iy + 1) / (surfaceStepsY - 1);
+            const corners = [
+                { energy: e0, speed: s0 }, { energy: e1, speed: s0 },
+                { energy: e1, speed: s1 }, { energy: e0, speed: s1 }
+            ].map(point => ({ ...point, quality: estimateQuality(point.energy, point.speed) }));
+            const screens = corners.map(point => project(point, state.yaw, state.pitch));
+            const average = corners.reduce((sum, point) => sum + point.quality, 0) / corners.length;
+            const fraction = (average - bounds.quality.lo) / bounds.quality.span;
+            ctx.fillStyle = colorScale(fraction);
+            ctx.globalAlpha = 0.74;
+            ctx.beginPath(); screens.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y)); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 0.45; ctx.stroke();
+        }
+    }
+    ctx.globalAlpha = 1;
+    const projected = source.map(point => ({ point, screen: project(point, state.yaw, state.pitch) })).sort((a, b) => a.screen.depth - b.screen.depth);
+    const front = projected.filter(item => item.point.front).sort((a, b) => a.point.energy - b.point.energy);
+    if (front.length > 1) {
+        ctx.strokeStyle = '#3182CE'; ctx.lineWidth = 2.5; ctx.setLineDash([6, 5]);
+        ctx.beginPath(); front.forEach((item, index) => index ? ctx.lineTo(item.screen.x, item.screen.y) : ctx.moveTo(item.screen.x, item.screen.y)); ctx.stroke(); ctx.setLineDash([]);
+    }
+    const targets = [];
+    projected.forEach(({ point, screen }) => {
+        const speedFraction = (point.speed - bounds.speed.lo) / bounds.speed.span;
+        const radius = point.selected ? 10 : point.reference ? 8 : 4 + Math.max(0, speedFraction) * 4;
+        const qualityFraction = (point.quality - bounds.quality.lo) / bounds.quality.span;
+        ctx.globalAlpha = point.front || point.selected || point.reference ? 1 : 0.45;
+        ctx.fillStyle = point.reference ? '#E53E3E' : colorScale(qualityFraction);
+        ctx.beginPath(); ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = point.selected ? '#102231' : '#111827'; ctx.lineWidth = point.selected ? 2.5 : 1;
+        ctx.stroke();
+        targets.push({ point, x: screen.x, y: screen.y, radius: radius + 7 });
+        if (point.selected || point.reference) {
+            ctx.globalAlpha = 1; ctx.fillStyle = point.selected ? '#102231' : '#822727'; ctx.font = '700 11px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(point.selected ? 'x*' : 'default', screen.x, screen.y - radius - 8);
+        }
+    });
+    canvas._paretoHitTargets = targets;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#718096'; ctx.font = '10px IBM Plex Sans, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('3D trade-off surface · bubble size emphasizes selected/front points', 12, height - 10);
+}
+
+function bindParetoControls() {
+    const canvas = document.getElementById('pareto');
+    if (!canvas || canvas._paretoControlsBound) return;
+    canvas._paretoControlsBound = true;
+    let lastX = 0, lastY = 0, downX = 0, downY = 0;
+    canvas.addEventListener('pointerdown', event => { canvas._pareto3d.dragging = true; lastX = downX = event.clientX; lastY = downY = event.clientY; canvas.setPointerCapture(event.pointerId); });
+    canvas.addEventListener('pointermove', event => {
+        if (!canvas._pareto3d?.dragging) return;
+        canvas._pareto3d.yaw += (event.clientX - lastX) * 0.012;
+        canvas._pareto3d.pitch = Math.max(-1.15, Math.min(1.15, canvas._pareto3d.pitch + (event.clientY - lastY) * 0.012));
+        lastX = event.clientX; lastY = event.clientY; drawPareto3D();
+    });
+    canvas.addEventListener('pointerup', event => {
+        canvas._pareto3d.dragging = false;
+        if (Math.hypot(event.clientX - downX, event.clientY - downY) < 5) selectParetoPoint(canvas, event);
+    });
+    canvas.addEventListener('pointercancel', () => { canvas._pareto3d.dragging = false; });
+    canvas.addEventListener('wheel', event => { event.preventDefault(); canvas._pareto3d.zoom = Math.max(0.7, Math.min(1.8, canvas._pareto3d.zoom * (event.deltaY > 0 ? 0.92 : 1.08))); drawPareto3D(); }, { passive: false });
+}
+
+function selectParetoPoint(canvas, event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left, y = event.clientY - rect.top;
+    const target = (canvas._paretoHitTargets || [])
+        .map(item => ({ item, distance: Math.hypot(item.x - x, item.y - y) }))
+        .filter(candidate => candidate.distance <= candidate.item.radius)
+        .sort((a, b) => a.distance - b.distance)[0];
+    const output = document.getElementById('pareto-selection');
+    if (!output) return;
+    if (!target) {
+        output.textContent = 'No point selected. Click a measured point to inspect its configuration.';
+        return;
+    }
+    const point = target.item.point;
+    output.textContent = `${point.selected ? 'x* · ' : point.reference ? 'Default · ' : ''}${point.label || 'Configuration'} · ${point.precision || 'reference'} · Energy ${point.energy.toFixed(2)} J · Speed ${point.speed.toFixed(2)} tok/s · Quality ${point.quality.toFixed(4)} F1 · Iter ${point.iteration ?? '—'}`;
+}
+
+function resetParetoView() {
+    const canvas = document.getElementById('pareto');
+    if (!canvas) return;
+    canvas._pareto3d = { yaw: -0.62, pitch: 0.48, zoom: 1, dragging: false };
+    const output = document.getElementById('pareto-selection');
+    if (output) output.textContent = 'View reset. Click a point to inspect its configuration.';
+    drawPareto3D();
+}
+
+window.addEventListener('resize', () => { bindParetoControls(); drawPareto3D(); });
+setTimeout(() => { bindParetoControls(); drawPareto3D(); }, 100);
+</script>
+</body>
 </html>

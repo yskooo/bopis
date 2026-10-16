@@ -1,108 +1,31 @@
 """Inferential and descriptive statistics -- standard library only.
 
-Chapter 3 specifies the Friedman test applied separately to each dependent
-variable across the three related conditions (unoptimized default, random search
-baseline, BOPIS-recommended), with a Nemenyi post-hoc comparison when the
-Friedman result is significant, at ``alpha = 0.05``.
+Chapter 3 compares exactly **two** conditions on each dependent variable: the
+random-search baseline and the BOPIS-recommended configuration. The prompts are
+shared across both conditions, so the samples are paired, and the comparison
+uses the **Wilcoxon signed-rank test** at ``alpha = 0.05``. The test is
+non-parametric because energy, latency and BERTScore F1 are not assumed to be
+normally distributed.
+
+The unoptimized default is still measured in every run -- it is the reference a
+condition is judged against -- but it is not part of the inferential comparison,
+so no hypothesis test is run against it. A three-condition ordering test
+(Friedman) and its post-hoc (Nemenyi) are deliberately absent: with only two
+compared conditions a pairwise signed-rank test is the correct instrument.
 
 Why no scipy is needed
-----------------------
-The Friedman statistic is referred to a chi-square distribution with
-``df = k - 1``. With three conditions ``df = 2``, and the chi-square survival
-function at two degrees of freedom has an exact closed form::
-
-    P(X > x) = exp(-x / 2)
-
-so the p-value is computed exactly rather than approximated. A general
-regularized incomplete gamma implementation is also provided
-(:func:`chi2_sf`) so the module stays correct if the number of conditions ever
-changes.
-
-The Nemenyi critical difference uses the studentized range statistic
-``q_alpha`` divided by ``sqrt(2)``, tabulated by Demsar (2006), "Statistical
-Comparisons of Classifiers over Multiple Data Sets", *JMLR* 7:1-30, Table 5.
+---------------------
+The signed-rank statistic is referred to a normal approximation with the tie
+correction, using :func:`math.erfc` for the two-sided p-value. :func:`wilcoxon`
+is therefore entirely self-contained, keeping the measurement core's
+standard-library-only guarantee (amendment A-6).
 """
 
 from __future__ import annotations
 
 import dataclasses
 import math
-from typing import Dict, List, Optional, Sequence, Tuple
-
-# --------------------------------------------------------------------------- #
-# Distributions
-# --------------------------------------------------------------------------- #
-
-_MAX_ITER = 300
-_EPS = 3e-16
-_FPMIN = 1e-300
-
-
-def _log_gamma(x: float) -> float:
-    return math.lgamma(x)
-
-
-def _gamma_p_series(a: float, x: float) -> float:
-    """Lower regularized incomplete gamma ``P(a, x)`` by series expansion."""
-    ap = a
-    total = 1.0 / a
-    delta = total
-    for _ in range(_MAX_ITER):
-        ap += 1.0
-        delta *= x / ap
-        total += delta
-        if abs(delta) < abs(total) * _EPS:
-            break
-    return total * math.exp(-x + a * math.log(x) - _log_gamma(a))
-
-
-def _gamma_q_continued_fraction(a: float, x: float) -> float:
-    """Upper regularized incomplete gamma ``Q(a, x)`` by continued fraction."""
-    b = x + 1.0 - a
-    c = 1.0 / _FPMIN
-    d = 1.0 / b
-    h = d
-    for i in range(1, _MAX_ITER + 1):
-        an = -i * (i - a)
-        b += 2.0
-        d = an * d + b
-        if abs(d) < _FPMIN:
-            d = _FPMIN
-        c = b + an / c
-        if abs(c) < _FPMIN:
-            c = _FPMIN
-        d = 1.0 / d
-        delta = d * c
-        h *= delta
-        if abs(delta - 1.0) < _EPS:
-            break
-    return math.exp(-x + a * math.log(x) - _log_gamma(a)) * h
-
-
-def chi2_sf(x: float, df: int) -> float:
-    """Survival function ``P(X > x)`` for a chi-square variate with *df* df.
-
-    Exact for ``df == 2``; otherwise the regularized incomplete gamma function.
-    """
-    if x <= 0.0:
-        return 1.0
-    if df == 2:
-        return math.exp(-0.5 * x)
-    a, xx = df / 2.0, x / 2.0
-    if xx < a + 1.0:
-        return 1.0 - _gamma_p_series(a, xx)
-    return _gamma_q_continued_fraction(a, xx)
-
-
-#: Studentized-range constants ``q_alpha / sqrt(2)`` for the Nemenyi test,
-#: indexed by number of conditions ``k``. Demsar (2006), Table 5.
-NEMENYI_Q = {
-    0.05: {2: 1.960, 3: 2.343, 4: 2.569, 5: 2.728, 6: 2.850,
-           7: 2.949, 8: 3.031, 9: 3.102, 10: 3.164},
-    0.10: {2: 1.645, 3: 2.052, 4: 2.291, 5: 2.459, 6: 2.589,
-           7: 2.693, 8: 2.780, 9: 2.855, 10: 2.920},
-}
-
+from typing import Dict, List, Optional, Sequence
 
 # --------------------------------------------------------------------------- #
 # Descriptive statistics
@@ -152,10 +75,11 @@ def coefficient_of_variation(values: Sequence[float]) -> float:
 
 
 # --------------------------------------------------------------------------- #
-# Ranking
+# Wilcoxon signed-rank test
 # --------------------------------------------------------------------------- #
 
 
+<<<<<<< Updated upstream
 def average_ranks(row: Sequence[float], higher_is_better: bool = False) -> List[float]:
     """Rank one block, assigning the average rank to tied values.
 
@@ -173,12 +97,25 @@ def average_ranks(row: Sequence[float], higher_is_better: bool = False) -> List[
         while span < k and row[order[span]] == row[order[position]]:
             span += 1
         average = (position + span + 1) / 2.0  # ranks are 1-based
+=======
+def _rank_data(data: Sequence[float]) -> List[float]:
+    """Helper to rank data, assigning average ranks to ties."""
+    order = sorted(range(len(data)), key=data.__getitem__)
+    ranks = [0.0] * len(data)
+    position = 0
+    while position < len(data):
+        span = position + 1
+        while span < len(data) and data[order[span]] == data[order[position]]:
+            span += 1
+        average = (position + span + 1) / 2.0
+>>>>>>> Stashed changes
         for idx in range(position, span):
             ranks[order[idx]] = average
         position = span
     return ranks
 
 
+<<<<<<< Updated upstream
 # --------------------------------------------------------------------------- #
 # Friedman test
 # --------------------------------------------------------------------------- #
@@ -195,6 +132,16 @@ class FriedmanResult:
     p_value: float
     mean_ranks: List[float]
     rank_sums: List[float]
+=======
+@dataclasses.dataclass
+class WilcoxonResult:
+    """Outcome of a Wilcoxon signed-rank test over 2 related conditions."""
+
+    n_effective: int
+    w_statistic: float
+    z_statistic: float
+    p_value: float
+>>>>>>> Stashed changes
     tie_correction: float
     condition_names: List[str]
     alpha: float = 0.05
@@ -205,6 +152,7 @@ class FriedmanResult:
 
     def as_dict(self) -> Dict[str, object]:
         return {
+<<<<<<< Updated upstream
             "n_blocks": self.n_blocks,
             "k_conditions": self.k_conditions,
             "chi_square": self.chi_square,
@@ -214,10 +162,19 @@ class FriedmanResult:
             "alpha": self.alpha,
             "mean_ranks": dict(zip(self.condition_names, self.mean_ranks)),
             "rank_sums": dict(zip(self.condition_names, self.rank_sums)),
+=======
+            "n_effective": self.n_effective,
+            "w_statistic": self.w_statistic,
+            "z_statistic": self.z_statistic,
+            "p_value": self.p_value,
+            "significant": self.significant,
+            "alpha": self.alpha,
+>>>>>>> Stashed changes
             "tie_correction": self.tie_correction,
         }
 
 
+<<<<<<< Updated upstream
 def friedman(
     blocks: Sequence[Sequence[float]],
     condition_names: Optional[Sequence[str]] = None,
@@ -250,107 +207,6 @@ def friedman(
     k = len(blocks[0])
     if k < 2:
         raise ValueError("friedman requires at least two conditions")
-
-# --------------------------------------------------------------------------- #
-# Wilcoxon Signed-Rank test
-# --------------------------------------------------------------------------- #
-
-def _rank_data(data: Sequence[float]) -> List[float]:
-    """Helper to rank data, assigning average ranks to ties."""
-    order = sorted(range(len(data)), key=data.__getitem__)
-    ranks = [0.0] * len(data)
-    position = 0
-    while position < len(data):
-        span = position + 1
-        while span < len(data) and data[order[span]] == data[order[position]]:
-            span += 1
-        average = (position + span + 1) / 2.0
-        for idx in range(position, span):
-            ranks[order[idx]] = average
-        position = span
-    return ranks
-
-@dataclasses.dataclass
-class WilcoxonResult:
-    """Outcome of a Wilcoxon signed-rank test over 2 related conditions."""
-    n_effective: int
-    w_statistic: float
-    z_statistic: float
-    p_value: float
-    tie_correction: float
-    condition_names: List[str]
-    alpha: float = 0.05
-    
-    @property
-    def significant(self) -> bool:
-        return self.p_value < self.alpha
-
-    def as_dict(self) -> Dict[str, object]:
-        return {
-            "n_effective": self.n_effective,
-            "w_statistic": self.w_statistic,
-            "z_statistic": self.z_statistic,
-            "p_value": self.p_value,
-            "significant": self.significant,
-            "alpha": self.alpha,
-            "tie_correction": self.tie_correction,
-        }
-
-def wilcoxon(
-    blocks: Sequence[Sequence[float]],
-    condition_names: Optional[Sequence[str]] = None,
-    alpha: float = 0.05,
-) -> WilcoxonResult:
-    """Wilcoxon signed-rank test with tie correction and normal approximation."""
-    if not blocks:
-        raise ValueError("wilcoxon requires at least one block")
-    k = len(blocks[0])
-    if k != 2:
-        raise ValueError("wilcoxon requires exactly two conditions")
-    
-    if condition_names is None:
-        condition_names = ["Condition A", "Condition B"]
-        
-    diffs = []
-    for block in blocks:
-        diff = block[0] - block[1]
-        if diff != 0:
-            diffs.append(diff)
-            
-    n = len(diffs)
-    if n == 0:
-        return WilcoxonResult(0, 0.0, 0.0, 1.0, 0.0, list(condition_names), alpha)
-
-    abs_diffs = [abs(d) for d in diffs]
-    ranks = _rank_data(abs_diffs)
-    
-    w_pos = sum(r for d, r in zip(diffs, ranks) if d > 0)
-    w_neg = sum(r for d, r in zip(diffs, ranks) if d < 0)
-    
-    w_stat = min(w_pos, w_neg)
-    
-    t_sum = 0
-    unique_vals = set(abs_diffs)
-    for v in unique_vals:
-        t = abs_diffs.count(v)
-        if t > 1:
-            t_sum += (t**3 - t)
-            
-    expected_w = n * (n + 1) / 4.0
-    var_w = (n * (n + 1) * (2 * n + 1)) / 24.0 - (t_sum / 48.0)
-    
-    if var_w == 0:
-        z = 0.0
-        p_val = 1.0
-    else:
-        correction = 0.5 if abs(w_stat - expected_w) > 0.5 else 0.0
-        if w_stat < expected_w:
-            z = (w_stat - expected_w + correction) / math.sqrt(var_w)
-        else:
-            z = (w_stat - expected_w - correction) / math.sqrt(var_w)
-        p_val = math.erfc(abs(z) / math.sqrt(2.0))
-        
-    return WilcoxonResult(n, w_stat, z, p_val, t_sum / 48.0, list(condition_names), alpha)
     if any(len(row) != k for row in blocks):
         raise ValueError("all blocks must have the same number of conditions")
 
@@ -457,6 +313,76 @@ def nemenyi(result: FriedmanResult, alpha: float = 0.05) -> NemenyiResult:
                 }
             )
     return NemenyiResult(critical_difference=cd, alpha=alpha, q_alpha=q_alpha, pairs=pairs)
+=======
+def wilcoxon(
+    blocks: Sequence[Sequence[float]],
+    condition_names: Optional[Sequence[str]] = None,
+    alpha: float = 0.05,
+) -> WilcoxonResult:
+    """Wilcoxon signed-rank test with tie correction and normal approximation.
+
+    Args:
+        blocks: One row per block (per prompt), each holding the two paired
+            values, in a consistent condition order.
+        condition_names: Labels for the two conditions.
+        alpha: Significance level.
+
+    Zero differences are discarded (they carry no sign information), and the
+    remaining absolute differences are ranked with average ranks for ties. The
+    statistic is the smaller of the positive- and negative-signed rank sums,
+    with a continuity correction and the tie-corrected variance before the
+    normal approximation.
+    """
+    if not blocks:
+        raise ValueError("wilcoxon requires at least one block")
+    k = len(blocks[0])
+    if k != 2:
+        raise ValueError("wilcoxon requires exactly two conditions")
+
+    if condition_names is None:
+        condition_names = ["Condition A", "Condition B"]
+
+    diffs = []
+    for block in blocks:
+        diff = block[0] - block[1]
+        if diff != 0:
+            diffs.append(diff)
+
+    n = len(diffs)
+    if n == 0:
+        return WilcoxonResult(0, 0.0, 0.0, 1.0, 0.0, list(condition_names), alpha)
+
+    abs_diffs = [abs(d) for d in diffs]
+    ranks = _rank_data(abs_diffs)
+
+    w_pos = sum(r for d, r in zip(diffs, ranks) if d > 0)
+    w_neg = sum(r for d, r in zip(diffs, ranks) if d < 0)
+
+    w_stat = min(w_pos, w_neg)
+
+    t_sum = 0
+    unique_vals = set(abs_diffs)
+    for v in unique_vals:
+        t = abs_diffs.count(v)
+        if t > 1:
+            t_sum += (t ** 3 - t)
+
+    expected_w = n * (n + 1) / 4.0
+    var_w = (n * (n + 1) * (2 * n + 1)) / 24.0 - (t_sum / 48.0)
+
+    if var_w == 0:
+        z = 0.0
+        p_val = 1.0
+    else:
+        correction = 0.5 if abs(w_stat - expected_w) > 0.5 else 0.0
+        if w_stat < expected_w:
+            z = (w_stat - expected_w + correction) / math.sqrt(var_w)
+        else:
+            z = (w_stat - expected_w - correction) / math.sqrt(var_w)
+        p_val = math.erfc(abs(z) / math.sqrt(2.0))
+
+    return WilcoxonResult(n, w_stat, z, p_val, t_sum / 48.0, list(condition_names), alpha)
+>>>>>>> Stashed changes
 
 
 def compare_conditions(
@@ -465,18 +391,37 @@ def compare_conditions(
     higher_is_better: bool = False,
     alpha: float = 0.05,
 ) -> Dict[str, object]:
-    """Wilcoxon signed-rank test comparing random_search and bopis."""
-    # Find the indices for random_search and bopis
+<<<<<<< Updated upstream
+    """Friedman test plus, if significant, the Nemenyi post-hoc comparison."""
+    result = friedman(
+        blocks,
+        condition_names=condition_names,
+        higher_is_better=higher_is_better,
+        alpha=alpha,
+    )
+    payload: Dict[str, object] = {"friedman": result.as_dict(), "nemenyi": None}
+    if result.significant:
+        payload["nemenyi"] = nemenyi(result, alpha=alpha).as_dict()
+    return payload
+=======
+    """Wilcoxon signed-rank test comparing random_search and bopis.
+
+    The three-way design carries an unoptimized *reference* condition, but the
+    hypothesis test is the paired comparison of the random-search baseline and
+    the BOPIS-recommended configuration -- so only those two columns are handed
+    to :func:`wilcoxon`.
+
+    *higher_is_better* is accepted for call-site compatibility and is unused:
+    a two-sided signed-rank test is symmetric, so swapping the two conditions
+    flips ``z`` but leaves ``w_statistic`` and the p-value unchanged.
+    """
     try:
         rs_idx = condition_names.index("random_search")
         bp_idx = condition_names.index("bopis")
     except ValueError:
-        rs_idx = 1
-        bp_idx = 2
+        rs_idx, bp_idx = 1, 2
 
-    wilcoxon_blocks = []
-    for row in blocks:
-        wilcoxon_blocks.append([row[rs_idx], row[bp_idx]])
+    wilcoxon_blocks = [[row[rs_idx], row[bp_idx]] for row in blocks]
 
     wilcox_result = wilcoxon(
         wilcoxon_blocks,
@@ -484,16 +429,12 @@ def compare_conditions(
         alpha=alpha,
     )
 
-    payload: Dict[str, object] = {
+    return {
         "wilcoxon": wilcox_result.as_dict(),
-        "friedman": {
-            "chi_square": wilcox_result.z_statistic, 
-            "p_value": wilcox_result.p_value,
-            "significant": wilcox_result.significant,
-        },
-        "nemenyi": None
+        "n_blocks": len(blocks),
+        "conditions": ["random_search", "bopis"],
     }
-    return payload
+>>>>>>> Stashed changes
 
 
 # --------------------------------------------------------------------------- #

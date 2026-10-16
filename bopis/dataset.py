@@ -46,10 +46,13 @@ import os
 import random
 import urllib.error
 import urllib.request
+import warnings
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from bopis.tasks import TASK_KEYS
 
+<<<<<<< Updated upstream
+=======
 # Source identifiers — recorded in manifest for reproducibility
 SOURCE_DOLLY = "databricks-dolly-15k"
 SOURCE_NQ    = "natural_questions"
@@ -57,6 +60,42 @@ SOURCE_TRIVIA = "trivia_qa"
 SOURCE_CNN   = "cnn_dailymail"
 SOURCE_SQUAD = "squad_v2"
 
+#: The four independent benchmarks mixed into the 500-prompt evaluation set
+#: alongside 300 Dolly prompts (post-defense 60/40 recommendation). ``n`` is
+#: the requested share; the manifest reports the *measured* count, which can be
+#: lower when a dataset is unavailable or its rows fail the length filter.
+EXTERNAL_DATASETS: Dict[str, Dict[str, object]] = {
+        SOURCE_NQ: {
+            "n": 60,
+            "dataset": "google-research-datasets/natural_questions",
+            "version": "v1.0",
+            "split": "validation",
+            "license": "Apache 2.0",
+        },
+        SOURCE_TRIVIA: {
+            "n": 60,
+            "dataset": "mandarjoshi/trivia_qa",
+            "version": "rc.nocontext",
+            "split": "validation",
+            "license": "Apache 2.0",
+        },
+        SOURCE_CNN: {
+            "n": 50,
+            "dataset": "abisee/cnn_dailymail",
+            "version": "3.0.0",
+            "split": "test",
+            "license": "Apache 2.0",
+        },
+        SOURCE_SQUAD: {
+            "n": 30,
+            "dataset": "rajpurkar/squad_v2",
+            "version": "v1.0",
+            "split": "validation",
+            "license": "CC BY-SA 4.0",
+        },
+    }
+
+>>>>>>> Stashed changes
 DOLLY_URL = (
     "https://huggingface.co/datasets/databricks/databricks-dolly-15k/"
     "resolve/main/databricks-dolly-15k.jsonl"
@@ -78,9 +117,6 @@ MAX_PROMPT_TOKENS = 900
 DEFAULT_EVAL_SIZE = 500
 DEFAULT_PROXY_SIZE = 50
 
-DEFAULT_DOLLY_SHARE = 300
-DEFAULT_EXTERNAL_SHARE = 200
-
 #: The prompt template. Recorded in the manifest with its hash because the
 #: template materially affects BERTScore and is otherwise unreproducible
 #: (amendment A-21).
@@ -98,7 +134,6 @@ class Prompt:
     instruction: str
     context: str
     response: str
-    source: str = SOURCE_DOLLY
 
     @property
     def text(self) -> str:
@@ -118,7 +153,6 @@ class Prompt:
             "prompt_index": self.index,
             "prompt_id": self.prompt_id,
             "task_type": self.task_type,
-            "source": self.source,
             "in_proxy_subset": in_proxy,
             "instruction_chars": len(self.instruction),
             "context_chars": len(self.context),
@@ -233,7 +267,6 @@ def filter_rows(
             instruction=instruction,
             context=context,
             response=response,
-            source=SOURCE_DOLLY,
         )
         if candidate.estimated_tokens > max_prompt_tokens:
             too_long += 1
@@ -347,6 +380,10 @@ class SampleSet:
     seed: int
     source_path: Optional[str] = None
     source_sha256: Optional[str] = None
+    #: True when the build attempted the 60/40 Dolly/external mix, even if the
+    #: external loaders returned nothing. Keeps the manifest honest about a
+    #: mixing attempt that came up short.
+    external_requested: bool = False
 
     def distribution(self) -> Dict[str, int]:
         counts: Dict[str, int] = {}
@@ -370,19 +407,43 @@ class SampleSet:
         proxy_ids = {p.prompt_id for p in self.proxy}
         return [p.as_row(p.prompt_id in proxy_ids) for p in self.evaluation]
 
+    def source_counts(self) -> Dict[str, int]:
+        """Measured prompt counts per source in the evaluation set."""
+        counts: Dict[str, int] = {}
+        for prompt in self.evaluation:
+            counts[prompt.source] = counts.get(prompt.source, 0) + 1
+        return counts
+
+    def dataset_sources(self) -> Dict[str, Dict[str, object]]:
+        """Provenance of the evaluation set, counted from the prompts themselves.
+
+        The counts are measured, never assumed: if the external loaders were
+        unavailable, the entry reports ``n: 0`` instead of the requested share,
+        so the manifest cannot claim a mix that did not happen.
+        """
+        counts = self.source_counts()
+        sources: Dict[str, Dict[str, object]] = {
+            SOURCE_DOLLY: {
+                "n": counts.get(SOURCE_DOLLY, 0),
+                "sha256": self.source_sha256,
+                "license": DOLLY_LICENSE,
+            }
+        }
+        for name, meta in EXTERNAL_DATASETS.items():
+            if self.external_requested or counts.get(name, 0):
+                sources[name] = dict(meta, n=counts.get(name, 0))
+        return sources
+
     def as_dict(self) -> Dict[str, object]:
         return {
             "source": "databricks/databricks-dolly-15k",
             "license": DOLLY_LICENSE,
             "source_path": self.source_path,
             "source_sha256": self.source_sha256,
-            "dataset_sources": {
-                "dolly_15k": { "n": DEFAULT_DOLLY_SHARE, "sha256": self.source_sha256, "license": "CC BY-SA 3.0" },
-                "natural_questions": { "n": 60, "version": "v1.0", "split": "validation", "license": "Apache 2.0" },
-                "trivia_qa": { "n": 60, "version": "rc.nocontext", "split": "validation", "license": "Apache 2.0" },
-                "cnn_dailymail": { "n": 50, "version": "3.0.0", "split": "test", "license": "Apache 2.0" },
-                "squad_v2": { "n": 30, "split": "validation", "license": "CC BY-SA 4.0" }
-            },
+<<<<<<< Updated upstream
+=======
+            "dataset_sources": self.dataset_sources(),
+>>>>>>> Stashed changes
             "seed": self.seed,
             "n_evaluation": len(self.evaluation),
             "n_proxy": len(self.proxy),
@@ -395,107 +456,219 @@ class SampleSet:
         }
 
 
+<<<<<<< Updated upstream
+=======
 def load_natural_questions(seed: int, n: int = 60) -> List[Prompt]:
     try:
         import importlib
+
         datasets = importlib.import_module("datasets")
-    except ImportError:
+    except Exception:
+        warnings.warn("datasets unavailable — cannot load natural_questions", RuntimeWarning)
         return []
-    ds = datasets.load_dataset("google-research-datasets/natural_questions", split="validation")
-    ds = ds.shuffle(seed=seed)
-    prompts = []
-    for row in ds:
-        answers = row.get("annotations", [])
-        if not answers: continue
-        short_answers = answers[0].get("short_answers", [])
-        if not short_answers: continue
-        
-        text = short_answers[0].get("text", "")
-        if not text: continue
-        
-        candidate = Prompt(
-            index=-1, prompt_id=f"nq-{len(prompts)}", task_type="open_qa",
-            instruction=row["question"]["text"], context="", response=text, source=SOURCE_NQ
+    try:
+        ds = datasets.load_dataset(
+            EXTERNAL_DATASETS[SOURCE_NQ]["dataset"],
+            split=EXTERNAL_DATASETS[SOURCE_NQ]["split"],
+            streaming=True,
         )
-        if candidate.estimated_tokens <= MAX_PROMPT_TOKENS:
-            prompts.append(candidate)
-        if len(prompts) >= n: break
-    return prompts
+        ds = ds.shuffle(seed=seed, buffer_size=min(n * 8, 1024))
+        iterator = iter(ds)
+        got = 0
+        prompts: List[Prompt] = []
+        while got < n:
+            try:
+                row = next(iterator)
+            except StopIteration:
+                break
+            except Exception:
+                continue  # skip bad row
+            try:
+                # ``annotations`` is a dict -- ``{"short_answers": [...]}`` -- not
+                # a list, so indexing it as one raises KeyError and every row was
+                # silently dropped (natural_questions loaded 0 prompts). Each
+                # annotator's ``text`` may itself be a list of token strings.
+                annotations = row.get("annotations")
+                if not isinstance(annotations, dict):
+                    continue
+                short_answers = annotations.get("short_answers") or []
+                text = ""
+                for answer in short_answers:
+                    if not isinstance(answer, dict):
+                        continue
+                    raw = answer.get("text")
+                    if isinstance(raw, str) and raw.strip():
+                        text = raw.strip()
+                        break
+                    if isinstance(raw, (list, tuple)):
+                        joined = " ".join(
+                            str(part).strip() for part in raw if str(part).strip()
+                        ).strip()
+                        if joined:
+                            text = joined
+                            break
+                if not text:
+                    continue
+                question = row.get("question")
+                instruction = (
+                    question.get("text") if isinstance(question, dict) else None
+                )
+                if not instruction:
+                    continue
+                candidate = Prompt(
+                    index=-1,
+                    prompt_id=f"nq-{got}",
+                    task_type="open_qa",
+                    instruction=instruction,
+                    context="",
+                    response=text,
+                    source=SOURCE_NQ,
+                )
+                if candidate.estimated_tokens <= MAX_PROMPT_TOKENS:
+                    prompts.append(candidate)
+                    got += 1
+            except Exception:
+                continue
+        return prompts
+    except Exception as exc:
+        warnings.warn(f"failed to load natural_questions: {exc}", RuntimeWarning)
+        return []
 
 def load_trivia_qa(seed: int, n: int = 60) -> List[Prompt]:
     try:
         import importlib
+
         datasets = importlib.import_module("datasets")
-    except ImportError:
+    except Exception:
+        warnings.warn("datasets unavailable — cannot load trivia_qa", RuntimeWarning)
         return []
-    ds = datasets.load_dataset("trivia_qa", "rc.nocontext", split="validation")
-    ds = ds.shuffle(seed=seed)
+    try:
+        ds = datasets.load_dataset(
+            EXTERNAL_DATASETS[SOURCE_TRIVIA]["dataset"],
+            EXTERNAL_DATASETS[SOURCE_TRIVIA]["version"],
+            split=EXTERNAL_DATASETS[SOURCE_TRIVIA]["split"],
+            streaming=True,
+        )
+        ds = ds.shuffle(seed=seed, buffer_size=min(n * 8, 1024))
+    except Exception as exc:
+        warnings.warn(f"failed to load trivia_qa: {exc}", RuntimeWarning)
+        return []
     prompts = []
     for row in ds:
-        ans = row.get("answer", {}).get("value", "")
-        if not ans: continue
-        
-        candidate = Prompt(
-            index=-1, prompt_id=f"trivia-{len(prompts)}", task_type="closed_qa",
-            instruction=row["question"], context="", response=ans, source=SOURCE_TRIVIA
-        )
-        if candidate.estimated_tokens <= MAX_PROMPT_TOKENS:
-            prompts.append(candidate)
-        if len(prompts) >= n: break
+        try:
+            answer = row.get("answer", {})
+            ans = answer.get("value") or answer.get("normalized_value") or answer.get("text") or ""
+            if not ans and isinstance(answer, str):
+                ans = answer
+            if not ans:
+                continue
+            candidate = Prompt(
+                index=-1,
+                prompt_id=f"trivia-{len(prompts)}",
+                task_type="closed_qa",
+                instruction=row.get("question", ""),
+                context="",
+                response=ans,
+                source=SOURCE_TRIVIA,
+            )
+            if candidate.estimated_tokens <= MAX_PROMPT_TOKENS:
+                prompts.append(candidate)
+            if len(prompts) >= n:
+                break
+        except Exception:
+            continue
     return prompts
 
 def load_cnn_dailymail(seed: int, n: int = 50) -> List[Prompt]:
     try:
         import importlib
+
         datasets = importlib.import_module("datasets")
-    except ImportError:
+    except Exception:
+        warnings.warn("datasets unavailable — cannot load cnn_dailymail", RuntimeWarning)
         return []
-    ds = datasets.load_dataset("cnn_dailymail", "3.0.0", split="test")
-    ds = ds.shuffle(seed=seed)
+    try:
+        ds = datasets.load_dataset(
+            EXTERNAL_DATASETS[SOURCE_CNN]["dataset"],
+            EXTERNAL_DATASETS[SOURCE_CNN]["version"],
+            split=EXTERNAL_DATASETS[SOURCE_CNN]["split"],
+            streaming=True,
+        )
+        ds = ds.shuffle(seed=seed, buffer_size=min(n * 8, 1024))
+    except Exception as exc:
+        warnings.warn(f"failed to load cnn_dailymail: {exc}", RuntimeWarning)
+        return []
     prompts = []
     for row in ds:
-        candidate = Prompt(
-            index=-1, prompt_id=f"cnn-{len(prompts)}", task_type="summarization",
-            instruction="Summarize the following article.", context=row["article"],
-            response=row["highlights"], source=SOURCE_CNN
-        )
-        if candidate.estimated_tokens <= MAX_PROMPT_TOKENS:
-            prompts.append(candidate)
-        if len(prompts) >= n: break
+        try:
+            candidate = Prompt(
+                index=-1,
+                prompt_id=f"cnn-{len(prompts)}",
+                task_type="summarization",
+                instruction="Summarize the following article.",
+                context=row["article"],
+                response=row["highlights"],
+                source=SOURCE_CNN,
+            )
+            if candidate.estimated_tokens <= MAX_PROMPT_TOKENS:
+                prompts.append(candidate)
+            if len(prompts) >= n:
+                break
+        except Exception:
+            continue
     return prompts
 
 def load_squad_v2(seed: int, n: int = 30) -> List[Prompt]:
     try:
         import importlib
+
         datasets = importlib.import_module("datasets")
-    except ImportError:
+    except Exception:
+        warnings.warn("datasets unavailable — cannot load squad_v2", RuntimeWarning)
         return []
-    ds = datasets.load_dataset("rajpurkar/squad_v2", split="validation")
-    ds = ds.shuffle(seed=seed)
+    try:
+        ds = datasets.load_dataset(
+            EXTERNAL_DATASETS[SOURCE_SQUAD]["dataset"],
+            split=EXTERNAL_DATASETS[SOURCE_SQUAD]["split"],
+            streaming=True,
+        )
+        ds = ds.shuffle(seed=seed, buffer_size=min(n * 8, 1024))
+    except Exception as exc:
+        warnings.warn(f"failed to load squad_v2: {exc}", RuntimeWarning)
+        return []
     prompts = []
     for row in ds:
-        ans_text = row.get("answers", {}).get("text", [])
-        if not ans_text: continue
-        
-        candidate = Prompt(
-            index=-1, prompt_id=f"squad-{len(prompts)}", task_type="information_extraction",
-            instruction=row["question"], context=row["context"],
-            response=ans_text[0], source=SOURCE_SQUAD
-        )
-        if candidate.estimated_tokens <= MAX_PROMPT_TOKENS:
-            prompts.append(candidate)
-        if len(prompts) >= n: break
+        try:
+            ans_text = row.get("answers", {}).get("text", [])
+            if not ans_text:
+                continue
+            candidate = Prompt(
+                index=-1,
+                prompt_id=f"squad-{len(prompts)}",
+                task_type="information_extraction",
+                instruction=row.get("question", ""),
+                context=row.get("context", ""),
+                response=ans_text[0],
+                source=SOURCE_SQUAD,
+            )
+            if candidate.estimated_tokens <= MAX_PROMPT_TOKENS:
+                prompts.append(candidate)
+            if len(prompts) >= n:
+                break
+        except Exception:
+            continue
     return prompts
 
 def load_external_prompts(seed: int) -> List[Prompt]:
     """Load and combine all external dataset prompts."""
     prompts = []
-    prompts.extend(load_natural_questions(seed, n=60))
-    prompts.extend(load_trivia_qa(seed, n=60))
-    prompts.extend(load_cnn_dailymail(seed, n=50))
-    prompts.extend(load_squad_v2(seed, n=30))
+    prompts.extend(load_natural_questions(seed, n=EXTERNAL_DATASETS[SOURCE_NQ]["n"]))
+    prompts.extend(load_trivia_qa(seed, n=EXTERNAL_DATASETS[SOURCE_TRIVIA]["n"]))
+    prompts.extend(load_cnn_dailymail(seed, n=EXTERNAL_DATASETS[SOURCE_CNN]["n"]))
+    prompts.extend(load_squad_v2(seed, n=EXTERNAL_DATASETS[SOURCE_SQUAD]["n"]))
     return prompts
 
+>>>>>>> Stashed changes
 def build_samples(
     prompts: Sequence[Prompt],
     filter_report: FilterReport,
@@ -504,19 +677,36 @@ def build_samples(
     seed: int = 20260101,
     source_path: Optional[str] = None,
     source_sha256: Optional[str] = None,
-    allow_external: bool = False,
+<<<<<<< Updated upstream
+) -> SampleSet:
+    """Draw the evaluation set, then the proxy subset nested inside it."""
+    evaluation = stratified_sample(prompts, eval_size, seed=seed)
+=======
+        allow_external: bool = False,
 ) -> SampleSet:
     """Draw the evaluation set, then the proxy subset nested inside it."""
     # Modified: 60/40 Dolly/External split for eval_size == 500
     is_synthetic = source_path == "synthetic" or any(p.prompt_id.startswith("synthetic-") for p in prompts)
+    external_requested = False
+    external: List[Prompt] = []
     if eval_size == DEFAULT_EVAL_SIZE and allow_external and not is_synthetic:
+        external_requested = True
         evaluation = stratified_sample(prompts, DEFAULT_DOLLY_SHARE, seed=seed)
         external = load_external_prompts(seed=seed + 2)
         evaluation.extend(external)
+        if not external:
+            warnings.warn(
+                "60/40 dataset mixing requested but no external prompts were loaded; "
+                "evaluation set will be 100% Dolly (500 prompts) but mixing was "
+                "attempted. Install 'datasets' (and ensure HF cache/network if "
+                "needed) or pass `allow_external=False`/`--synthetic`.",
+                RuntimeWarning,
+            )
     else:
         evaluation = stratified_sample(prompts, eval_size, seed=seed)
     
     # Re-index
+>>>>>>> Stashed changes
     for position, prompt in enumerate(evaluation, start=1):
         prompt.index = position
 
@@ -533,6 +723,7 @@ def build_samples(
         seed=seed,
         source_path=source_path,
         source_sha256=source_sha256,
+        external_requested=external_requested,
     )
 
 
@@ -563,7 +754,6 @@ def load_samples(
         seed=seed,
         source_path=path,
         source_sha256=file_sha256(path),
-        allow_external=allow_download,
     )
 
 

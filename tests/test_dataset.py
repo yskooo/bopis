@@ -296,6 +296,149 @@ class TestStratifiedSampling(unittest.TestCase):
         self.assertTrue(all(p.index > 0 for p in built.proxy))
 
 
+class _FakeStream:
+    """Minimal stand-in for a streaming ``datasets`` split."""
+
+    def __init__(self, rows):
+        self._rows = rows
+
+    def shuffle(self, **_kwargs):
+        return self
+
+    def __iter__(self):
+        return iter(self._rows)
+
+
+class _FakeDatasetsModule:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def load_dataset(self, *_args, **_kwargs):
+        return _FakeStream(self._rows)
+
+
+class TestNaturalQuestionsLoader(unittest.TestCase):
+    """``natural_questions`` parsed to zero prompts because of two bugs.
+
+    The ``annotations`` field is a dict, not a list, so ``annotations[0]``
+    raised ``KeyError``; and the result list was never initialised, so the
+    append raised ``NameError``. Both were swallowed by the loader's blanket
+    ``except``, which silently returned an empty list. These tests pin the
+    parse against the real row shape, with no network.
+    """
+
+    def _load(self, rows):
+        import sys
+
+        fake = _FakeDatasetsModule(rows)
+        previous = sys.modules.get("datasets")
+        sys.modules["datasets"] = fake
+        try:
+            return dataset.load_natural_questions(seed=1, n=10)
+        finally:
+            if previous is None:
+                sys.modules.pop("datasets", None)
+            else:
+                sys.modules["datasets"] = previous
+
+    def test_dict_annotations_with_list_text_are_parsed(self) -> None:
+        rows = [
+            {
+                "question": {"text": "what is the capital of France"},
+                "annotations": {"short_answers": [{"text": ["Paris"]}]},
+            }
+        ]
+        prompts = self._load(rows)
+        self.assertEqual(len(prompts), 1)
+        self.assertEqual(prompts[0].instruction, "what is the capital of France")
+        self.assertEqual(prompts[0].response, "Paris")
+        self.assertEqual(prompts[0].source, "natural_questions")
+        self.assertEqual(prompts[0].task_type, "open_qa")
+
+    def test_empty_or_missing_annotations_are_skipped(self) -> None:
+        rows = [
+            {"question": {"text": "q1"}, "annotations": {"short_answers": []}},
+            {"question": {"text": "q2"}, "annotations": []},
+            {"question": {"text": "q3"}},
+            {"question": {"text": "q4"}, "annotations": {"short_answers": [{"text": []}]}},
+        ]
+        self.assertEqual(self._load(rows), [])
+
+    def test_string_text_is_accepted(self) -> None:
+        rows = [
+            {"question": {"text": "q"}, "annotations": {"short_answers": [{"text": "  forty two  "}]}}
+        ]
+        prompts = self._load(rows)
+        self.assertEqual(len(prompts), 1)
+        self.assertEqual(prompts[0].response, "forty two")
+
+    def test_well_formed_rows_do_not_silently_return_zero(self) -> None:
+        rows = [
+            {"question": {"text": f"q{i}"}, "annotations": {"short_answers": [{"text": [f"a{i}"]}]}}
+            for i in range(5)
+        ]
+        prompts = self._load(rows)
+        self.assertEqual(len(prompts), 5)
+
+
+class TestExternalMixing(unittest.TestCase):
+    def test_allow_external_produces_the_60_40_mix(self) -> None:
+        pool = [
+            Prompt(-1, f"p{i}", TASK_KEYS[i % 8], "q", "", "a") for i in range(400)
+        ]
+        _kept, report = filter_rows(
+            [
+                {
+                    "instruction": p.instruction,
+                    "context": p.context,
+                    "response": p.response,
+                    "category": p.task_type,
+                }
+                for p in pool
+            ]
+        )
+        external = [
+            Prompt(-1, f"ext{i}", "open_qa", "q", "", "a", source="trivia_qa")
+            for i in range(200)
+        ]
+        original = dataset.load_external_prompts
+        dataset.load_external_prompts = lambda seed: list(external)
+        try:
+            built = build_samples(
+                pool, report, eval_size=500, allow_external=True, seed=1
+            )
+        finally:
+            dataset.load_external_prompts = original
+
+        self.assertTrue(built.external_requested)
+        self.assertEqual(len(built.evaluation), 500)
+        counts = built.source_counts()
+        self.assertEqual(counts.get("trivia_qa"), 200)
+        self.assertEqual(counts.get("databricks-dolly-15k"), 300)
+
+    def test_without_external_the_set_stays_dolly_only(self) -> None:
+        pool = [
+            Prompt(-1, f"p{i}", TASK_KEYS[i % 8], "q", "", "a") for i in range(600)
+        ]
+        _kept, report = filter_rows(
+            [
+                {
+                    "instruction": p.instruction,
+                    "context": p.context,
+                    "response": p.response,
+                    "category": p.task_type,
+                }
+                for p in pool
+            ]
+        )
+        built = build_samples(pool, report, eval_size=500, allow_external=False, seed=1)
+        self.assertFalse(built.external_requested)
+        self.assertEqual(len(built.evaluation), 500)
+        self.assertEqual(
+            set(built.source_counts()), {"databricks-dolly-15k"}
+        )
+
+
 class TestRealDollyIfCached(unittest.TestCase):
     """Uses the real file only when it is already downloaded."""
 

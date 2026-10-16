@@ -12,7 +12,7 @@
   run` writes to dashboard_data.js inside the run directory. There are no
   hardcoded metrics: the Pareto front is the computed non-dominated set, the
   convergence curve is the measured best-so-far sequence, and the statistics
-  come from the Friedman/Nemenyi tests. tests/test_provenance.py enforces that
+  come from the Wilcoxon signed-rank test (random search vs BOPIS). tests/test_provenance.py enforces that
   no literal metric value appears in this file.
 
   Opens directly from file:// - no server, no build step.
@@ -822,48 +822,50 @@ function renderCompare() {
 
     const body = Object.keys(desc).map(dv => {
         const test = tests[dv] || {};
-        const fried = test.friedman;
-        const nem = test.nemenyi;
+        const wil = test.wilcoxon;
         const cells = conds.map(c => {
             const d = desc[dv][c] || {};
             return `<td class="num">${fx(d.mean,3)}<br><span style="color:#A0AEC0;font-size:11px">±${fx(d.sd,3)}</span></td>`;
         }).join('');
-        const sig = fried
-            ? `<span class="tag ${fried.significant ? 'green' : 'grey'}">
-                 χ²=${fx(fried.chi_square,2)}, p=${fried.p_value < 1e-4 ? fried.p_value.toExponential(2) : fx(fried.p_value,4)}
+        const stat = wil
+            ? `<span class="tag ${wil.significant ? 'green' : 'grey'}">
+                 W=${fx(wil.w_statistic,1)}, p=${wil.p_value < 1e-4 ? wil.p_value.toExponential(2) : fx(wil.p_value,4)}
                </span>`
             : '<span class="tag grey">not tested</span>';
-        const pairs = nem
-            ? (nem.significant_pairs || []).map(p => `<span class="tag blue">${esc(p)}</span>`).join(' ')
-              || '<span class="tag grey">no pair differs</span>'
+        const verdict = wil
+            ? (wil.significant
+                ? '<span class="tag green">significant</span>'
+                : '<span class="tag grey">not significant</span>')
             : DASH;
         return `<tr>
             <td><strong>${esc(labels[dv] || dv)}</strong></td>
             ${cells}
-            <td>${sig}</td>
-            <td>${pairs}</td>
+            <td>${stat}</td>
+            <td>${verdict}</td>
         </tr>`;
     }).join('');
 
     return `
     <div>
         <div class="page-title">Three-Way Comparison</div>
-        <div class="page-sub">Friedman test per dependent variable across related conditions, with Nemenyi post-hoc where significant.</div>
+        <div class="page-sub">Per-condition means ± SD across the three measured configurations, with the paired Wilcoxon signed-rank test comparing random search against BOPIS.</div>
     </div>
     <div class="card wide">
-        <div class="card-head">Means ± SD, with the Friedman result</div>
+        <div class="card-head">Means ± SD, with the Wilcoxon result</div>
         <div style="overflow-x:auto">
         <table><thead><tr>
             <th>Dependent variable</th>
             ${conds.map(c => `<th class="num">${esc(condLabels[c] || c)}</th>`).join('')}
-            <th>Friedman</th><th>Nemenyi: significant pairs</th>
+            <th>Wilcoxon (RS vs BOPIS)</th><th>Verdict</th>
         </tr></thead><tbody>${body}</tbody></table>
         </div>
         <div class="note info" style="margin-top:12px">
-            With three conditions the Friedman statistic has 2 degrees of freedom,
-            where the chi-square survival function is exact in closed form
-            (p = e<sup>&minus;χ²/2</sup>), so these p-values are not approximations.
-            Nemenyi controls the family-wise error rate across all three pairs.
+            The Wilcoxon signed-rank test compares the two search strategies —
+            random search and BOPIS — over the paired prompts. The unoptimized
+            default is the reference the ratios are taken against and is not
+            entered into the test. <em>n</em> counts prompts with a non-zero
+            difference; <em>W</em> is the smaller of the positive- and
+            negative-rank sums.
         </div>
     </div>`;
 }

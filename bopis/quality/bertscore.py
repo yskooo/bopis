@@ -128,17 +128,31 @@ class BertScoreScorer:
     # ------------------------------------------------------------------ #
 
     def score(
+<<<<<<< Updated upstream
+        self, candidates: Sequence[str], references: Sequence[str]
+    ) -> List[QualityScore]:
+        """Score each candidate against its reference, pairwise."""
+=======
         self,
         candidates: Sequence[str],
         references: Sequence[str],
         fallback_to_self: bool = False,
+        reference_retriever=None,
+        min_match_similarity: float = 0.5,
     ) -> List[Optional[QualityScore]]:
         """Score each candidate against its reference, pairwise.
 
-        If a reference is empty and fallback_to_self is True, the candidate is
-        scored against itself (score = 1.0). If fallback_to_self is False and
-        a reference is empty, that position returns None.
+        If a reference is empty and a *reference_retriever* is given, the
+        nearest pooled Q/A pair supplies the reference (the accept threshold is
+        the retriever's own, backend-scaled one). If a reference is empty and
+        fallback_to_self is True, the candidate is scored against itself
+        (score = 1.0); if both are unavailable, that position returns None.
+
+        *min_match_similarity* is the confidence below which a caller should
+        flag a retrieved match as low-confidence; it is not used to reject the
+        match here.
         """
+>>>>>>> Stashed changes
         if len(candidates) != len(references):
             raise ValueError(
                 f"{len(candidates)} candidates but {len(references)} references"
@@ -146,12 +160,30 @@ class BertScoreScorer:
         if not candidates:
             return []
 
+<<<<<<< Updated upstream
+        self._ensure_loaded()
+        if self._backend == "bert_score":
+            return self._score_with_package(candidates, references)
+        return self._score_with_transformers(candidates, references)
+=======
         safe_cands, safe_refs = [], []
         results: List[Optional[QualityScore]] = [None] * len(candidates)
         safe_indices = []
 
         for i, (c, r) in enumerate(zip(candidates, references)):
             if not r or not str(r).strip():
+                if reference_retriever is not None:
+                    try:
+                        match = reference_retriever.find_match(c or "")
+                        if match is not None:
+                            results[i] = None  # will fill below
+                            safe_cands.append(c)
+                            safe_refs.append(match.reference)
+                            safe_indices.append(i)
+                            # stash match info? not stored; just proceed
+                            continue
+                    except Exception:
+                        pass
                 if fallback_to_self:
                     results[i] = QualityScore(
                         f1=1.0, precision=1.0, recall=1.0,
@@ -176,6 +208,7 @@ class BertScoreScorer:
                 results[idx] = sc
 
         return results
+>>>>>>> Stashed changes
 
     def _score_with_package(
         self, candidates: Sequence[str], references: Sequence[str]

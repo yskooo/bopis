@@ -20,23 +20,18 @@ data/
 dashboard/dashboard_data.js
 dashboard_data.js
 
-# Model weights, should any land here. models/ also holds Hugging Face's
-# download metadata (.cache); the files are re-fetched per the README.
-models/
+# Model weights, should any land here
 *.gguf
 *.safetensors
 *.bin
 
-# Downloaded third-party inference binaries (llama.cpp release builds). ~90 MB
-# per backend, and reproducible from a tagged GitHub release, so they are
-# fetched rather than committed. tools/bench.ps1 is ours and is force-added.
-tools/*
-!tools/bench.ps1
-!tools/start-hwmon.ps1
-
 # QA scratch
 .qa-*.mjs
 qa-*.png
+
+# Local scratch/debug scripts and runtime logs
+/scratch/
+/logs/
 
 # Editors / OS
 .vscode/
@@ -44,28 +39,5 @@ qa-*.png
 .DS_Store
 Thumbs.db
 
-# Temporary patch and scratch scripts
-*.js
-!bopis.js
-!bopis_model.js
-!bopis_profile.js
-!bopis_rules.js
-!check.js
-!test_script.js
-
-/fix*.py
-/fix*.js
-/patch*.py
-/patch*.js
-/temp*.py
-/temp*.js
-/run_and_test*.py
-/test_*.py
-/test_*.js
-/test_*.html
-/check_*.py
-/check_*.js
-/rewrite_readme.js
-/rep.js
-/inject.js
-/replacement.txt
+# Large native runtime libraries
+tools/cpu/*.dll
