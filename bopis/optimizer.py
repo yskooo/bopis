@@ -70,6 +70,9 @@ class IterationRecord:
     gp_sigma: Optional[float] = None
     gp_predictive_sigma: Optional[float] = None
     expected_improvement: Optional[float] = None
+    #: Constrained acquisition only: the surrogate's probability that this
+    #: configuration meets the quality and speed floors, before measuring it.
+    p_feasible: Optional[float] = None
     best_energy_so_far: float = math.inf
     delta_energy: float = 0.0
     on_pareto_front: bool = False
@@ -90,6 +93,7 @@ class IterationRecord:
                 "gp_sigma": self.gp_sigma,
                 "gp_predictive_sigma": self.gp_predictive_sigma,
                 "expected_improvement": self.expected_improvement,
+                "p_feasible": self.p_feasible,
                 "best_energy_so_far": self.best_energy_so_far,
                 "delta_energy": self.delta_energy,
                 "on_pareto_front": self.on_pareto_front,
@@ -188,6 +192,29 @@ def _finalize(result: OptimizationResult) -> OptimizationResult:
 # --------------------------------------------------------------------------- #
 
 
+@dataclasses.dataclass(frozen=True)
+class Floors:
+    """The retention floors, in absolute units, for constrained acquisition.
+
+    ``x*`` must satisfy ``QRR >= 98%`` and ``SRR >= 95%`` against the Stage 0
+    reference, so these are ``0.98 * Q_ref`` and ``0.95 * S_ref``.
+    """
+
+    quality_f1: Optional[float] = None
+    tokens_per_s: Optional[float] = None
+
+    def met_by(self, objectives: Objectives) -> bool:
+        if self.quality_f1 is not None and not (
+            objectives.quality_f1 >= self.quality_f1
+        ):
+            return False
+        if self.tokens_per_s is not None and not (
+            objectives.tokens_per_s >= self.tokens_per_s
+        ):
+            return False
+        return True
+
+
 def bayes_optimize(
     space: Sequence[Config],
     evaluate: EvaluatorFn,
@@ -199,8 +226,22 @@ def bayes_optimize(
     ard: bool = False,
     xi: float = 0.0,
     on_iteration: Optional[Callable[[IterationRecord], None]] = None,
+    floors: Optional[Floors] = None,
 ) -> OptimizationResult:
     """Run the BOPIS search over *space*.
+
+    **Constrained acquisition (amendment A-42).** With *floors* supplied, the
+    acquisition is Expected Improvement on energy multiplied by the posterior
+    probability of meeting the quality and speed floors, each from its own GP
+    over the same encoding (Gardner et al., 2014; Gelbart, Snoek and Adams,
+    2014), and the incumbent ``f(x+)`` is the lowest energy among observations
+    that met the floors. Why it is needed: Chapter 3's EI models energy alone,
+    which was harmless while quality barely varied across one model's
+    precisions. Once the model size is searched (A-40), quality varies a great
+    deal, and energy-only EI spends the budget on the smallest models -- which
+    the selection rule then rejects for failing ``QRR >= 98%``, leaving no
+    admissible ``x*``. Without *floors* the documented unconstrained EI runs
+    unchanged.
 
     Args:
         space: ``X_feasible``.
@@ -229,6 +270,7 @@ def bayes_optimize(
     evaluations: List[Evaluation] = []
     evaluated: List[Config] = []
     gp: Optional[GaussianProcess] = None
+    constraint_hyper: Dict[str, object] = {}
 
     # -- Step 1: initialize with prior-weighted seeds ------------------------ #
     seeds = tasks.sample_seed_configs(space, n_seeds, precision_prior, rng)
@@ -264,15 +306,43 @@ def bayes_optimize(
         gp.fit(x_train, y_train)
         f_best = min(y_train)
 
-        # Step 3: exact argmax of Expected Improvement over the feasible set.
-        candidate, best_ei, _all_ei = acquisition.argmax_expected_improvement(
-            candidates=space,
-            encode=encode,
-            predict=gp.predict,
-            f_best=f_best,
-            xi=xi,
-            exclude=evaluated,
-        )
+        # Step 3: exact argmax of the acquisition over the feasible set.
+        p_feasible: Optional[float] = None
+        if floors is None:
+            candidate, best_ei, _all_ei = acquisition.argmax_expected_improvement(
+                candidates=space,
+                encode=encode,
+                predict=gp.predict,
+                f_best=f_best,
+                xi=xi,
+                exclude=evaluated,
+            )
+        else:
+            constraint_models = []
+            for attr, floor in (
+                ("quality_f1", floors.quality_f1),
+                ("tokens_per_s", floors.tokens_per_s),
+            ):
+                if floor is None:
+                    continue
+                previous = constraint_hyper.get(attr)
+                model = GaussianProcess(ard=ard, seed=seed + index + 7919)
+                model.warm_start = previous
+                model.fit(x_train, [getattr(e.objectives, attr) for e in evaluations])
+                constraint_hyper[attr] = model.hyper
+                constraint_models.append((model.predict, floor))
+            feasible = [
+                e.energy_j for e in evaluations if floors.met_by(e.objectives)
+            ]
+            candidate, best_ei, p_feasible = acquisition.argmax_constrained_ei(
+                candidates=space,
+                encode=encode,
+                predict=gp.predict,
+                f_best=min(feasible) if feasible else None,
+                constraints=constraint_models,
+                xi=xi,
+                exclude=evaluated,
+            )
         if candidate is None:  # space exhausted
             break
 
@@ -294,6 +364,7 @@ def bayes_optimize(
             gp_sigma=sigma,
             gp_predictive_sigma=predictive_sigma,
             expected_improvement=best_ei,
+            p_feasible=p_feasible,
         )
         records.append(record)
         evaluations.append(

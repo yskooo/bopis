@@ -20,7 +20,9 @@ data/
 dashboard/dashboard_data.js
 dashboard_data.js
 
-# Model weights, should any land here
+# Model weights, should any land here. models/ also holds Hugging Face's
+# download metadata (.cache); the files are re-fetched per the README.
+models/
 *.gguf
 *.safetensors
 *.bin
@@ -30,6 +32,7 @@ dashboard_data.js
 # fetched rather than committed. tools/bench.ps1 is ours and is force-added.
 tools/*
 !tools/bench.ps1
+!tools/start-hwmon.ps1
 
 # QA scratch
 .qa-*.mjs

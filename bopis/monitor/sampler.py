@@ -35,6 +35,17 @@ Four departures from a literal reading, each for a measurable reason
    ``E_net`` subtracts ``P_idle``. Chapter 3 defines only the net figure, but the
    gross one is what makes a suspicious net value diagnosable.
 
+An opt-in CPU package instrument
+-------------------------------
+Passing a :class:`~bopis.monitor.hwmon.HwmonPowerSource` through
+*cpu_power_source* adds Intel RAPL package power, read from a running
+OpenHardwareMonitor/LibreHardwareMonitor. It is a measurement, not an estimate,
+and it is used whenever it is supplied: alone when the GPU reports nothing, and
+summed with the NVML figure when it does. The monitor publishes the mean power
+of the *previous* refresh interval, so the sampler keeps reading for one
+interval after inference ends and integrates the lag-shifted window; see
+:func:`integrate_held`.
+
 An opt-in fifth rung below the ladder
 -------------------------------------
 When neither NVML path is available the window's energy is ``None`` and the run
@@ -53,9 +64,10 @@ from __future__ import annotations
 import dataclasses
 import threading
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from bopis.monitor import estimator, platform_os
+from bopis.monitor.hwmon import HwmonPowerSource
 from bopis.monitor.nvml import EnergyMethod, GpuDevice
 
 #: Chapter 3's sampling interval.
@@ -74,6 +86,7 @@ class Sample:
     gpu_percent: Optional[int] = None
     vram_used_bytes: Optional[int] = None
     energy_counter_mj: Optional[int] = None
+    cpu_power_w: Optional[float] = None  # RAPL package, via OHM/LHM
 
 
 @dataclasses.dataclass
@@ -100,6 +113,14 @@ class Window:
     p_idle_w: Optional[float] = None
     power_mean_w: Optional[float] = None
     power_max_w: Optional[float] = None
+
+    # Populated only when a CPU package source is attached.
+    cpu_energy_j: Optional[float] = None  # net of p_cpu_idle_w
+    cpu_energy_gross_j: Optional[float] = None
+    p_cpu_idle_w: Optional[float] = None
+    cpu_power_mean_w: Optional[float] = None
+    cpu_power_max_w: Optional[float] = None
+    hwmon_refresh_s: Optional[float] = None
 
     gpu_percent_mean: Optional[float] = None
     vram_mib_mean: Optional[float] = None
@@ -156,6 +177,63 @@ def integrate_power(
     return net, gross, clamped
 
 
+def integrate_held(
+    readings: List[Tuple[float, float]],
+    t0: float,
+    t1: float,
+    p_idle_w: float = 0.0,
+) -> Optional[Dict[str, float]]:
+    """Integrate a piecewise-constant power series over ``[t0, t1]``.
+
+    *readings* are ``(t, watts)`` pairs polled from a monitor that publishes a
+    new value once per refresh interval. Between publications the value is
+    constant, so the right integral is a zero-order hold -- the trapezoid rule
+    would invent a ramp between two bins that the monitor never observed.
+
+    The caller passes the lag-shifted window (``[start + Δ, stop + Δ]``); this
+    function only integrates. Excess power is clamped at zero per segment and
+    the clamps counted, for the same reason as :func:`integrate_power`.
+
+    Returns None when no reading covers the window.
+    """
+    usable = sorted(r for r in readings if r[1] is not None)
+    if not usable or t1 <= t0:
+        return None
+
+    # The value in force at t0 is the last reading at or before it; if the
+    # series starts later, the first reading stands in (and is still bounded
+    # by the resolution band the caller reports).
+    held = usable[0][1]
+    for t, watts in usable:
+        if t <= t0:
+            held = watts
+        else:
+            break
+
+    points = [(t0, held)] + [(t, w) for t, w in usable if t0 < t < t1]
+    net = gross = 0.0
+    clamped = 0
+    used = [held]
+    for (start, watts), (end, _next) in zip(points, points[1:] + [(t1, 0.0)]):
+        dt = end - start
+        if dt <= 0:
+            continue
+        gross += watts * dt
+        excess = watts - p_idle_w
+        if excess < 0.0:
+            clamped += 1
+        net += max(excess, 0.0) * dt
+        used.append(watts)
+    return {
+        "net_j": net,
+        "gross_j": gross,
+        "clamped": float(clamped),
+        "p_min_w": min(used),
+        "p_max_w": max(used),
+        "p_mean_w": gross / (t1 - t0),
+    }
+
+
 class TelemetrySampler:
     """Samples GPU and CPU telemetry on a background thread.
 
@@ -176,8 +254,13 @@ class TelemetrySampler:
         estimator_budget: Optional[estimator.PowerBudget] = None,
         gpu_percent_idle: float = 0.0,
         logical_cores: Optional[int] = None,
+        cpu_power_source: Optional[HwmonPowerSource] = None,
+        p_cpu_idle_w: float = 0.0,
     ) -> None:
         self.device = device
+        #: When set, measures CPU package energy (RAPL via OHM/LHM).
+        self.cpu_power_source = cpu_power_source
+        self.p_cpu_idle_w = p_cpu_idle_w
         self.p_idle_w = p_idle_w
         self.interval_s = interval_s
         self.pid = pid
@@ -208,6 +291,8 @@ class TelemetrySampler:
             sample.gpu_percent = gpu_percent
             sample.vram_used_bytes = self.device.memory_used_bytes()
             sample.energy_counter_mj = self.device.total_energy_millijoules()
+        if self.cpu_power_source is not None:
+            sample.cpu_power_w = self.cpu_power_source.power_watts()
         return sample
 
     def _loop(self) -> None:
@@ -245,10 +330,19 @@ class TelemetrySampler:
         )
         self._thread.start()
 
+    @property
+    def _lag_s(self) -> float:
+        """How long to keep polling after inference ends; see integrate_held."""
+        if self.cpu_power_source is None:
+            return 0.0
+        return self.cpu_power_source.refresh_s
+
     def stop(self) -> Window:
-        self._stop.set()
-        if self._thread is not None:
-            self._thread.join(timeout=2.0 + self.interval_s)
+        lag = self._lag_s
+        if lag <= 0.0:
+            self._stop.set()
+            if self._thread is not None:
+                self._thread.join(timeout=2.0 + self.interval_s)
         self._stopped_at = time.monotonic()
         try:
             self._cpu_after = platform_os.cpu_times()
@@ -257,6 +351,14 @@ class TelemetrySampler:
         # Read the process counter before the backend has any chance to reap
         # the server; once it exits, its CPU time is unrecoverable.
         self._proc_cpu_after = self._read_process_cpu()
+        if lag > 0.0:
+            # The package monitor reports the previous interval's mean, so the
+            # energy of the window's last Δ seconds is only published Δ later.
+            # Poll a little beyond one interval so that value is captured.
+            time.sleep(lag + 2.0 * self.interval_s)
+            self._stop.set()
+            if self._thread is not None:
+                self._thread.join(timeout=2.0 + self.interval_s)
         return self._aggregate()
 
     # ------------------------------------------------------------------ #
@@ -298,7 +400,11 @@ class TelemetrySampler:
 
     def _aggregate(self) -> Window:
         duration = max(0.0, self._stopped_at - self._started_at)
-        samples = list(self._samples)
+        all_samples = list(self._samples)
+        # Samples polled during the post-window lag belong to the CPU package
+        # integral only; the NVML paths read instantaneous values and must not
+        # see them.
+        samples = [s for s in all_samples if s.t <= self._stopped_at]
 
         method = EnergyMethod.UNAVAILABLE
         energy_net: Optional[float] = None
@@ -341,12 +447,48 @@ class TelemetrySampler:
             [float(s.gpu_percent) for s in samples if s.gpu_percent is not None]
         )
 
-        # The fifth rung: reached only once both measured paths have failed, so
-        # an estimate can never displace a measurement. Labelled at every layer
-        # it touches, never presented as a measured watt value.
         energy_low = energy_high = None
         estimate_detail: Optional[Dict[str, object]] = None
         energy_basis = "measured telemetry"
+
+        # CPU package (RAPL), when attached. A measurement: it takes precedence
+        # over the estimator, and adds to -- never replaces -- a GPU figure.
+        cpu_package: Optional[Dict[str, float]] = None
+        refresh = self._lag_s
+        if self.cpu_power_source is not None:
+            cpu_package = integrate_held(
+                [(s.t, s.cpu_power_w) for s in all_samples],  # type: ignore[misc]
+                self._started_at + refresh,
+                self._stopped_at + refresh,
+                self.p_cpu_idle_w,
+            )
+        if cpu_package is not None:
+            cpu_net = cpu_package["net_j"]
+            # Each window edge falls somewhere inside one refresh bin, whose
+            # energy the monitor spread uniformly; the band bounds that
+            # misplacement. It does not cover RAPL's own error, which is small
+            # on parts with on-die telemetry but not zero.
+            resolution = refresh * (cpu_package["p_max_w"] - cpu_package["p_min_w"])
+            clamped += int(cpu_package["clamped"])
+            if energy_net is None:
+                method = EnergyMethod.RAPL_HWMON_POWER_INTEGRATION
+                energy_net = cpu_net
+                energy_gross = cpu_package["gross_j"]
+                energy_basis = (
+                    "E = sum[(P_pkg,t - P_pkg,idle) * dt], zero-order hold over "
+                    f"[start + {refresh:.2f}s, stop + {refresh:.2f}s] (monitor lag)"
+                )
+            else:
+                method = f"{method}+{EnergyMethod.RAPL_HWMON_POWER_INTEGRATION}"
+                energy_net += cpu_net
+                energy_gross = (energy_gross or 0.0) + cpu_package["gross_j"]
+                energy_basis = "NVML GPU board energy + RAPL CPU package energy"
+            energy_low = max(energy_net - resolution, 0.0)
+            energy_high = energy_net + resolution
+
+        # The fifth rung: reached only once every measured path has failed, so
+        # an estimate can never displace a measurement. Labelled at every layer
+        # it touches, never presented as a measured watt value.
         if energy_net is None and self.estimator_budget is not None:
             estimated = estimator.estimate_energy(
                 duration_s=duration,
@@ -380,6 +522,18 @@ class TelemetrySampler:
             energy_high_j=energy_high,
             estimate=estimate_detail,
             p_idle_w=self.p_idle_w,
+            cpu_energy_j=None if cpu_package is None else cpu_package["net_j"],
+            cpu_energy_gross_j=(
+                None if cpu_package is None else cpu_package["gross_j"]
+            ),
+            p_cpu_idle_w=(
+                None if self.cpu_power_source is None else self.p_cpu_idle_w
+            ),
+            cpu_power_mean_w=(
+                None if cpu_package is None else cpu_package["p_mean_w"]
+            ),
+            cpu_power_max_w=None if cpu_package is None else cpu_package["p_max_w"],
+            hwmon_refresh_s=None if self.cpu_power_source is None else refresh,
             power_mean_w=_mean([p / 1000.0 for p in powers]),  # type: ignore[misc]
             power_max_w=max((p / 1000.0 for p in powers), default=None),  # type: ignore[misc]
             gpu_percent_mean=gpu_percent_mean,
@@ -483,6 +637,7 @@ def measure_idle_baseline(
     seconds: float = DEFAULT_IDLE_SECONDS,
     interval_s: float = DEFAULT_INTERVAL_S,
     progress=None,
+    cpu_power_source: Optional[HwmonPowerSource] = None,
 ) -> Dict[str, object]:
     """Characterise the host at rest, with or without a power sensor.
 
@@ -499,7 +654,12 @@ def measure_idle_baseline(
     the point: a GPU idling at 40% duty cycle, or a CPU at 30%, means the
     machine was not idle and every subsequent estimate is contaminated. Better
     to see that before a multi-hour run than to explain it afterwards.
+
+    With *cpu_power_source* attached, CPU package watts are sampled over the
+    same window and their mean becomes ``p_cpu_idle_w``, the package's
+    counterpart of ``P_idle``.
     """
+    cpu_power_readings: List[float] = []
     gpu_readings: List[float] = []
     power_readings: List[float] = []
     cpu_readings: List[float] = []
@@ -520,6 +680,10 @@ def measure_idle_baseline(
             milliwatts = device.power_milliwatts()
             if milliwatts is not None:
                 power_readings.append(milliwatts / 1000.0)
+        if cpu_power_source is not None:
+            watts = cpu_power_source.power_watts()
+            if watts is not None:
+                cpu_power_readings.append(watts)
         if cpu_mark is not None:
             try:
                 now = platform_os.cpu_times()
@@ -537,6 +701,7 @@ def measure_idle_baseline(
     gpu = _spread(gpu_readings)
     power = _spread(power_readings)
     cpu = _spread(cpu_readings)
+    package = _spread(cpu_power_readings)
     return {
         "duration_s": seconds,
         "interval_s": interval_s,
@@ -552,6 +717,11 @@ def measure_idle_baseline(
         "n_gpu_samples": gpu["n"],
         "n_power_samples": power["n"],
         "n_cpu_samples": cpu["n"],
+        "cpu_power_supported": bool(cpu_power_readings),
+        "p_cpu_idle_w": package["mean"],
+        "p_cpu_idle_sd_w": package["sd"],
+        "p_cpu_idle_max_w": package["max"],
+        "n_cpu_power_samples": package["n"],
         # A quiet machine sits near zero on both. These thresholds are advisory
         # and are what the CLI keys its warning on.
         "quiet": gpu["mean"] <= 10.0 and cpu["mean"] <= 15.0,

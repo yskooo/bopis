@@ -16,6 +16,13 @@ Q4_K_M by quality sensitivity: the share going to the more aggressive Q4_K_M is
 :data:`_Q4_SHARE_BY_SENSITIVITY` (0.25 for High, 0.40 for Medium, 0.50 for Low).
 Every row still sums to 1.0.
 
+**A-40: F32 left the space, and its mass moves to F16.** Table T1's FP32
+column expresses "this task wants the highest precision available". With F32
+no longer searched, the highest precision is F16, so each row's FP32 mass is
+added to its F16 mass. The sensitivity ordering between tasks is preserved:
+closed QA and information extraction still put the most mass on the
+unquantized variant.
+
 **A-12: Dolly's ``general_qa`` is not "general instruction following".**
 Table T1's last row is labelled "General Instr.", but the corresponding
 Databricks Dolly 15k category is ``general_qa`` -- open-domain question
@@ -109,15 +116,16 @@ def _build_prior() -> Dict[str, Dict[str, float]]:
     for key, (p_f32, p_f16, p_int8) in _T1_ORIGINAL.items():
         share = _Q4_SHARE_BY_SENSITIVITY[TASK_BY_KEY[key].sensitivity]
         prior[key] = {
-            "F32": p_f32,
-            "F16": p_f16,
+            # A-40: F32 is not searched; its mass goes to the highest
+            # precision that is.
+            "F16": p_f32 + p_f16,
             "Q8_0": p_int8 * (1.0 - share),
             "Q4_K_M": p_int8 * share,
         }
     return prior
 
 
-#: ``P(precision | task_type)`` over all four GGUF variants. Replaces Table T1.
+#: ``P(precision | task_type)`` over the searched GGUF variants. Replaces T1.
 PRECISION_PRIOR: Dict[str, Dict[str, float]] = _build_prior()
 
 
@@ -228,7 +236,6 @@ def t1_table_rows() -> List[Dict[str, object]]:
                 "task_label": task.label,
                 "sensitivity": task.sensitivity,
                 "has_context": task.has_context,
-                "p_f32": round(prior["F32"], 4),
                 "p_f16": round(prior["F16"], 4),
                 "p_q8_0": round(prior["Q8_0"], 4),
                 "p_q4_k_m": round(prior["Q4_K_M"], 4),

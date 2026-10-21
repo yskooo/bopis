@@ -57,10 +57,28 @@ class TestLaunchArgs(unittest.TestCase):
         self.assertEqual(args[args.index("--n-gpu-layers") + 1], "14")
 
     def test_all_layers_resolves_against_model_depth(self) -> None:
+        # The configuration's own model depth wins over the generic default:
+        # Qwen2.5-1.5B has 28 layers, not 32 (amendment A-40).
         args = self.backend.launch_args(
             Config(256, 1, "F16", ALL_LAYERS, 4), total_layers=32
         )
-        self.assertEqual(args[args.index("--n-gpu-layers") + 1], "32")
+        self.assertEqual(args[args.index("--n-gpu-layers") + 1], "28")
+
+    def test_gguf_is_looked_up_by_model_and_precision(self) -> None:
+        backend = LlamaServerBackend(
+            binary="llama-server",
+            model_paths={"qwen2.5-3b:Q4_K_M": "/m/3b.gguf", "F16": "/m/1.5b-f16.gguf"},
+        )
+        self.assertEqual(
+            backend.gguf_path(Config(256, 1, "Q4_K_M", 0, 4, m="qwen2.5-3b")),
+            "/m/3b.gguf",
+        )
+        # A bare variant is the default model's file (pre-A-40 invocations).
+        self.assertEqual(backend.gguf_path(Config(256, 1, "F16", 0, 4)), "/m/1.5b-f16.gguf")
+        # ...and never another model's.
+        self.assertIsNone(
+            backend.gguf_path(Config(256, 1, "F16", 0, 4, m="qwen2.5-7b"))
+        )
 
     def test_cpu_threads_are_a_launch_flag(self) -> None:
         args = self.backend.launch_args(Config(256, 1, "F16", 0, 8))

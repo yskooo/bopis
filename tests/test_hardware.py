@@ -133,15 +133,17 @@ class TestApplyRules(unittest.TestCase):
         host = profile(vram_gib=24.0, ram_gib=64.0, cores=16)
         self.assertEqual(host.rules_fired, ["HW-P3", "HW-G3", "HW-B3", "HW-C3"])
         space, rejections = feasible_space(host)
-        self.assertEqual(len(space), 768)
-        self.assertEqual(rejections, [])
+        # Everything except placements that duplicate g=All: g=28 on the three
+        # rungs with <= 28 layers (0.5B, 1.5B, 7B), x 4 t x 4 b x 3 p x 3 c.
+        self.assertEqual(len(space), 2304 - 3 * 4 * 4 * 3 * 3)
+        self.assertEqual({r.rule for r in rejections}, {"DUPLICATE"})
 
     def test_tiny_host_is_heavily_constrained(self) -> None:
         host = profile(vram_gib=2.0, ram_gib=6.0, cores=2)
         self.assertEqual(host.rules_fired, ["HW-P1", "HW-G1", "HW-B1", "HW-C1"])
         space, _ = feasible_space(host)
-        # t(4) x b(1) x p(2) x g(2) x c(1)
-        self.assertEqual(len(space), 4 * 1 * 2 * 2 * 1)
+        # m(4) x t(4) x b(1) x c(1) x [3 precisions at g=0 + 2 at g=14] (A-41)
+        self.assertEqual(len(space), 4 * 4 * 1 * 1 * (3 + 2))
 
     def test_no_gpu_forbids_offload(self) -> None:
         host = profile(gpu=False)
@@ -154,7 +156,18 @@ class TestApplyRules(unittest.TestCase):
         host = profile(vram_gib=2.0, ram_gib=15.78, cores=4)
         self.assertEqual(host.rules_fired, ["HW-P1", "HW-G1", "HW-B2", "HW-C2"])
         space, _ = feasible_space(host)
-        self.assertEqual(len(space), 4 * 2 * 2 * 2 * 2)
+        # m(4) x t(4) x b(2) x c(2) x [3 precisions at g=0 + 2 at g=14]
+        self.assertEqual(len(space), 4 * 4 * 2 * 2 * (3 + 2))
+
+    def test_vram_precision_rule_binds_only_when_offloading(self) -> None:
+        """A-41: at g=0 the weights are in RAM, so VRAM cannot exclude F16."""
+        host = profile(vram_gib=2.0, ram_gib=15.78, cores=4)
+        space, rejections = feasible_space(host)
+        self.assertTrue(any(c.p == "F16" and c.g == 0 for c in space))
+        self.assertFalse(any(c.p == "F16" and c.g != 0 for c in space))
+        self.assertTrue(
+            all(r.rule == "HW-P1" for r in rejections if r.config.p == "F16")
+        )
 
 
 class TestModelSizeGuards(unittest.TestCase):
@@ -189,19 +202,41 @@ class TestModelSizeGuards(unittest.TestCase):
         # Nothing with GPU layers should survive on a 2 GiB card.
         self.assertTrue(all(cfg.g == 0 for cfg in guarded))
 
-    def test_guard_rejects_f32_on_a_12gib_card(self) -> None:
-        """A 7B model at F32 is ~27 GiB and cannot be fully offloaded to 12 GiB."""
+    def test_guard_rejects_7b_f16_on_a_12gib_card(self) -> None:
+        """Qwen2.5-7B at F16 is ~14 GiB and cannot be fully offloaded to 12 GiB."""
         host = profile(vram_gib=12.0, ram_gib=32.0, cores=8)
-        _space, rejections = feasible_space(host, model=MISTRAL_7B_INSTRUCT_V03)
-        rejected_f32_full = [
+        _space, rejections = feasible_space(host, models=hardware.MODEL_LADDER)
+        rejected = [
             r
             for r in rejections
-            if r.config.p == "F32" and r.config.g == ALL_LAYERS
+            if r.config.m == "qwen2.5-7b"
+            and r.config.p == "F16"
+            and r.config.g == ALL_LAYERS
+            and r.rule == "HW-P0"
         ]
-        self.assertTrue(
-            rejected_f32_full,
-            "fully-offloaded F32 must be rejected on a 12 GiB card",
+        self.assertTrue(rejected, "fully-offloaded 7B F16 must be rejected")
+
+    def test_ladder_guard_is_per_model(self) -> None:
+        """Each rung is checked against its own footprint, not one shared one."""
+        host = profile(vram_gib=2.0, ram_gib=8.0, cores=4)  # 6.4 GiB free
+        space, _ = feasible_space(
+            host, models=hardware.MODEL_LADDER, max_gpu_layers=0
         )
+        pairs = {(c.m, c.p) for c in space}
+        self.assertIn(("qwen2.5-1.5b", "F16"), pairs)      # 2.9 GiB
+        self.assertIn(("qwen2.5-7b", "Q4_K_M"), pairs)     # 4.4 GiB
+        self.assertNotIn(("qwen2.5-7b", "Q8_0"), pairs)    # 7.7 GiB
+        self.assertIn(("qwen2.5-3b", "F16"), pairs)        # 5.8 GiB, just fits
+        self.assertNotIn(("qwen2.5-7b", "F16"), pairs)     # 14.3 GiB
+
+    def test_gguf_bytes_restrict_to_files_on_disk(self) -> None:
+        host = profile()
+        gguf = {("qwen2.5-1.5b", "Q4_K_M"): int(1.0 * GIB)}
+        space, rejections = feasible_space(
+            host, models=hardware.MODEL_LADDER, gguf_bytes=gguf
+        )
+        self.assertEqual({(c.m, c.p) for c in space}, {("qwen2.5-1.5b", "Q4_K_M")})
+        self.assertTrue(any(r.rule == "NO-GGUF" for r in rejections))
 
     def test_small_model_fits_where_large_one_does_not(self) -> None:
         tiny = ModelSpec(
@@ -215,7 +250,9 @@ class TestModelSizeGuards(unittest.TestCase):
     def test_no_guards_applied_without_a_model(self) -> None:
         host = profile(vram_gib=2.0)
         _space, rejections = feasible_space(host, model=None)
-        self.assertEqual(rejections, [])
+        # Only Table H1 itself (HW-P1 on offloaded F16), never a memory guard.
+        self.assertTrue(rejections)
+        self.assertEqual({r.rule for r in rejections}, {"HW-P1"})
 
 
 class TestEnergyScopeFloor(unittest.TestCase):
@@ -240,7 +277,7 @@ class TestSummary(unittest.TestCase):
         summary = summarize_space(space, rejections)
         self.assertEqual(summary["n_feasible"], len(space))
         self.assertEqual(summary["n_rejected"], len(rejections))
-        self.assertEqual(summary["n_unconstrained"], 768)
+        self.assertEqual(summary["n_unconstrained"], 2304)
         self.assertIn("HW-P0", summary["rejected_by_rule"])
         self.assertEqual(summary["precision_variants_present"], ["Q8_0", "Q4_K_M"])
 
