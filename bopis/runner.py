@@ -26,9 +26,10 @@ Standard library only.
 from __future__ import annotations
 
 import dataclasses
+import json
 import math
 import time
-from typing import Callable, Dict, List, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from bopis import artifacts, metrics, optimizer, schemas, stats, tasks
 from bopis import config_space as cs
@@ -53,6 +54,12 @@ class RunSettings:
     backend: str = "sim"
     n_total: int = optimizer.DEFAULT_TOTAL_ITERATIONS
     n_seeds: int = optimizer.DEFAULT_SEED_COUNT
+    #: Repeated seeded trials (amendment A-16). Each trial re-runs both searches
+    #: with an incremented seed and validates its own picks; the per-prompt rows
+    #: are pooled so the Wilcoxon test and descriptives see ``repeats`` x
+    #: |evaluation| paired prompts rather than a single draw. ``1`` reproduces
+    #: the original single-trial study exactly.
+    repeats: int = 1
     seed: int = 0
     eval_size: int = 500
     proxy_size: int = 50
@@ -76,6 +83,18 @@ class RunSettings:
     total_layers: int = 32
     resume: bool = False
     skip_validation: bool = False
+    #: Overrides the default's ``g`` (Table 3.2 says "All"); set to 0 when the
+    #: energy instrument covers only the CPU package.
+    default_gpu_layers: Optional[int] = None
+    #: ``cei`` -- Expected Improvement weighted by the probability of meeting
+    #: the QRR/SRR floors (A-42); ``ei`` -- Chapter 3's energy-only EI.
+    acquisition: str = "cei"
+
+    #: Which instrument measured energy, when it is not implied by the backend
+    #: (e.g. the RAPL feed's URL, sensor path and measured refresh interval).
+    energy_instrument: Optional[Dict[str, object]] = None
+    #: The quality scorer's own description, or None when quality is unscored.
+    quality_scorer: Optional[Dict[str, object]] = None
 
     @property
     def estimates_energy(self) -> bool:
@@ -149,8 +168,12 @@ class Study:
         backend_start: Optional[Callable[[Config], None]] = None,
         backend_stop: Optional[Callable[[], None]] = None,
         progress: ProgressFn = _noop,
+        scorer=None,
     ) -> None:
         self.run_dir = run_dir
+        #: A :class:`bopis.quality.Scorer`, or None. Only the simulator fills
+        #: ``quality_f1`` itself; for real backends this is what does.
+        self.scorer = scorer
         self.settings = settings
         self.profile = profile
         self.space = list(space)
@@ -186,10 +209,73 @@ class Study:
                         prompt=prompt.text,
                     )
                 )
-            return results
         finally:
             if self.backend_stop:
                 self.backend_stop()
+        # Scored only after the server has been stopped: every energy window
+        # of this batch is closed, and the transformer forward pass cannot
+        # compete with inference for the CPU it is being measured on.
+        self._score_quality(results, prompts)
+        self._write_generations(results, prompts)
+        return results
+
+    def _score_quality(
+        self, results: List[PromptMeasurement], prompts: Sequence[Prompt]
+    ) -> None:
+        """BERTScore every unscored generation against its Dolly reference."""
+        if self.scorer is None:
+            return
+        pending = [
+            (m, p)
+            for m, p in zip(results, prompts)
+            if m.quality_f1 is None and m.error is None
+        ]
+        # An empty answer is a real, bad outcome, not a missing one; dropping
+        # it would raise the mean. Scored as 0, the rescaled random-pair level.
+        for m, _p in pending:
+            if not m.text.strip():
+                m.quality_f1 = m.quality_precision = m.quality_recall = 0.0
+                m.quality_scorer = f"{self.scorer.name}:empty_candidate"
+        pending = [(m, p) for m, p in pending if m.quality_f1 is None]
+        if not pending:
+            return
+        scores = self.scorer.score(
+            [m.text for m, _p in pending], [p.response for _m, p in pending]
+        )
+        for (m, _p), score in zip(pending, scores):
+            m.quality_f1 = score.f1
+            m.quality_precision = score.precision
+            m.quality_recall = score.recall
+            m.quality_scorer = score.scorer
+            m.baseline_rescaled = score.baseline_rescaled
+
+    def _write_generations(
+        self, results: List[PromptMeasurement], prompts: Sequence[Prompt]
+    ) -> None:
+        """Persist generated text, so quality can be audited or re-scored."""
+        if not results or not any(m.text for m in results):
+            return
+        path = self.run_dir.path("raw", "generations.jsonl")
+        with open(path, "a", encoding="utf-8") as handle:
+            for m, p in zip(results, prompts):
+                handle.write(
+                    json.dumps(
+                        {
+                            "condition": m.condition,
+                            "config": m.config.key(),
+                            "prompt_id": m.prompt_id,
+                            "task_type": m.task_type,
+                            "candidate": m.text,
+                            "reference": p.response,
+                            "quality_f1": m.quality_f1,
+                            "scorer": m.quality_scorer,
+                            "energy_j": m.energy_j,
+                            "energy_method": m.energy_method,
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
 
     def evaluate_on_proxy(self, config: Config) -> Objectives:
         """Mean objectives for *config* over the 50-prompt proxy subset.
@@ -216,111 +302,392 @@ class Study:
         self._proxy_cache[key] = objectives
         return objectives
 
+    def reference_default(self) -> Config:
+        """The unoptimized default this study is measured against.
+
+        Table 3.2's default, with ``g`` overridden when the energy instrument
+        requires it. On a real backend the default must also be *measurable*:
+        if it falls outside ``X_feasible`` -- typically because its GGUF (the
+        default model at F16) was not supplied -- the closest feasible
+        configuration with the same runtime settings stands in: same model if
+        possible, otherwise the nearest rung, at the highest precision
+        available. ``ALL_LAYERS`` is resolved against the default model's depth
+        before that fallback, because a hardware domain may list the explicit
+        count (for example ``28``) instead of the sentinel while denoting the
+        same placement. The simulator can evaluate anything, so it keeps the
+        literal default and stays comparable with earlier runs.
+        """
+        default = cs.default_config(self.profile.physical_cores)
+        if self.settings.default_gpu_layers is not None:
+            default = default._replace(g=self.settings.default_gpu_layers)
+        if self.settings.backend == "sim" or not self.space:
+            return default
+        if default in self.space:
+            return default
+
+        if default.g == cs.ALL_LAYERS and default.n_layers is not None:
+            resolved = default._replace(g=default.n_layers)
+            if resolved in self.space:
+                return default
+
+        same_runtime = [
+            cfg
+            for cfg in self.space
+            if (cfg.t, cfg.b, cfg.g, cfg.c) == (default.t, default.b, default.g, default.c)
+        ] or list(self.space)
+        default_params = cs.MODELS[cs.DEFAULT_M].n_params
+
+        def distance(cfg: Config) -> tuple:
+            variant = cs.MODELS.get(cfg.m)
+            params = variant.n_params if variant else default_params
+            return (
+                cfg.m != default.m,
+                abs(math.log(params / default_params)),
+                abs(
+                    cfg.resolved_gpu_layers(cfg.n_layers or 0)
+                    - default.resolved_gpu_layers(default.n_layers or 0)
+                ),
+                cs.P_VALUES.index(cfg.p) if cfg.p in cs.P_VALUES else 99,
+                abs(cfg.t - default.t),
+                -cfg.c,
+            )
+
+        chosen = min(same_runtime, key=distance)
+        self.progress(
+            f"        default {default} is not measurable here (not in X_feasible); "
+            f"nearest feasible stand-in: {chosen}"
+        )
+        self.default_substituted_for = default
+        return chosen
+
+    #: Set by :meth:`reference_default` when the literal default was replaced.
+    default_substituted_for: Optional[Config] = None
+
+    def _search_floors(self, reference: Objectives) -> Optional[optimizer.Floors]:
+        """Absolute QRR/SRR floors for constrained acquisition, or None.
+
+        The same thresholds :func:`select_xstar` applies afterwards, so the
+        search looks where the selection rule will accept an answer. A floor
+        whose reference value is missing -- unscored quality on a real run --
+        is dropped rather than set to zero, which would make it vacuous.
+        """
+        if self.settings.acquisition != "cei":
+            return None
+
+        def usable(value: float) -> bool:
+            return value is not None and math.isfinite(value) and value > 0
+
+        return optimizer.Floors(
+            quality_f1=(
+                reference.quality_f1 * metrics.QRR_THRESHOLD / 100.0
+                if usable(reference.quality_f1)
+                else None
+            ),
+            tokens_per_s=(
+                reference.tokens_per_s * metrics.SRR_THRESHOLD / 100.0
+                if usable(reference.tokens_per_s)
+                else None
+            ),
+        )
+
     # ------------------------------------------------------------------ #
     # Stages
     # ------------------------------------------------------------------ #
 
     def run(self) -> StudyResult:
         started = time.perf_counter()
+        repeats = max(1, int(self.settings.repeats))
 
         # -- Stage 0: iteration-0 reference ---------------------------- #
-        default_config = cs.default_config(self.profile.physical_cores)
+        default_config = self.reference_default()
         self.progress(f"Stage 0: reference evaluation of default {default_config}")
         search_reference = self.evaluate_on_proxy(default_config)
 
-        # -- Stage 1: BOPIS search ------------------------------------- #
         prior = tasks.dataset_prior(self.samples.task_proportions())
-        self.progress(
-            f"Stage 1: BOPIS search, {self.settings.n_total} evaluations "
-            f"({self.settings.n_seeds} prior-weighted seeds) over "
-            f"{len(self.space)} feasible configurations"
-        )
-        with self.run_dir.writer("B.7") as writer:
-            bo = optimizer.bayes_optimize(
-                space=self.space,
-                evaluate=self.evaluate_on_proxy,
-                precision_prior=prior,
-                n_total=self.settings.n_total,
-                n_seeds=self.settings.n_seeds,
-                seed=self.settings.seed,
-                total_layers=self.settings.total_layers,
-                ard=self.settings.ard,
-                xi=self.settings.xi,
-                on_iteration=lambda record: writer.write(record.as_row()),
+        self._task_prior = prior
+
+        # -- Stages 1-3, once per seeded trial (amendment A-16) --------- #
+        # Each trial searches with its own seed, selects its own x* and
+        # random-search pick, and validates them on the full evaluation set.
+        # Rows are pooled across trials so the Wilcoxon test and descriptives
+        # are computed on ``repeats`` x |evaluation| paired prompts rather than
+        # a single draw. The first trial is the *primary*: its search artifacts
+        # are the ones written to the run directory and rendered on the
+        # dashboard, so a single-trial study is unchanged.
+        trials: List[Dict[str, object]] = []
+        pooled: Dict[str, List[PromptMeasurement]] = {}
+        primary_bo: Optional[optimizer.OptimizationResult] = None
+        primary_rs: Optional[optimizer.OptimizationResult] = None
+        primary_bo_selection: Optional[Selection] = None
+        primary_rs_selection: Optional[Selection] = None
+        default_validation: Optional[List[PromptMeasurement]] = None
+
+        for trial_index in range(repeats):
+            seed = self.settings.seed + trial_index
+            if repeats > 1:
+                self.progress(
+                    f"Trial {trial_index + 1}/{repeats} "
+                    f"(search seed {seed})"
+                )
+            bo, rs, bo_selection, rs_selection = self._search_once(
+                seed, prior, search_reference, log=trial_index == 0
+            )
+            if trial_index == 0:
+                primary_bo, primary_rs = bo, rs
+                primary_bo_selection = bo_selection
+                primary_rs_selection = rs_selection
+
+            if not self.settings.skip_validation:
+                if default_validation is None:
+                    self.progress(
+                        f"Stage 3: validating 'unoptimized' on "
+                        f"{len(self.samples.evaluation)} prompts with "
+                        f"{default_config}"
+                    )
+                    default_validation = self._measure_set(
+                        default_config, self.samples.evaluation, "unoptimized"
+                    )
+                    # The default is a fixed reference, not a repeated arm: it
+                    # is measured once and never re-drawn, so its descriptives
+                    # stay honest (n = |evaluation|, not n = repeats x |eval|).
+                    pooled.setdefault("unoptimized", []).extend(default_validation)
+                for condition, config in (
+                    ("random_search", rs_selection.config or default_config),
+                    ("bopis", bo_selection.config or default_config),
+                ):
+                    self.progress(
+                        f"Stage 3: trial {trial_index + 1}/{repeats} validating "
+                        f"'{condition}' on {len(self.samples.evaluation)} prompts "
+                        f"with {config}"
+                    )
+                    pooled.setdefault(condition, []).extend(
+                        self._measure_set(
+                            config, self.samples.evaluation, condition
+                        )
+                    )
+
+            trials.append(
+                self._trial_summary(
+                    trial_index, seed, bo, rs, bo_selection, rs_selection
+                )
             )
 
-        # -- Stage 2: random-search baseline --------------------------- #
-        self.progress(
-            f"Stage 2: random-search baseline, matched budget of "
-            f"{self.settings.n_total} evaluations"
-        )
-        rs = optimizer.random_search(
-            space=self.space,
-            evaluate=self.evaluate_on_proxy,
-            n_total=self.settings.n_total,
-            seed=self.settings.seed + 9973,
-        )
-        self.run_dir.write_table(
-            "B.7", [r.as_row() for r in bo.records]
-        )  # rewrite with front flags now known
-        rs_log = self.run_dir.path("calibration", "rs_log.csv")
-        with artifacts.TableWriter(rs_log, "B.7") as writer:
-            writer.write_all(r.as_row() for r in rs.records)
-
-        # -- Selection -------------------------------------------------- #
-        bo_selection = select_xstar(bo.evaluations, search_reference)
-        rs_selection = select_xstar(rs.evaluations, search_reference)
-        self.progress(
-            f"        x* = {bo_selection.config} "
-            f"[{bo_selection.status}]  |  random-search pick = "
-            f"{rs_selection.config}"
-        )
-
-        # -- Stage 3: three-way validation ------------------------------ #
-        validation: Dict[str, List[PromptMeasurement]] = {}
         if self.settings.skip_validation:
             self.progress("Stage 3: skipped (--skip-validation)")
-        else:
-            condition_configs = [
-                ("unoptimized", default_config),
-                ("random_search", rs_selection.config or default_config),
-                ("bopis", bo_selection.config or default_config),
-            ]
-            for condition, config in condition_configs:
-                self.progress(
-                    f"Stage 3: validating '{condition}' on "
-                    f"{len(self.samples.evaluation)} prompts with {config}"
-                )
-                validation[condition] = self._measure_set(
-                    config, self.samples.evaluation, condition
-                )
 
         # -- Stage 4: analysis ------------------------------------------ #
         self.progress("Stage 4: analysis and artifact generation")
         summary = self._analyze(
             default_config=default_config,
-            bo=bo,
-            rs=rs,
-            bo_selection=bo_selection,
-            rs_selection=rs_selection,
+            bo=primary_bo,
+            rs=primary_rs,
+            bo_selection=primary_bo_selection,
+            rs_selection=primary_rs_selection,
             search_reference=search_reference,
-            validation=validation,
+            validation=pooled,
         )
         summary["wall_seconds"] = round(time.perf_counter() - started, 2)
+        # The seeding prior, so the dashboard can show what weighted the seeds.
+        summary["task_prior"] = {
+            "dataset_prior": dict(self._task_prior),
+            "task_proportions": dict(self.samples.task_proportions()),
+        }
+        # A substituted reference changes what EIR/SRR/QRR are relative to, so
+        # it travels with the results rather than living only in the log.
+        summary["default_config"] = default_config.key()
+        summary["default_substituted_for"] = (
+            self.default_substituted_for.key()
+            if self.default_substituted_for is not None
+            else None
+        )
+        # The per-trial results and pooled SER summary (amendment A-16). Written
+        # after _analyze so it reaches both metrics.json and the dashboard.
+        summary["repeats"] = self._repeats_summary(trials, repeats)
+        self.run_dir.write_metrics(summary)
 
         return StudyResult(
             run_dir=self.run_dir,
             settings=self.settings,
             profile=self.profile,
             space=self.space,
-            bo=bo,
-            rs=rs,
-            bo_selection=bo_selection,
-            rs_selection=rs_selection,
+            bo=primary_bo,
+            rs=primary_rs,
+            bo_selection=primary_bo_selection,
+            rs_selection=primary_rs_selection,
             search_reference=search_reference,
-            validation=validation,
+            validation=pooled,
             summary=summary,
         )
+
+    def _search_once(
+        self,
+        seed: int,
+        prior: Dict[str, float],
+        search_reference: Objectives,
+        log: bool,
+    ) -> Tuple[
+        optimizer.OptimizationResult,
+        optimizer.OptimizationResult,
+        Selection,
+        Selection,
+    ]:
+        """One BOPIS + random-search pass with the given search seed.
+
+        *log* is True for the primary trial only: it streams Table B.7 and
+        writes the random-search log, so repeated trials do not clobber the
+        primary run's calibration artifacts.
+        """
+        if log:
+            self.progress(
+                f"Stage 1: BOPIS search, {self.settings.n_total} evaluations "
+                f"({self.settings.n_seeds} prior-weighted seeds) over "
+                f"{len(self.space)} feasible configurations"
+            )
+            with self.run_dir.writer("B.7") as writer:
+                bo = self._bayes(seed, prior, search_reference, writer)
+        else:
+            bo = self._bayes(seed, prior, search_reference, None)
+
+        if log:
+            self.progress(
+                f"Stage 2: random-search baseline, matched budget of "
+                f"{self.settings.n_total} evaluations"
+            )
+        rs = optimizer.random_search(
+            space=self.space,
+            evaluate=self.evaluate_on_proxy,
+            n_total=self.settings.n_total,
+            seed=seed + 9973,
+        )
+        if log:
+            # Rewrite B.7 with front flags now known, and log the baseline's
+            # draws alongside it.
+            self.run_dir.write_table("B.7", [r.as_row() for r in bo.records])
+            rs_log = self.run_dir.path("calibration", "rs_log.csv")
+            with artifacts.TableWriter(rs_log, "B.7") as writer:
+                writer.write_all(r.as_row() for r in rs.records)
+
+        bo_selection = select_xstar(bo.evaluations, search_reference)
+        rs_selection = select_xstar(rs.evaluations, search_reference)
+        if log:
+            self.progress(
+                f"        x* = {bo_selection.config} "
+                f"[{bo_selection.status}]  |  random-search pick = "
+                f"{rs_selection.config}"
+            )
+        return bo, rs, bo_selection, rs_selection
+
+    def _bayes(
+        self,
+        seed: int,
+        prior: Dict[str, float],
+        search_reference: Objectives,
+        writer: Optional[artifacts.TableWriter],
+    ) -> optimizer.OptimizationResult:
+        """Run the BOPIS search, streaming to *writer* when it is supplied."""
+        on_iteration = (
+            (lambda record: writer.write(record.as_row()))
+            if writer is not None
+            else None
+        )
+        return optimizer.bayes_optimize(
+            space=self.space,
+            evaluate=self.evaluate_on_proxy,
+            precision_prior=prior,
+            n_total=self.settings.n_total,
+            n_seeds=self.settings.n_seeds,
+            seed=seed,
+            total_layers=self.settings.total_layers,
+            ard=self.settings.ard,
+            xi=self.settings.xi,
+            on_iteration=on_iteration,
+            floors=self._search_floors(search_reference),
+        )
+
+    def _trial_summary(
+        self,
+        trial_index: int,
+        seed: int,
+        bo: optimizer.OptimizationResult,
+        rs: optimizer.OptimizationResult,
+        bo_selection: Selection,
+        rs_selection: Selection,
+    ) -> Dict[str, object]:
+        """Per-trial picks and the trial's SER, for the repeats table."""
+        k_bo = bo.iteration_of(bo_selection.config) if bo_selection.config else None
+        k_rs = rs.iteration_of(rs_selection.config) if rs_selection.config else None
+        ser = (
+            metrics.sample_efficiency_ratio(k_rs, k_bo)
+            if (k_bo and k_rs)
+            else None
+        )
+        return {
+            "trial": trial_index + 1,
+            "seed": seed,
+            "bopis": self._selection_trial(bo_selection, k_bo),
+            "random_search": self._selection_trial(rs_selection, k_rs),
+            "ser": ser,
+        }
+
+    @staticmethod
+    def _selection_trial(
+        selection: Selection, k_star: Optional[int]
+    ) -> Dict[str, object]:
+        evaluation = selection.evaluation
+        return {
+            "status": selection.status,
+            "k_star": k_star,
+            "config": selection.config.key() if selection.config else None,
+            "label": str(selection.config) if selection.config else None,
+            "energy_j": evaluation.energy_j if evaluation else None,
+            "tokens_per_s": evaluation.tokens_per_s if evaluation else None,
+            "quality_f1": evaluation.quality_f1 if evaluation else None,
+            "eir_percent": selection.eir_percent,
+            "srr_percent": selection.srr_percent,
+            "qrr_percent": selection.qrr_percent,
+        }
+
+    def _repeats_summary(
+        self, trials: List[Dict[str, object]], repeats: int
+    ) -> Dict[str, object]:
+        """Mean/SD of SER and win counts over the repeated seeded trials."""
+        bopis_energy = [t["bopis"]["energy_j"] for t in trials]  # type: ignore[index]
+        rs_energy = [t["random_search"]["energy_j"] for t in trials]  # type: ignore[index]
+        bopis_quality = [t["bopis"]["quality_f1"] for t in trials]  # type: ignore[index]
+        rs_quality = [t["random_search"]["quality_f1"] for t in trials]  # type: ignore[index]
+        ser_values = [t["ser"] for t in trials]
+
+        def wins(bopis_values, rs_values, lower_bopis_wins: bool):
+            b = r = tie = 0
+            for bv, rv in zip(bopis_values, rs_values):
+                if bv is None or rv is None:
+                    continue
+                if bv == rv:
+                    tie += 1
+                elif (bv < rv) == lower_bopis_wins:
+                    b += 1
+                else:
+                    r += 1
+            return {"bopis": b, "random_search": r, "tie": tie}
+
+        pooled_pairs = (
+            0
+            if self.settings.skip_validation
+            else len(self.samples.evaluation) * repeats
+        )
+        return {
+            "n": repeats,
+            "seeds": [t["seed"] for t in trials],
+            "per_trial": trials,
+            "ser": metrics.ser_summary(ser_values),
+            "bopis_energy": stats.describe(bopis_energy).as_dict(),
+            "random_search_energy": stats.describe(rs_energy).as_dict(),
+            "bopis_quality": stats.describe(bopis_quality).as_dict(),
+            "random_search_quality": stats.describe(rs_quality).as_dict(),
+            "energy_wins": wins(bopis_energy, rs_energy, True),
+            "quality_wins": wins(bopis_quality, rs_quality, False),
+            "pooled_prompt_pairs": pooled_pairs,
+        }
 
     # ------------------------------------------------------------------ #
     # Analysis
@@ -420,9 +787,18 @@ class Study:
             },
             "ser": ser,
             "ser_note": (
-                "Single-run point estimate; k* is an iteration index, so this is "
-                "one draw from a high-variance statistic. Report a mean over "
-                "seeded repeats where possible (amendment A-16)."
+                (
+                    f"Single-trial point estimate (trial 1 of "
+                    f"{self.settings.repeats}). The mean and standard deviation "
+                    f"of SER over all {self.settings.repeats} seeded trials are "
+                    f"reported under 'repeats' (amendment A-16)."
+                )
+                if self.settings.repeats > 1
+                else (
+                    "Single-run point estimate; k* is an iteration index, so this is "
+                    "one draw from a high-variance statistic. Report a mean over "
+                    "seeded repeats where possible (amendment A-16)."
+                )
             ),
         }
 
@@ -617,15 +993,17 @@ class Study:
                 summary_rows.append(row)
 
             # The Wilcoxon test needs complete paired blocks: both compared
-            # conditions must have a value for the same prompt.
-            lengths = {len(v) for v in per_condition.values()}
-            if len(lengths) == 1 and lengths != {0}:
-                blocks = list(
-                    zip(*(per_condition[c] for c in schemas.CONDITIONS))
-                )
+            # conditions must have a value for the same prompt.  Only
+            # random_search and bopis are compared; the unoptimized reference
+            # is measured once (n = |evaluation|) and is deliberately excluded
+            # from the paired test, so its length may differ from the arms.
+            compared = ("random_search", "bopis")
+            arm_lengths = {len(per_condition[c]) for c in compared}
+            if len(arm_lengths) == 1 and arm_lengths != {0}:
+                blocks = list(zip(*(per_condition[c] for c in compared)))
                 tests[column] = stats.compare_conditions(
                     blocks,
-                    condition_names=list(schemas.CONDITIONS),
+                    condition_names=list(compared),
                     higher_is_better=higher_is_better,
                 )
                 wilcoxon = tests[column]["wilcoxon"]  # type: ignore[index]

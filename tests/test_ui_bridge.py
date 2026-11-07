@@ -266,5 +266,52 @@ class TestStudyEnergyMode(unittest.TestCase):
         self.assertEqual(mode, "resource-estimate")
 
 
+class TestBenchmarkAggregation(unittest.TestCase):
+    """The per-task breakdown is derived from the run's own validation CSV."""
+
+    def _write_run(self, rows: str) -> str:
+        root = tempfile.mkdtemp()
+        run = os.path.join(root, "20260101T000000Z")
+        os.makedirs(os.path.join(run, "validation"))
+        with open(os.path.join(run, "validation", "per_prompt_quality.csv"),
+                  "w", encoding="utf-8", newline="") as handle:
+            handle.write(rows)
+        return root
+
+    def test_per_task_means_and_win_tally(self) -> None:
+        from bopis.ui_server import benchmark
+
+        header = ("prompt_index,prompt_id,task_type,condition,quality_f1,"
+                  "quality_precision,quality_recall\n")
+        body = (
+            "1,a,closed_qa,bopis,0.9,,,\n"
+            "1,a,closed_qa,random_search,0.5,,,\n"
+            "2,b,closed_qa,bopis,0.4,,,\n"
+            "2,b,closed_qa,random_search,0.6,,,\n"
+            "3,c,summarization,bopis,0.7,,,\n"
+            "3,c,summarization,random_search,0.7,,,\n"
+        )
+        root = self._write_run(header + body)
+        result = benchmark("20260101T000000Z", runs_dir=root)
+        self.assertIsNotNone(result)
+        by_task = {t["task"]: t for t in result["tasks"]}
+
+        closed = by_task["closed_qa"]
+        self.assertEqual(closed["n"], 2)
+        self.assertEqual(closed["wins"], 1)
+        self.assertEqual(closed["losses"], 1)
+        self.assertAlmostEqual(closed["win_rate"], 0.5)
+        self.assertAlmostEqual(closed["mean"]["bopis"], 0.65)
+
+        summary = by_task["summarization"]
+        self.assertEqual((summary["wins"], summary["losses"], summary["ties"]), (0, 0, 1))
+        self.assertEqual(summary["win_rate"], 0.0)
+
+    def test_missing_run_returns_none(self) -> None:
+        from bopis.ui_server import benchmark
+
+        self.assertIsNone(benchmark("does-not-exist", runs_dir=tempfile.mkdtemp()))
+
+
 if __name__ == "__main__":
     unittest.main()

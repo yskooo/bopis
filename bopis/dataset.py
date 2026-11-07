@@ -51,8 +51,6 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from bopis.tasks import TASK_KEYS
 
-<<<<<<< Updated upstream
-=======
 # Source identifiers — recorded in manifest for reproducibility
 SOURCE_DOLLY = "databricks-dolly-15k"
 SOURCE_NQ    = "natural_questions"
@@ -95,7 +93,6 @@ EXTERNAL_DATASETS: Dict[str, Dict[str, object]] = {
         },
     }
 
->>>>>>> Stashed changes
 DOLLY_URL = (
     "https://huggingface.co/datasets/databricks/databricks-dolly-15k/"
     "resolve/main/databricks-dolly-15k.jsonl"
@@ -117,6 +114,9 @@ MAX_PROMPT_TOKENS = 900
 DEFAULT_EVAL_SIZE = 500
 DEFAULT_PROXY_SIZE = 50
 
+DEFAULT_DOLLY_SHARE = 300
+DEFAULT_EXTERNAL_SHARE = 200
+
 #: The prompt template. Recorded in the manifest with its hash because the
 #: template materially affects BERTScore and is otherwise unreproducible
 #: (amendment A-21).
@@ -134,6 +134,7 @@ class Prompt:
     instruction: str
     context: str
     response: str
+    source: str = SOURCE_DOLLY
 
     @property
     def text(self) -> str:
@@ -153,6 +154,7 @@ class Prompt:
             "prompt_index": self.index,
             "prompt_id": self.prompt_id,
             "task_type": self.task_type,
+            "source": self.source,
             "in_proxy_subset": in_proxy,
             "instruction_chars": len(self.instruction),
             "context_chars": len(self.context),
@@ -267,6 +269,7 @@ def filter_rows(
             instruction=instruction,
             context=context,
             response=response,
+            source=SOURCE_DOLLY,
         )
         if candidate.estimated_tokens > max_prompt_tokens:
             too_long += 1
@@ -440,10 +443,7 @@ class SampleSet:
             "license": DOLLY_LICENSE,
             "source_path": self.source_path,
             "source_sha256": self.source_sha256,
-<<<<<<< Updated upstream
-=======
             "dataset_sources": self.dataset_sources(),
->>>>>>> Stashed changes
             "seed": self.seed,
             "n_evaluation": len(self.evaluation),
             "n_proxy": len(self.proxy),
@@ -456,8 +456,6 @@ class SampleSet:
         }
 
 
-<<<<<<< Updated upstream
-=======
 def load_natural_questions(seed: int, n: int = 60) -> List[Prompt]:
     try:
         import importlib
@@ -668,7 +666,6 @@ def load_external_prompts(seed: int) -> List[Prompt]:
     prompts.extend(load_squad_v2(seed, n=EXTERNAL_DATASETS[SOURCE_SQUAD]["n"]))
     return prompts
 
->>>>>>> Stashed changes
 def build_samples(
     prompts: Sequence[Prompt],
     filter_report: FilterReport,
@@ -677,11 +674,6 @@ def build_samples(
     seed: int = 20260101,
     source_path: Optional[str] = None,
     source_sha256: Optional[str] = None,
-<<<<<<< Updated upstream
-) -> SampleSet:
-    """Draw the evaluation set, then the proxy subset nested inside it."""
-    evaluation = stratified_sample(prompts, eval_size, seed=seed)
-=======
         allow_external: bool = False,
 ) -> SampleSet:
     """Draw the evaluation set, then the proxy subset nested inside it."""
@@ -706,7 +698,6 @@ def build_samples(
         evaluation = stratified_sample(prompts, eval_size, seed=seed)
     
     # Re-index
->>>>>>> Stashed changes
     for position, prompt in enumerate(evaluation, start=1):
         prompt.index = position
 
@@ -754,6 +745,7 @@ def load_samples(
         seed=seed,
         source_path=path,
         source_sha256=file_sha256(path),
+        allow_external=allow_download,
     )
 
 

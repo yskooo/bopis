@@ -1,0 +1,17 @@
+indicator,bopis,random_search
+eir_percent,74.62638435125565,73.9522145882377
+srr_percent,265.7857038908253,259.9429468235116
+qrr_percent,95.05305905433987,93.25173812547236
+energy_improved,true,true
+substantial,true,true
+speed_retained,true,true
+quality_retained,false,false
+is_bopis_optimal,false,false
+verdict,partial,partial
+failed_criteria,['QRR=95.05% < 98%'],['QRR=93.25% < 98%']
+energy_default_j,311.15278600000005,311.15278600000005
+energy_optimized_j,78.950712,81.04841
+speed_default_tps,35.25447898544658,35.25447898544658
+speed_optimized_tps,93.7013651245123,91.64153156204547
+quality_default_f1,0.15080563995451665,0.15080563995451665
+quality_optimized_f1,0.14334537400324188,0.14062888044882857

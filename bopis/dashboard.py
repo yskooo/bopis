@@ -130,6 +130,7 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
             "seed": result.settings.seed,
             "n_total_iterations": result.settings.n_total,
             "n_seeds": result.settings.n_seeds,
+            "repeats": result.settings.repeats,
             "wall_seconds": summary.get("wall_seconds"),
             "validated": bool(result.validation),
             # Displayed prominently: a simulated energy figure must never be
@@ -220,6 +221,9 @@ def build_payload(result: StudyResult) -> Dict[str, object]:
         "amortization": summary.get("amortization"),
         "calibration": summary.get("calibration"),
         "trials": summary.get("trials"),
+        # Repeated seeded trials (amendment A-16): per-trial picks plus the
+        # mean/SD of SER across them. Absent for single-trial runs.
+        "repeats": summary.get("repeats"),
         "thresholds": {
             "eir_improvement": metrics.EIR_IMPROVEMENT_THRESHOLD,
             "eir_substantial": metrics.EIR_SUBSTANTIAL_THRESHOLD,

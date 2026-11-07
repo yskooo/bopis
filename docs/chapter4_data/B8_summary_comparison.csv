@@ -1,0 +1,36 @@
+DependentVariable,Statistic,Random Search,BOPIS
+Energy -- Total (J),Mean,81.048410,78.950712
+Energy -- Total (J),SD,45.976457,44.857087
+Energy -- Total (J),Min,5.952000,5.796000
+Energy -- Total (J),Max,201.482000,203.265000
+Energy -- J/token,Mean,1.028440,0.990205
+Energy -- J/token,SD,0.445429,0.405254
+Energy -- J/token,Min,0.419533,0.414000
+Energy -- J/token,Max,4.950400,4.711160
+Inference Speed (tok/s),Mean,91.641532,93.701365
+Inference Speed (tok/s),SD,25.366731,25.741850
+Inference Speed (tok/s),Min,14.009129,14.095148
+Inference Speed (tok/s),Max,120.039429,124.132202
+Output Quality (BERTScore F1),Mean,0.140629,0.143345
+Output Quality (BERTScore F1),SD,0.235316,0.238380
+Output Quality (BERTScore F1),Min,-0.460085,-0.460085
+Output Quality (BERTScore F1),Max,0.862277,0.862277
+CPU Utilization (%),Mean,20.557694,39.013552
+CPU Utilization (%),SD,4.116958,6.292035
+CPU Utilization (%),Min,12.660256,19.209040
+CPU Utilization (%),Max,43.229167,74.404762
+GPU Utilization (%),Mean,78.219152,78.962452
+GPU Utilization (%),SD,4.086666,4.230508
+GPU Utilization (%),Min,32.818182,36.090909
+GPU Utilization (%),Max,95.000000,100.000000
+Memory Usage (MB),Mean,11657.743224,11547.482336
+Memory Usage (MB),SD,566.716802,697.130658
+Memory Usage (MB),Min,10637.045455,10313.693182
+Memory Usage (MB),Max,13011.973633,13102.845052
+Energy -- Total (J),Wilcoxon p (RS vs BOPIS),2.604170e-10,2.604170e-10
+Energy -- J/token,Wilcoxon p (RS vs BOPIS),6.845354e-12,6.845354e-12
+Inference Speed (tok/s),Wilcoxon p (RS vs BOPIS),4.870328e-48,4.870328e-48
+Output Quality (BERTScore F1),Wilcoxon p (RS vs BOPIS),0.1256,0.1256
+CPU Utilization (%),Wilcoxon p (RS vs BOPIS),1.852036e-83,1.852036e-83
+GPU Utilization (%),Wilcoxon p (RS vs BOPIS),4.931109e-13,4.931109e-13
+Memory Usage (MB),Wilcoxon p (RS vs BOPIS),6.872483e-15,6.872483e-15

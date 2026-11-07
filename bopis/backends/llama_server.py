@@ -54,6 +54,30 @@ DEFAULT_STARTUP_TIMEOUT_S = 600.0
 #: n_predict=1024 is genuinely slow.
 DEFAULT_REQUEST_TIMEOUT_S = 900.0
 
+#: Qwen2.5-Instruct is a chat model. Sending a bare instruction to
+#: ``/completion`` bypasses its ChatML template and produces continuation
+#: artifacts (repetition, leading punctuation) that are not a precision effect.
+CHAT_TEMPLATE_CHATML = "chatml"
+CHAT_TEMPLATE_NONE = "none"
+_QWEN_SYSTEM_PROMPT = (
+    "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
+)
+
+
+def apply_chat_template(prompt: str, chat_template: str = CHAT_TEMPLATE_CHATML) -> str:
+    """Render *prompt* the way the Qwen2.5-Instruct tokenizer expects."""
+    if chat_template == CHAT_TEMPLATE_NONE:
+        return prompt
+    if chat_template != CHAT_TEMPLATE_CHATML:
+        raise ValueError(f"unknown chat template: {chat_template!r}")
+    return (
+        "<|im_start|>system\n"
+        f"{_QWEN_SYSTEM_PROMPT}<|im_end|>\n"
+        "<|im_start|>user\n"
+        f"{prompt}<|im_end|>\n"
+        "<|im_start|>assistant\n"
+    )
+
 
 class LlamaServerBackend:
     """Drives a ``llama-server`` process over its HTTP API.
@@ -88,6 +112,7 @@ class LlamaServerBackend:
         extra_args: Optional[Sequence[str]] = None,
         temperature: float = 0.0,
         seed: int = 0,
+        chat_template: str = CHAT_TEMPLATE_CHATML,
         startup_timeout_s: float = DEFAULT_STARTUP_TIMEOUT_S,
         request_timeout_s: float = DEFAULT_REQUEST_TIMEOUT_S,
         log_path: Optional[str] = None,
@@ -103,6 +128,7 @@ class LlamaServerBackend:
         self.extra_args = list(extra_args or ())
         self.temperature = temperature
         self.seed = seed
+        self.chat_template = chat_template
         self.startup_timeout_s = startup_timeout_s
         self.request_timeout_s = request_timeout_s
         self.log_path = log_path
@@ -299,7 +325,7 @@ class LlamaServerBackend:
             payload = self._post(
                 "/completion",
                 {
-                    "prompt": prompt,
+                    "prompt": apply_chat_template(prompt, self.chat_template),
                     "n_predict": config.t,  # t is the generation cap (A-1)
                     "temperature": self.temperature,
                     "top_k": 1,  # greedy, with temperature 0
@@ -393,6 +419,7 @@ class LlamaServerBackend:
             "temperature": self.temperature,
             "top_k": 1,
             "seed": self.seed,
+            "chat_template": self.chat_template,
             "model_paths": self.model_paths,
             "extra_args": self.extra_args,
             "determinism_note": (

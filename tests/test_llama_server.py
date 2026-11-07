@@ -14,7 +14,12 @@ import unittest
 
 from bopis import config_space as cs
 from bopis.backends import BackendError
-from bopis.backends.llama_server import LlamaServerBackend, parse_server_log
+from bopis.backends.llama_server import (
+    CHAT_TEMPLATE_NONE,
+    LlamaServerBackend,
+    apply_chat_template,
+    parse_server_log,
+)
 from bopis.config_space import ALL_LAYERS, Config
 
 
@@ -138,6 +143,23 @@ class TestLaunchArgs(unittest.TestCase):
         first = self.backend.launch_args(Config(256, 1, "F16", 14, 4))
         second = self.backend.launch_args(Config(256, 1, "Q4_K_M", 14, 4))
         self.assertNotEqual(first, second)
+
+
+class TestChatTemplate(unittest.TestCase):
+    def test_chatml_wraps_the_instruction_as_a_user_turn(self) -> None:
+        rendered = apply_chat_template("Classify this list.")
+        self.assertTrue(rendered.startswith("<|im_start|>system\n"))
+        self.assertIn("<|im_start|>user\nClassify this list.<|im_end|>", rendered)
+        self.assertTrue(rendered.endswith("<|im_start|>assistant\n"))
+
+    def test_none_leaves_the_prompt_verbatim(self) -> None:
+        self.assertEqual(
+            apply_chat_template("raw prompt", CHAT_TEMPLATE_NONE), "raw prompt"
+        )
+
+    def test_unknown_template_fails_loudly(self) -> None:
+        with self.assertRaises(ValueError):
+            apply_chat_template("x", "not-a-template")
 
 
 class TestCompletionParsing(unittest.TestCase):

@@ -128,11 +128,6 @@ class BertScoreScorer:
     # ------------------------------------------------------------------ #
 
     def score(
-<<<<<<< Updated upstream
-        self, candidates: Sequence[str], references: Sequence[str]
-    ) -> List[QualityScore]:
-        """Score each candidate against its reference, pairwise."""
-=======
         self,
         candidates: Sequence[str],
         references: Sequence[str],
@@ -152,7 +147,6 @@ class BertScoreScorer:
         flag a retrieved match as low-confidence; it is not used to reject the
         match here.
         """
->>>>>>> Stashed changes
         if len(candidates) != len(references):
             raise ValueError(
                 f"{len(candidates)} candidates but {len(references)} references"
@@ -160,12 +154,6 @@ class BertScoreScorer:
         if not candidates:
             return []
 
-<<<<<<< Updated upstream
-        self._ensure_loaded()
-        if self._backend == "bert_score":
-            return self._score_with_package(candidates, references)
-        return self._score_with_transformers(candidates, references)
-=======
         safe_cands, safe_refs = [], []
         results: List[Optional[QualityScore]] = [None] * len(candidates)
         safe_indices = []
@@ -208,7 +196,6 @@ class BertScoreScorer:
                 results[idx] = sc
 
         return results
->>>>>>> Stashed changes
 
     def _score_with_package(
         self, candidates: Sequence[str], references: Sequence[str]

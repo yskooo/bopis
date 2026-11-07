@@ -1,0 +1,4 @@
+trial_no,condition,condition_label,n_prompts,m_model,t_max_gen_tokens,b_batch_size,p_precision,g_gpu_layers,c_cpu_threads,energy_j_mean,energy_j_sd,j_per_token_mean,tokens_per_s_mean,quality_f1_mean,cpu_percent_mean,gpu_percent_mean,memory_mib_mean,energy_method,energy_scope
+1,unoptimized,Unoptimized Default,500,qwen2.5-1.5b,1024,1,F16,All,4,311.15278600000005,318.16459541872996,3.002170659764339,35.25447898544658,0.15080563995451665,34.45655159207227,84.90048492505706,14110.657561676027,nvml_energy_counter,gpu_only
+2,random_search,Random Search,500,qwen2.5-1.5b,128,2,Q4_K_M,28,2,81.04841,45.9764573901709,1.0284398026264203,91.64153156204547,0.14062888044882857,20.557694366376438,78.21915158252443,11657.743223688956,nvml_energy_counter,gpu_only
+3,bopis,BOPIS,500,qwen2.5-1.5b,128,1,Q4_K_M,28,4,78.950712,44.857087037167005,0.9902051795995476,93.7013651245123,0.14334537400324188,39.01355193928952,78.96245173777329,11547.482336226718,nvml_energy_counter,gpu_only

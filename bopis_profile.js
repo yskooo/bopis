@@ -1,30 +1,20 @@
 window.BOPIS_PROFILE = {
-<<<<<<< Updated upstream
-  "generated_utc": "2026-09-09T16:48:33.428289+00:00",
-  "host_profile": {
-    "cpu_model": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
-    "physical_cores": 4,
-    "logical_cores": 8,
-    "ram_total_bytes": 16948453376,
-    "ram_available_bytes": 2185641984,
-=======
-  "generated_utc": "2026-10-16T09:59:10.159544+00:00",
+  "generated_utc": "2026-10-27T11:41:25.134601+00:00",
   "host_profile": {
     "cpu_model": "AMD Ryzen 5 5600G with Radeon Graphics",
     "physical_cores": 6,
     "logical_cores": 12,
     "ram_total_bytes": 16425787392,
-    "ram_available_bytes": 5903327232,
->>>>>>> Stashed changes
+    "ram_available_bytes": 4483264512,
     "is_wsl": false,
     "telemetry_source": "kernel32",
     "gpu_available": true,
     "gpu_name": "NVIDIA GeForce GTX 1660 SUPER",
     "vram_total_bytes": 6442450944,
-    "vram_free_bytes": 5257355264,
+    "vram_free_bytes": 5218226176,
     "compute_capability": "7.5",
-    "driver_version": "617.42",
-    "cuda_driver_version": "13.4",
+    "driver_version": "621.01",
+    "cuda_driver_version": "13.5",
     "power_supported": true,
     "energy_counter_supported": true,
     "energy_method": "nvml_energy_counter",
@@ -59,25 +49,10 @@ window.BOPIS_PROFILE = {
     "ram_total_gib": 15.3
   },
   "configuration_space": {
-<<<<<<< Updated upstream
-    "n_feasible": 0,
-    "n_rejected": 64,
+    "n_feasible": 464,
+    "n_rejected": 112,
     "rejected_by_rule": {
-      "HW-P0": 64
-    },
-    "n_unconstrained": 768,
-    "precision_variants_present": []
-  },
-  "rejections": [
-    {
-      "config": "t128_b1_Q8_0_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
-=======
-    "n_feasible": 480,
-    "n_rejected": 96,
-    "rejected_by_rule": {
-      "HW-P0": 96
+      "HW-P0": 112
     },
     "n_unconstrained": 2304,
     "precision_variants_present": [
@@ -109,778 +84,562 @@ window.BOPIS_PROFILE = {
     {
       "config": "qwen2.5-3b_t128_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t128_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t256_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 5.90 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t128_b1_Q8_0_g0_c4",
+      "config": "qwen2.5-3b_t256_b2_F16_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t128_b1_Q8_0_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.39 GiB (Q8_0, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t128_b1_Q8_0_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.39 GiB (Q8_0, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t128_b1_Q4_K_M_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t128_b1_Q4_K_M_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 5.90 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t512_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.83 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.83 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-3b_t1024_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 5.90 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 5.90 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_F16_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.65 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q8_0_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b1_Q8_0_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
+    },
+    {
+      "config": "qwen2.5-7b_t128_b1_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 4.39 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t128_b1_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 4.39 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.41 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_F16_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q8_0_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t128_b2_Q8_0_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
+    },
+    {
+      "config": "qwen2.5-7b_t128_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 4.50 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t128_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 4.50 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g0_c4",
       "rule": "HW-P0",
-      "detail": "host share 14.30 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 14.30 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_F16_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t128_b1_Q4_K_M_g14_c2",
+      "config": "qwen2.5-7b_t256_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 2.03 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 7.65 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 7.65 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t128_b1_Q4_K_M_g14_c4",
+      "config": "qwen2.5-7b_t256_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 2.03 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t128_b2_Q8_0_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t128_b2_Q8_0_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t128_b2_Q8_0_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.64 GiB (Q8_0, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t128_b2_Q8_0_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.64 GiB (Q8_0, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t128_b2_Q4_K_M_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t128_b2_Q4_K_M_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 7.65 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q8_0_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b1_Q8_0_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t128_b2_Q4_K_M_g14_c2",
+      "config": "qwen2.5-7b_t256_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 2.28 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 14.41 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 4.39 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t128_b2_Q4_K_M_g14_c4",
+      "config": "qwen2.5-7b_t256_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 2.28 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
+      "detail": "host share 4.39 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t256_b1_Q8_0_g0_c2",
+      "config": "qwen2.5-7b_t256_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 14.41 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t256_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 14.41 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_F16_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_F16_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_F16_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_F16_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 7.76 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t256_b1_Q8_0_g0_c4",
+      "config": "qwen2.5-7b_t256_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t256_b1_Q8_0_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.39 GiB (Q8_0, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t256_b1_Q8_0_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.39 GiB (Q8_0, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t256_b1_Q4_K_M_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t256_b1_Q4_K_M_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t256_b1_Q4_K_M_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 2.03 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t256_b1_Q4_K_M_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 2.03 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 7.76 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q8_0_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t256_b2_Q8_0_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t256_b2_Q8_0_g0_c2",
+      "config": "qwen2.5-7b_t256_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 14.30 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 4.50 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t256_b2_Q8_0_g0_c4",
+      "config": "qwen2.5-7b_t256_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 14.30 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t512_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 14.30 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t512_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 14.30 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_F16_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_F16_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_F16_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_F16_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t256_b2_Q8_0_g14_c2",
+      "config": "qwen2.5-7b_t512_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 3.64 GiB (Q8_0, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 7.65 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 7.65 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t256_b2_Q8_0_g14_c4",
+      "config": "qwen2.5-7b_t512_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 3.64 GiB (Q8_0, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t256_b2_Q4_K_M_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t256_b2_Q4_K_M_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t256_b2_Q4_K_M_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 2.28 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t256_b2_Q4_K_M_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 2.28 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t512_b1_Q8_0_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t512_b1_Q8_0_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 7.65 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q8_0_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b1_Q8_0_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t512_b1_Q8_0_g14_c2",
+      "config": "qwen2.5-7b_t512_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 3.39 GiB (Q8_0, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 14.41 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 4.39 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t512_b1_Q8_0_g14_c4",
+      "config": "qwen2.5-7b_t512_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 3.39 GiB (Q8_0, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
+      "detail": "host share 4.39 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t512_b1_Q4_K_M_g0_c2",
+      "config": "qwen2.5-7b_t512_b2_F16_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 14.41 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 14.41 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t512_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 14.41 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_F16_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_F16_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_F16_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_F16_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-      "detail": "host share 7.76 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 7.76 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t512_b1_Q4_K_M_g0_c4",
+      "config": "qwen2.5-7b_t512_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t512_b1_Q4_K_M_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 2.03 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t512_b1_Q4_K_M_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 2.03 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t512_b2_Q8_0_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t512_b2_Q8_0_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t512_b2_Q8_0_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.64 GiB (Q8_0, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t512_b2_Q8_0_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.64 GiB (Q8_0, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 7.76 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q8_0_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t512_b2_Q8_0_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t512_b2_Q4_K_M_g0_c2",
+      "config": "qwen2.5-7b_t512_b2_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 14.30 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 4.50 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t512_b2_Q4_K_M_g0_c4",
+      "config": "qwen2.5-7b_t512_b2_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 14.30 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 4.50 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t1024_b1_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 14.30 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t1024_b1_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 14.30 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_F16_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_F16_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.21 GiB (F16, g=14, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_F16_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_F16_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 14.30 GiB (F16, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t512_b2_Q4_K_M_g14_c2",
+      "config": "qwen2.5-7b_t1024_b1_Q8_0_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 2.28 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 7.65 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 7.65 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t512_b2_Q4_K_M_g14_c4",
+      "config": "qwen2.5-7b_t1024_b1_Q8_0_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 2.28 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t1024_b1_Q8_0_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t1024_b1_Q8_0_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 7.42 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t1024_b1_Q8_0_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.39 GiB (Q8_0, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t1024_b1_Q8_0_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.39 GiB (Q8_0, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t1024_b1_Q4_K_M_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t1024_b1_Q4_K_M_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 4.33 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 7.65 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.65 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q8_0_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b1_Q8_0_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 7.65 GiB (Q8_0, g=28, kv b=1) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t1024_b1_Q4_K_M_g14_c2",
+      "config": "qwen2.5-7b_t1024_b1_Q4_K_M_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 2.03 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 14.41 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 4.39 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t1024_b1_Q4_K_M_g14_c4",
+      "config": "qwen2.5-7b_t1024_b1_Q4_K_M_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "GPU share 2.03 GiB (Q4_K_M, g=14, kv b=1) exceeds 1.94 GiB available VRAM"
-=======
-      "detail": "host share 14.41 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 4.39 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t1024_b2_F16_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 14.41 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t1024_b2_F16_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 14.41 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_F16_g14_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_F16_g14_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.32 GiB (F16, g=14, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_F16_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_F16_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
->>>>>>> Stashed changes
+      "detail": "GPU share 14.41 GiB (F16, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
-      "config": "t1024_b2_Q8_0_g0_c2",
+      "config": "qwen2.5-7b_t1024_b2_Q8_0_g0_c2",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
-=======
-      "detail": "host share 7.76 GiB exceeds 5.50 GiB available system RAM"
->>>>>>> Stashed changes
+      "detail": "host share 7.76 GiB exceeds 4.18 GiB available system RAM"
     },
     {
-      "config": "t1024_b2_Q8_0_g0_c4",
+      "config": "qwen2.5-7b_t1024_b2_Q8_0_g0_c4",
       "rule": "HW-P0",
-<<<<<<< Updated upstream
-      "detail": "host share 7.67 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t1024_b2_Q8_0_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.64 GiB (Q8_0, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t1024_b2_Q8_0_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 3.64 GiB (Q8_0, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t1024_b2_Q4_K_M_g0_c2",
-      "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t1024_b2_Q4_K_M_g0_c4",
-      "rule": "HW-P0",
-      "detail": "host share 4.58 GiB exceeds 2.04 GiB available system RAM"
-    },
-    {
-      "config": "t1024_b2_Q4_K_M_g14_c2",
-      "rule": "HW-P0",
-      "detail": "GPU share 2.28 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    },
-    {
-      "config": "t1024_b2_Q4_K_M_g14_c4",
-      "rule": "HW-P0",
-      "detail": "GPU share 2.28 GiB (Q4_K_M, g=14, kv b=2) exceeds 1.94 GiB available VRAM"
-    }
-  ]
-=======
-      "detail": "host share 7.76 GiB exceeds 5.50 GiB available system RAM"
+      "detail": "host share 7.76 GiB exceeds 4.18 GiB available system RAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q8_0_g28_c2",
       "rule": "HW-P0",
-      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
     },
     {
       "config": "qwen2.5-7b_t1024_b2_Q8_0_g28_c4",
       "rule": "HW-P0",
-      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.90 GiB available VRAM"
+      "detail": "GPU share 7.76 GiB (Q8_0, g=28, kv b=2) exceeds 4.86 GiB available VRAM"
+    },
+    {
+      "config": "qwen2.5-7b_t1024_b2_Q4_K_M_g0_c2",
+      "rule": "HW-P0",
+      "detail": "host share 4.50 GiB exceeds 4.18 GiB available system RAM"
+    },
+    {
+      "config": "qwen2.5-7b_t1024_b2_Q4_K_M_g0_c4",
+      "rule": "HW-P0",
+      "detail": "host share 4.50 GiB exceeds 4.18 GiB available system RAM"
     }
   ],
   "requirements": [
@@ -942,7 +701,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 5.791634559631348,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.2937326431274414
+      "shortfall_gib": 1.6162691116333008
     },
     {
       "model": "qwen2.5-1.5b",
@@ -990,7 +749,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 11.581459522247314,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 6.083557605743408
+      "shortfall_gib": 7.406094074249268
     },
     {
       "model": "qwen2.5-3b",
@@ -1002,7 +761,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 5.825886011123657,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.327984094619751
+      "shortfall_gib": 1.6505205631256104
     },
     {
       "model": "qwen2.5-3b",
@@ -1038,7 +797,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 28.496087074279785,
       "cpu_only_verdict": "needs more RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 22.99818515777588
+      "shortfall_gib": 24.32072162628174
     },
     {
       "model": "qwen2.5-7b",
@@ -1050,7 +809,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 14.302731037139893,
       "cpu_only_verdict": "needs more RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 8.804829120635986
+      "shortfall_gib": 10.127365589141846
     },
     {
       "model": "qwen2.5-7b",
@@ -1062,7 +821,7 @@ window.BOPIS_PROFILE = {
       "full_gpu_vram_gib": 7.649595394730568,
       "cpu_only_verdict": "free RAM",
       "full_gpu_fits": false,
-      "shortfall_gib": 2.1516934782266617
+      "shortfall_gib": 3.474229946732521
     },
     {
       "model": "qwen2.5-7b",
@@ -1072,9 +831,9 @@ window.BOPIS_PROFILE = {
       "kv_cache_gib": 0.109375,
       "cpu_only_ram_gib": 4.393994353711605,
       "full_gpu_vram_gib": 4.393994353711605,
-      "cpu_only_verdict": "fits",
+      "cpu_only_verdict": "free RAM",
       "full_gpu_fits": true,
-      "shortfall_gib": 0.0
+      "shortfall_gib": 0.2186289057135582
     }
   ],
   "feasible": [
@@ -1496,64 +1255,48 @@ window.BOPIS_PROFILE = {
     "qwen2.5-3b_t1024_b2_Q4_K_M_g28_c4",
     "qwen2.5-7b_t128_b1_Q8_0_g14_c2",
     "qwen2.5-7b_t128_b1_Q8_0_g14_c4",
-    "qwen2.5-7b_t128_b1_Q4_K_M_g0_c2",
-    "qwen2.5-7b_t128_b1_Q4_K_M_g0_c4",
     "qwen2.5-7b_t128_b1_Q4_K_M_g14_c2",
     "qwen2.5-7b_t128_b1_Q4_K_M_g14_c4",
     "qwen2.5-7b_t128_b1_Q4_K_M_g28_c2",
     "qwen2.5-7b_t128_b1_Q4_K_M_g28_c4",
     "qwen2.5-7b_t128_b2_Q8_0_g14_c2",
     "qwen2.5-7b_t128_b2_Q8_0_g14_c4",
-    "qwen2.5-7b_t128_b2_Q4_K_M_g0_c2",
-    "qwen2.5-7b_t128_b2_Q4_K_M_g0_c4",
     "qwen2.5-7b_t128_b2_Q4_K_M_g14_c2",
     "qwen2.5-7b_t128_b2_Q4_K_M_g14_c4",
     "qwen2.5-7b_t128_b2_Q4_K_M_g28_c2",
     "qwen2.5-7b_t128_b2_Q4_K_M_g28_c4",
     "qwen2.5-7b_t256_b1_Q8_0_g14_c2",
     "qwen2.5-7b_t256_b1_Q8_0_g14_c4",
-    "qwen2.5-7b_t256_b1_Q4_K_M_g0_c2",
-    "qwen2.5-7b_t256_b1_Q4_K_M_g0_c4",
     "qwen2.5-7b_t256_b1_Q4_K_M_g14_c2",
     "qwen2.5-7b_t256_b1_Q4_K_M_g14_c4",
     "qwen2.5-7b_t256_b1_Q4_K_M_g28_c2",
     "qwen2.5-7b_t256_b1_Q4_K_M_g28_c4",
     "qwen2.5-7b_t256_b2_Q8_0_g14_c2",
     "qwen2.5-7b_t256_b2_Q8_0_g14_c4",
-    "qwen2.5-7b_t256_b2_Q4_K_M_g0_c2",
-    "qwen2.5-7b_t256_b2_Q4_K_M_g0_c4",
     "qwen2.5-7b_t256_b2_Q4_K_M_g14_c2",
     "qwen2.5-7b_t256_b2_Q4_K_M_g14_c4",
     "qwen2.5-7b_t256_b2_Q4_K_M_g28_c2",
     "qwen2.5-7b_t256_b2_Q4_K_M_g28_c4",
     "qwen2.5-7b_t512_b1_Q8_0_g14_c2",
     "qwen2.5-7b_t512_b1_Q8_0_g14_c4",
-    "qwen2.5-7b_t512_b1_Q4_K_M_g0_c2",
-    "qwen2.5-7b_t512_b1_Q4_K_M_g0_c4",
     "qwen2.5-7b_t512_b1_Q4_K_M_g14_c2",
     "qwen2.5-7b_t512_b1_Q4_K_M_g14_c4",
     "qwen2.5-7b_t512_b1_Q4_K_M_g28_c2",
     "qwen2.5-7b_t512_b1_Q4_K_M_g28_c4",
     "qwen2.5-7b_t512_b2_Q8_0_g14_c2",
     "qwen2.5-7b_t512_b2_Q8_0_g14_c4",
-    "qwen2.5-7b_t512_b2_Q4_K_M_g0_c2",
-    "qwen2.5-7b_t512_b2_Q4_K_M_g0_c4",
     "qwen2.5-7b_t512_b2_Q4_K_M_g14_c2",
     "qwen2.5-7b_t512_b2_Q4_K_M_g14_c4",
     "qwen2.5-7b_t512_b2_Q4_K_M_g28_c2",
     "qwen2.5-7b_t512_b2_Q4_K_M_g28_c4",
     "qwen2.5-7b_t1024_b1_Q8_0_g14_c2",
     "qwen2.5-7b_t1024_b1_Q8_0_g14_c4",
-    "qwen2.5-7b_t1024_b1_Q4_K_M_g0_c2",
-    "qwen2.5-7b_t1024_b1_Q4_K_M_g0_c4",
     "qwen2.5-7b_t1024_b1_Q4_K_M_g14_c2",
     "qwen2.5-7b_t1024_b1_Q4_K_M_g14_c4",
     "qwen2.5-7b_t1024_b1_Q4_K_M_g28_c2",
     "qwen2.5-7b_t1024_b1_Q4_K_M_g28_c4",
     "qwen2.5-7b_t1024_b2_Q8_0_g14_c2",
     "qwen2.5-7b_t1024_b2_Q8_0_g14_c4",
-    "qwen2.5-7b_t1024_b2_Q4_K_M_g0_c2",
-    "qwen2.5-7b_t1024_b2_Q4_K_M_g0_c4",
     "qwen2.5-7b_t1024_b2_Q4_K_M_g14_c2",
     "qwen2.5-7b_t1024_b2_Q4_K_M_g14_c4",
     "qwen2.5-7b_t1024_b2_Q4_K_M_g28_c2",
@@ -1602,5 +1345,4 @@ window.BOPIS_PROFILE = {
     "url": "http://127.0.0.1:8085/data.json",
     "reason": "No hardware-monitor sensor feed at http://127.0.0.1:8085/data.json.\n  1. Install LibreHardwareMonitor (maintained) or Open Hardware Monitor.\n  2. Run it AS ADMINISTRATOR -- RAPL is read through a kernel driver.\n  3. Options -> Remote Web Server -> Run (default port 8085).\n  4. Confirm the CPU node lists Powers -> CPU Package, then retry.\n  Check with:  python -m bopis profile --hwmon-url http://127.0.0.1:8085/data.json\n  (underlying error: <urlopen error timed out>)"
   }
->>>>>>> Stashed changes
 };

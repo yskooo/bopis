@@ -191,6 +191,94 @@ def run_prompts(name: str, runs_dir: str = RUNS_DIR,
     return {"run": os.path.basename(name), "n_sample": len(rows), "proxy": proxy}
 
 
+def benchmark(name: str, runs_dir: str = RUNS_DIR) -> Optional[Dict[str, object]]:
+    """Per-task quality aggregation from a run's validation artifacts.
+
+    ``validation/per_prompt_quality.csv`` carries one row per
+    (prompt x condition x trial) with the prompt's ``task_type`` and
+    ``quality_f1``. Grouping by task gives the per-task mean quality per
+    condition and the BOPIS-vs-Random-Search win/loss/tie tally on the paired
+    prompts -- the data behind the Benchmark tab's per-task breakdown. It is
+    derived from the run's own files, never recomputed here.
+
+    Repeated seeded trials share a ``prompt_index`` across trials, so the
+    pairing key includes the prompt's occurrence within its condition: rows are
+    written condition-major, trial-minor, so the Nth occurrence of a prompt in
+    the BOPIS block pairs with the Nth in the random-search block.
+    """
+    import csv
+
+    root = os.path.join(runs_dir, os.path.basename(name))
+    path = os.path.join(root, "validation", "per_prompt_quality.csv")
+    if not os.path.isfile(path):
+        return None
+
+    by_task: Dict[str, Dict[str, List[float]]] = {}
+    pairs: Dict[str, Dict[str, Dict[str, float]]] = {}
+    occurrence: Dict[tuple, int] = {}
+    with open(path, newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            task = (row.get("task_type") or "unknown").strip() or "unknown"
+            condition = (row.get("condition") or "").strip()
+            try:
+                f1 = float(row.get("quality_f1") or "")
+            except ValueError:
+                continue
+            by_task.setdefault(task, {}).setdefault(condition, []).append(f1)
+            prompt_key = row.get("prompt_index") or row.get("prompt_id") or ""
+            seen = occurrence.get((condition, prompt_key), 0) + 1
+            occurrence[(condition, prompt_key)] = seen
+            key = f"{prompt_key}#{seen}"
+            pairs.setdefault(task, {}).setdefault(key, {})[condition] = f1
+
+    conditions = sorted({c for conds in by_task.values() for c in conds})
+    tasks: List[Dict[str, object]] = []
+    for task in sorted(by_task):
+        conds = by_task[task]
+        means = {c: round(sum(v) / len(v), 4) for c, v in conds.items() if v}
+        n = max((len(v) for v in conds.values()), default=0)
+        wins = losses = ties = 0
+        for per_condition in pairs.get(task, {}).values():
+            bopis = per_condition.get("bopis")
+            random = per_condition.get("random_search")
+            if bopis is None or random is None:
+                continue
+            if bopis > random:
+                wins += 1
+            elif bopis < random:
+                losses += 1
+            else:
+                ties += 1
+        decided = wins + losses + ties
+        tasks.append({
+            "task": task,
+            "n": n,
+            "mean": means,
+            "wins": wins,
+            "losses": losses,
+            "ties": ties,
+            "win_rate": round(wins / decided, 4) if decided else None,
+        })
+    dataset = None
+    try:
+        with open(os.path.join(root, "manifest.json"), encoding="utf-8") as handle:
+            manifest = json.load(handle)
+        spec = manifest.get("dataset") or {}
+        if spec.get("dataset_sources"):
+            dataset = {
+                "n_evaluation": spec.get("n_evaluation"),
+                "sources": spec.get("dataset_sources"),
+            }
+    except (OSError, ValueError):
+        dataset = None
+    return {
+        "run": os.path.basename(name),
+        "conditions": conditions,
+        "tasks": tasks,
+        "dataset": dataset,
+    }
+
+
 def live_run(runs_dir: str = RUNS_DIR) -> Dict[str, object]:
     """State of the newest run under *runs_dir*, for the dashboard's Live mode.
 
@@ -807,18 +895,22 @@ class Instruments:
     # ------------------------------------------------------------------ #
 
     def compare(self, request: Dict[str, object]) -> Dict[str, object]:
-        """Run one Dolly prompt under several configurations, as the study does.
+        """Run one prompt under several configurations, as the study does.
 
-        *request* carries ``prompt_id`` and ``configs`` -- ``{condition:
-        config_key}``, typically the unoptimized default, the random-search
-        pick and ``x*`` from the loaded run. For each, a llama-server is
-        launched on :attr:`compare_port` with that configuration (model,
-        precision, threads, slots, GPU layers), the prompt is sent through the
-        study's own ``/completion`` path with the study's own template and
-        ``n_predict = t``, and the request is bracketed by the telemetry
-        sampler. Model loading happens before the window opens, so it is not
-        charged to the answer. All replies are BERTScored against the Dolly
-        reference only after every energy window has closed.
+        The prompt is either a Dolly one (``prompt_id``) or a custom, arbitrary
+        one (``prompt`` + optional ``context`` / ``reference``). *request*
+        carries the prompt plus ``configs`` -- ``{condition: config_key}``,
+        typically the unoptimized default, the random-search pick and ``x*``
+        from the loaded run. For each, a llama-server is launched on
+        :attr:`compare_port` with that configuration (model, precision, threads,
+        slots, GPU layers), the prompt is sent through the study's own
+        ``/completion`` path with the study's own template and ``n_predict = t``,
+        and the request is bracketed by the telemetry sampler. Model loading
+        happens before the window opens, so it is not charged to the answer. All
+        replies are BERTScored after every energy window has closed, against the
+        Dolly reference, a supplied reference, a retrieved match, or -- for a
+        custom prompt with none of those -- the Default variant's own answer as
+        a self-reference.
         """
         from bopis import config_space as cs
         from bopis.backends.llama_server import LlamaServerBackend
@@ -828,12 +920,31 @@ class Instruments:
                 "comparison needs `bopis ui --llama-binary <llama-server.exe>` so "
                 "it can launch each configuration"
             )
-        prompt = self._dolly_by_id(str(request.get("prompt_id") or ""))
-        if prompt is None:
-            raise ValueError(f"unknown Dolly prompt id {request.get('prompt_id')!r}")
         configs = request.get("configs") or {}
         if not isinstance(configs, dict) or not configs:
             raise ValueError("configs must map condition -> configuration key")
+
+        prompt_id = str(request.get("prompt_id") or "").strip()
+        if prompt_id:
+            prompt = self._dolly_by_id(prompt_id)
+            if prompt is None:
+                raise ValueError(f"unknown Dolly prompt id {prompt_id!r}")
+            reference_mode = "dolly"
+        else:
+            instruction = str(request.get("prompt") or "").strip()
+            if not instruction:
+                raise ValueError("provide either prompt_id or a custom prompt")
+            reference = str(request.get("reference") or "")
+            prompt = dataset.Prompt(
+                index=-1,
+                prompt_id="custom",
+                task_type=str(request.get("task_type") or "custom"),
+                instruction=instruction,
+                context=str(request.get("context") or ""),
+                response=reference,
+                source="custom",
+            )
+            reference_mode = "provided" if reference.strip() else "auto"
 
         backend = LlamaServerBackend(
             binary=self.llama_binary,
@@ -862,26 +973,60 @@ class Instruments:
 
             # Quality only after every window is closed.
             scorable = [r for r in rows if r.get("text")]
+            reference_source = ""
             if scorable:
-                try:
-                    scores = self._get_scorer().score(
-                        [r["text"] for r in scorable],
-                        [prompt.response] * len(scorable),
-                    )
-                    for row, score in zip(scorable, scores):
-                        row["quality"] = score.as_dict()
-                except Exception as exc:
-                    for row in scorable:
-                        row["quality_error"] = str(exc)
+                score_reference, reference_source = self._comparison_reference(
+                    prompt, scorable, reference_mode
+                )
+                if score_reference:
+                    try:
+                        scores = self._get_scorer().score(
+                            [r["text"] for r in scorable],
+                            [score_reference] * len(scorable),
+                        )
+                        for row, score in zip(scorable, scores):
+                            row["quality"] = score.as_dict()
+                    except Exception as exc:
+                        for row in scorable:
+                            row["quality_error"] = str(exc)
         return {
             "prompt": self._prompt_payload(prompt),
             "rows": rows,
+            "reference_source": reference_source,
             "protocol": (
                 "study protocol: /completion, study template, n_predict = t, no "
                 "system prompt; one prompt, so an illustration of the study's "
                 "comparison, not a replacement for its 500-prompt validation"
             ),
         }
+
+    def _comparison_reference(
+        self, prompt: "dataset.Prompt", scorable: List[Dict[str, object]], mode: str
+    ) -> "tuple[str, str]":
+        """Pick the text every variant is BERTScored against.
+
+        A Dolly prompt (or a custom prompt that carried its own ``reference``)
+        has ground truth, so that is used directly. A custom prompt usually has
+        none: retrieval against the reference pool is tried first (the same
+        machinery as free chat); failing that, the Default/unoptimized variant's
+        own answer becomes the self-reference, which still measures how far the
+        other configurations drift from the baseline answer.
+        """
+        if mode in ("dolly", "provided") and prompt.response.strip():
+            return prompt.response, ("dolly" if mode == "dolly" else "provided")
+        retriever = self._get_retriever()
+        if retriever is not None:
+            try:
+                match = retriever.find_match(prompt.instruction.strip() or prompt.text)
+            except Exception:
+                match = None
+            if match is not None:
+                return match.reference, "retrieved"
+        base = next(
+            (r for r in scorable if r.get("condition") in ("unoptimized", "default")),
+            scorable[0],
+        )
+        return str(base.get("text") or ""), "self"
 
     def _run_one(self, backend, config, prompt, row: Dict[str, object]) -> None:
         """Load *config*, measure one generation of *prompt*, stop the server."""
@@ -1176,6 +1321,12 @@ def make_handler(instruments: Instruments, port: int):
                 if prompts is None:
                     return self._json(404, {"error": f"no prompt sample for run {run!r}"})
                 return self._json(200, prompts)
+            if url.path == "/api/benchmark":
+                run = os.path.basename((parse_qs(url.query).get("run") or [""])[0])
+                data = benchmark(run) if run else None
+                if data is None:
+                    return self._json(404, {"error": f"no per-prompt validation for run {run!r}"})
+                return self._json(200, data)
             if url.path == "/api/live/data":
                 run = os.path.basename((parse_qs(url.query).get("run") or [""])[0])
                 path = os.path.join(RUNS_DIR, run, "dashboard_data.js")

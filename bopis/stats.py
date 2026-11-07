@@ -79,25 +79,6 @@ def coefficient_of_variation(values: Sequence[float]) -> float:
 # --------------------------------------------------------------------------- #
 
 
-<<<<<<< Updated upstream
-def average_ranks(row: Sequence[float], higher_is_better: bool = False) -> List[float]:
-    """Rank one block, assigning the average rank to tied values.
-
-    Rank 1 is the *best* value: the smallest when ``higher_is_better`` is False
-    (energy, memory) and the largest when it is True (speed, quality). Getting
-    this orientation right per dependent variable is what makes the Nemenyi mean
-    ranks interpretable.
-    """
-    k = len(row)
-    order = sorted(range(k), key=lambda i: row[i], reverse=higher_is_better)
-    ranks = [0.0] * k
-    position = 0
-    while position < k:
-        span = position + 1
-        while span < k and row[order[span]] == row[order[position]]:
-            span += 1
-        average = (position + span + 1) / 2.0  # ranks are 1-based
-=======
 def _rank_data(data: Sequence[float]) -> List[float]:
     """Helper to rank data, assigning average ranks to ties."""
     order = sorted(range(len(data)), key=data.__getitem__)
@@ -108,31 +89,12 @@ def _rank_data(data: Sequence[float]) -> List[float]:
         while span < len(data) and data[order[span]] == data[order[position]]:
             span += 1
         average = (position + span + 1) / 2.0
->>>>>>> Stashed changes
         for idx in range(position, span):
             ranks[order[idx]] = average
         position = span
     return ranks
 
 
-<<<<<<< Updated upstream
-# --------------------------------------------------------------------------- #
-# Friedman test
-# --------------------------------------------------------------------------- #
-
-
-@dataclasses.dataclass
-class FriedmanResult:
-    """Outcome of a Friedman test over *k* related conditions and *n* blocks."""
-
-    n_blocks: int
-    k_conditions: int
-    chi_square: float
-    df: int
-    p_value: float
-    mean_ranks: List[float]
-    rank_sums: List[float]
-=======
 @dataclasses.dataclass
 class WilcoxonResult:
     """Outcome of a Wilcoxon signed-rank test over 2 related conditions."""
@@ -141,7 +103,6 @@ class WilcoxonResult:
     w_statistic: float
     z_statistic: float
     p_value: float
->>>>>>> Stashed changes
     tie_correction: float
     condition_names: List[str]
     alpha: float = 0.05
@@ -152,168 +113,16 @@ class WilcoxonResult:
 
     def as_dict(self) -> Dict[str, object]:
         return {
-<<<<<<< Updated upstream
-            "n_blocks": self.n_blocks,
-            "k_conditions": self.k_conditions,
-            "chi_square": self.chi_square,
-            "df": self.df,
-            "p_value": self.p_value,
-            "significant": self.significant,
-            "alpha": self.alpha,
-            "mean_ranks": dict(zip(self.condition_names, self.mean_ranks)),
-            "rank_sums": dict(zip(self.condition_names, self.rank_sums)),
-=======
             "n_effective": self.n_effective,
             "w_statistic": self.w_statistic,
             "z_statistic": self.z_statistic,
             "p_value": self.p_value,
             "significant": self.significant,
             "alpha": self.alpha,
->>>>>>> Stashed changes
             "tie_correction": self.tie_correction,
         }
 
 
-<<<<<<< Updated upstream
-def friedman(
-    blocks: Sequence[Sequence[float]],
-    condition_names: Optional[Sequence[str]] = None,
-    higher_is_better: bool = False,
-    alpha: float = 0.05,
-) -> FriedmanResult:
-    """Friedman test with tie correction.
-
-    Args:
-        blocks: One row per block (per prompt), each row holding one value per
-            condition, in a consistent condition order.
-        condition_names: Labels for the conditions.
-        higher_is_better: Orientation of the dependent variable.
-        alpha: Significance level.
-
-    The uncorrected statistic is
-
-        ``chi2 = 12 / (n k (k+1)) * sum_j R_j^2 - 3 n (k+1)``
-
-    divided by the tie-correction factor
-
-        ``1 - sum_i sum_g (t_gi^3 - t_gi) / (n k (k^2 - 1))``
-
-    where ``t_gi`` are tie-group sizes within block ``i``. Ties are common here
-    because quality scores repeat across configurations, so omitting the
-    correction would understate the statistic.
-    """
-    if not blocks:
-        raise ValueError("friedman requires at least one block")
-    k = len(blocks[0])
-    if k < 2:
-        raise ValueError("friedman requires at least two conditions")
-    if any(len(row) != k for row in blocks):
-        raise ValueError("all blocks must have the same number of conditions")
-
-    n = len(blocks)
-    names = list(condition_names) if condition_names else [f"c{i}" for i in range(k)]
-
-    rank_sums = [0.0] * k
-    tie_term = 0.0
-    for row in blocks:
-        ranks = average_ranks(row, higher_is_better=higher_is_better)
-        for j in range(k):
-            rank_sums[j] += ranks[j]
-        # Tie-group sizes in this block.
-        counts: Dict[float, int] = {}
-        for value in row:
-            counts[value] = counts.get(value, 0) + 1
-        tie_term += sum(t**3 - t for t in counts.values() if t > 1)
-
-    raw = 12.0 / (n * k * (k + 1)) * sum(r * r for r in rank_sums) - 3.0 * n * (k + 1)
-
-    denominator = n * k * (k * k - 1)
-    correction = 1.0 - (tie_term / denominator) if denominator else 1.0
-    if correction <= 0.0:
-        # Every block fully tied: no evidence of any difference.
-        chi_square, correction = 0.0, 1.0
-    else:
-        chi_square = raw / correction
-
-    chi_square = max(chi_square, 0.0)
-    df = k - 1
-    return FriedmanResult(
-        n_blocks=n,
-        k_conditions=k,
-        chi_square=chi_square,
-        df=df,
-        p_value=chi2_sf(chi_square, df),
-        mean_ranks=[r / n for r in rank_sums],
-        rank_sums=rank_sums,
-        tie_correction=correction,
-        condition_names=names,
-        alpha=alpha,
-    )
-
-
-# --------------------------------------------------------------------------- #
-# Nemenyi post-hoc
-# --------------------------------------------------------------------------- #
-
-
-@dataclasses.dataclass
-class NemenyiResult:
-    """Pairwise post-hoc comparison of mean ranks."""
-
-    critical_difference: float
-    alpha: float
-    q_alpha: float
-    pairs: List[Dict[str, object]]
-
-    def significant_pairs(self) -> List[str]:
-        return [p["pair"] for p in self.pairs if p["significant"]]  # type: ignore[misc]
-
-    def as_dict(self) -> Dict[str, object]:
-        return {
-            "critical_difference": self.critical_difference,
-            "alpha": self.alpha,
-            "q_alpha": self.q_alpha,
-            "pairs": self.pairs,
-            "significant_pairs": self.significant_pairs(),
-        }
-
-
-def nemenyi(result: FriedmanResult, alpha: float = 0.05) -> NemenyiResult:
-    """Nemenyi post-hoc test on the mean ranks of a Friedman result.
-
-    ``CD = q_alpha * sqrt(k (k + 1) / (6 n))``; two conditions differ
-    significantly when the absolute difference of their mean ranks exceeds
-    ``CD``. Unlike a pairwise test, the Nemenyi procedure controls the
-    family-wise error rate across all pairs, which is why Chapter 3 pairs it
-    with Friedman rather than running three separate tests.
-    """
-    k, n = result.k_conditions, result.n_blocks
-    table = NEMENYI_Q.get(alpha)
-    if table is None:
-        raise ValueError(f"no tabulated q_alpha for alpha={alpha}")
-    if k not in table:
-        raise ValueError(f"no tabulated q_alpha for k={k} conditions")
-    q_alpha = table[k]
-    cd = q_alpha * math.sqrt(k * (k + 1) / (6.0 * n))
-
-    pairs: List[Dict[str, object]] = []
-    for i in range(k):
-        for j in range(i + 1, k):
-            diff = abs(result.mean_ranks[i] - result.mean_ranks[j])
-            pairs.append(
-                {
-                    "pair": f"{result.condition_names[i]} vs {result.condition_names[j]}",
-                    "a": result.condition_names[i],
-                    "b": result.condition_names[j],
-                    "mean_rank_a": result.mean_ranks[i],
-                    "mean_rank_b": result.mean_ranks[j],
-                    "abs_diff": diff,
-                    "critical_difference": cd,
-                    "significant": diff > cd,
-                }
-            )
-    return NemenyiResult(critical_difference=cd, alpha=alpha, q_alpha=q_alpha, pairs=pairs)
-=======
 def wilcoxon(
     blocks: Sequence[Sequence[float]],
     condition_names: Optional[Sequence[str]] = None,
@@ -382,7 +191,6 @@ def wilcoxon(
         p_val = math.erfc(abs(z) / math.sqrt(2.0))
 
     return WilcoxonResult(n, w_stat, z, p_val, t_sum / 48.0, list(condition_names), alpha)
->>>>>>> Stashed changes
 
 
 def compare_conditions(
@@ -391,19 +199,6 @@ def compare_conditions(
     higher_is_better: bool = False,
     alpha: float = 0.05,
 ) -> Dict[str, object]:
-<<<<<<< Updated upstream
-    """Friedman test plus, if significant, the Nemenyi post-hoc comparison."""
-    result = friedman(
-        blocks,
-        condition_names=condition_names,
-        higher_is_better=higher_is_better,
-        alpha=alpha,
-    )
-    payload: Dict[str, object] = {"friedman": result.as_dict(), "nemenyi": None}
-    if result.significant:
-        payload["nemenyi"] = nemenyi(result, alpha=alpha).as_dict()
-    return payload
-=======
     """Wilcoxon signed-rank test comparing random_search and bopis.
 
     The three-way design carries an unoptimized *reference* condition, but the
@@ -434,7 +229,6 @@ def compare_conditions(
         "n_blocks": len(blocks),
         "conditions": ["random_search", "bopis"],
     }
->>>>>>> Stashed changes
 
 
 # --------------------------------------------------------------------------- #
