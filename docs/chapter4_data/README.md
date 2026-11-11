@@ -24,6 +24,8 @@ tables used by Chapter 4/5 text but not printed as appendix instruments.
 | `B9_xstar_selection.csv` | 8 |
 | `B10_pareto_front.csv` | 30 |
 | `B11_surrogate_reliability.csv` | 20 |
+| `table_b9_gate_viability_confusion_matrix.csv` | 9 |
+| `table_b10_task_category_confusion_matrix.csv` | 13 |
 | `tidy/B1_trials.csv` | 3 |
 | `tidy/B2_config_eval.csv` | 60 |
 | `tidy/B3_per_prompt_energy.csv` | 1500 |

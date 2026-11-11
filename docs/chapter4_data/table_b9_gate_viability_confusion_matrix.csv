@@ -1,0 +1,9 @@
+predicted_status,empirical_pass,empirical_fail,total_predicted
+viable_candidate_predicted_pass,5,1,6
+infeasible_candidate_predicted_fail,1,23,24
+total_actual,6,24,30
+metric,formula,value
+accuracy,"(TP + TN) / (TP + TN + FP + FN)",0.933333
+precision,"TP / (TP + FP)",0.833333
+recall,"TP / (TP + FN)",0.833333
+f1_score,"2 * (Precision * Recall) / (Precision + Recall)",0.833333

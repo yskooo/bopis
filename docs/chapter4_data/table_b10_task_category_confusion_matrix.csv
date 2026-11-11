@@ -1,0 +1,13 @@
+actual_category,open_qa,closed_qa,summarization,information_extraction,general_qa,classification,brainstorming,creative_writing,total_actual,class_recall_pct,class_precision_pct,class_f1_pct
+open_qa,433,0,2,1,68,7,47,4,562,77.05,68.08,72.29
+closed_qa,4,216,34,10,0,1,1,0,266,81.20,67.50,73.72
+summarization,3,50,104,16,2,0,3,0,178,58.43,59.43,58.92
+information_extraction,2,53,34,132,3,0,2,0,226,58.41,82.50,68.39
+general_qa,132,0,1,0,161,3,22,9,328,49.09,50.95,50.00
+classification,16,1,0,1,4,295,3,1,321,91.90,94.55,93.21
+brainstorming,32,0,0,0,54,4,171,4,265,64.53,66.28,65.39
+creative_writing,14,0,0,0,24,2,9,58,107,54.21,76.32,63.39
+total_predicted,636,320,175,160,316,312,258,76,2253,,,
+metric,formula,value,,,,,,,,,,
+overall_exact_accuracy,"sum(TP_i) / N_total",0.696849,,,,,,,,,,
+macro_f1,"(1/8) * sum(F1_i)",0.681643,,,,,,,,,,
