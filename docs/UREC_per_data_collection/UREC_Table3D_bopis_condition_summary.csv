@@ -1,0 +1,25 @@
+condition,condition_label,metric,field,n,mean,sd,min,max
+unoptimized,Unoptimized Default,Energy (J),energy_j,500,311.152786,318.164595,25.871000,2064.090000
+unoptimized,Unoptimized Default,Energy per Token (J/token),j_per_token,500,3.002171,1.761823,1.927280,15.957375
+unoptimized,Unoptimized Default,Speed (tokens/s),tokens_per_s,500,35.254479,13.386688,3.986018,56.132654
+unoptimized,Unoptimized Default,Quality (BERTScore F1),quality_f1,500,0.150806,0.250823,-0.659042,1.000000
+unoptimized,Unoptimized Default,CPU Utilization (%),cpu_percent,500,34.456552,6.734873,14.580645,56.432749
+unoptimized,Unoptimized Default,GPU Utilization (%),gpu_percent,500,84.900485,4.492310,41.000000,96.400000
+unoptimized,Unoptimized Default,System Memory (MiB),memory_mib,500,14110.657562,528.825327,12985.851562,15342.885711
+unoptimized,Unoptimized Default,VRAM (MiB),vram_mib,500,3273.481765,1.638210,3253.718750,3273.718750
+random_search,Random Search,Energy (J),energy_j,500,81.048410,45.976457,5.952000,201.482000
+random_search,Random Search,Energy per Token (J/token),j_per_token,500,1.028440,0.445429,0.419533,4.950400
+random_search,Random Search,Speed (tokens/s),tokens_per_s,500,91.641532,25.366731,14.009129,120.039429
+random_search,Random Search,Quality (BERTScore F1),quality_f1,500,0.140629,0.235316,-0.460085,0.862277
+random_search,Random Search,CPU Utilization (%),cpu_percent,500,20.557694,4.116958,12.660256,43.229167
+random_search,Random Search,GPU Utilization (%),gpu_percent,500,78.219152,4.086666,32.818182,95.000000
+random_search,Random Search,System Memory (MiB),memory_mib,500,11657.743224,566.716802,10637.045455,13011.973633
+random_search,Random Search,VRAM (MiB),vram_mib,500,1307.524528,1.307946,1293.718750,1307.718750
+bopis,BOPIS,Energy (J),energy_j,500,78.950712,44.857087,5.796000,203.265000
+bopis,BOPIS,Energy per Token (J/token),j_per_token,500,0.990205,0.405254,0.414000,4.711160
+bopis,BOPIS,Speed (tokens/s),tokens_per_s,500,93.701365,25.741850,14.095148,124.132202
+bopis,BOPIS,Quality (BERTScore F1),quality_f1,500,0.143345,0.238380,-0.460085,0.862277
+bopis,BOPIS,CPU Utilization (%),cpu_percent,500,39.013552,6.292035,19.209040,74.404762
+bopis,BOPIS,GPU Utilization (%),gpu_percent,500,78.962452,4.230508,36.090909,100.000000
+bopis,BOPIS,System Memory (MiB),memory_mib,500,11547.482336,697.130658,10313.693182,13102.845052
+bopis,BOPIS,VRAM (MiB),vram_mib,500,1307.524528,1.307946,1293.718750,1307.718750

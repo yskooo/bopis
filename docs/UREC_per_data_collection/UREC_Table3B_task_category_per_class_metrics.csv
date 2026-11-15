@@ -1,0 +1,17 @@
+model,model_label,category,actual_n,predicted_n,true_positive,false_positive,false_negative,precision,recall,f1
+rule_baseline,Rule Baseline,open_qa,562,959,441,518,121,0.459854,0.784698,0.579882
+rule_baseline,Rule Baseline,closed_qa,266,453,237,216,29,0.523179,0.890977,0.659249
+rule_baseline,Rule Baseline,summarization,178,40,36,4,142,0.900000,0.202247,0.330275
+rule_baseline,Rule Baseline,information_extraction,226,94,82,12,144,0.872340,0.362832,0.512500
+rule_baseline,Rule Baseline,general_qa,328,351,37,314,291,0.105413,0.112805,0.108984
+rule_baseline,Rule Baseline,classification,321,107,107,0,214,1.000000,0.333333,0.500000
+rule_baseline,Rule Baseline,brainstorming,265,204,110,94,155,0.539216,0.415094,0.469083
+rule_baseline,Rule Baseline,creative_writing,107,45,37,8,70,0.822222,0.345794,0.486842
+learned_naive_bayes,Learned Naive Bayes,open_qa,562,636,433,203,129,0.680818,0.770463,0.722871
+learned_naive_bayes,Learned Naive Bayes,closed_qa,266,320,216,104,50,0.675000,0.812030,0.737201
+learned_naive_bayes,Learned Naive Bayes,summarization,178,175,104,71,74,0.594286,0.584270,0.589235
+learned_naive_bayes,Learned Naive Bayes,information_extraction,226,160,132,28,94,0.825000,0.584071,0.683938
+learned_naive_bayes,Learned Naive Bayes,general_qa,328,316,161,155,167,0.509494,0.490854,0.500000
+learned_naive_bayes,Learned Naive Bayes,classification,321,312,295,17,26,0.945513,0.919003,0.932070
+learned_naive_bayes,Learned Naive Bayes,brainstorming,265,258,171,87,94,0.662791,0.645283,0.653920
+learned_naive_bayes,Learned Naive Bayes,creative_writing,107,76,58,18,49,0.763158,0.542056,0.633880

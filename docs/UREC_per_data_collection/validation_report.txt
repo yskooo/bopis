@@ -1,0 +1,41 @@
+UREC per-data-collection export validation
+================================================
+source run: 20261107T125343Z_real-full
+dolly rows: 15011
+split: train 10507 / validation 2251 / test 2253
+
+B10 task-category reproduction
+  learned exact: 1570/2253 = 0.696849
+  protected accuracy: 0.696849
+  learned macro precision: 0.707007
+  learned macro recall: 0.668504
+  learned macro F1: 0.681639
+  protected macro F1: 0.681643
+  rule exact: 1087/2253 = 0.482468
+  confusion mismatches: 0
+
+Row counts
+  B.10a wide per-test-input rows: 2253
+  task-category long rows: 4506 (2 models x 2253 test items)
+  bopis per-prompt rows: 1500
+  b9 iteration rows: 30
+
+Source hashes (sha256)
+  docs\chapter4_data\tidy\B3_per_prompt_energy.csv  a7b3b880ca006d500a317d7fd2cfdd512e6a9a66e70646397a0cc51ad1ce66e4
+  docs\chapter4_data\tidy\B4_per_prompt_speed.csv  f66e399f36a447eaac724ca3a9287f9f16e49191f82edf5ee9001af9895b00f0
+  docs\chapter4_data\tidy\B5_per_prompt_quality.csv  66719ba7d9e5af8279c3b88054535436f48ceb96798bb8de07dee7e48855df14
+  docs\chapter4_data\tidy\B6_per_prompt_resources.csv  434f50d127813faf6132709851954947244b4fe7d9a45ecde441d0952fdb62e5
+  docs\chapter4_data\tidy\B7_bo_log.csv  7264ee61bcc5aacba1c6e58df54e95c238a5a0b18255b3ab0af7f7462c8a5a78
+  docs\chapter4_data\table_b10_task_category_confusion_matrix.csv  dd934a98fe878d498ff0c9fd79d9a413a60d17309da06a78562b24aa7716b7fe
+  docs\chapter4_data\table_b9_gate_viability_confusion_matrix.csv  3d5aa46443ba04519aee09d056b5fc78cf4d0d962f92663590f9938c6ca59ab3
+  data\databricks-dolly-15k.jsonl  2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec
+
+Output hashes (sha256)
+  UREC_Table2A_B10a_task_category_per_test_input.csv  0c30b2f8cc8275079099410755cebc2729b197d99726e685bd505b9b1b8f1101
+  UREC_Table2A_task_category_per_test_input.csv  9e15ab8e2f24704704bc887219de3511cb35f1b65f69195fb3e5bc2aff513a07
+  UREC_Table2B_bopis_per_test_input.csv  6ffe0449e9e5637098c4713099ae0dd1327b534a7e5bdc6c608737b6131ee95f
+  UREC_Table2C_b9_gate_viability_per_iteration.csv  7e887b15b0103803e4d0289e611ac305e2d25a1fd10eb7a8ab801fc0a811bd42
+  UREC_Table3A_task_category_metrics_by_model.csv  b473c88c5df9fc076484b5958dac8442bf20c985fc4a0d473885eef67138394b
+  UREC_Table3B_task_category_per_class_metrics.csv  18bbe284fb75424b5e12d54e38793763b46b141f2ac8416e95dd2548d8987a6f
+  UREC_Table3C_task_category_confusion_matrix_learned.csv  17d9f33c4abc5c6cc736289e6d8a1281da81166df7a68457ceec7fed48173fa2
+  UREC_Table3D_bopis_condition_summary.csv  b062edef718dd260de05adcbeb08a9603a45272609626c2057f301aee21cc4f2

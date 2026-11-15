@@ -1,0 +1,9 @@
+actual_category,open_qa,closed_qa,summarization,information_extraction,general_qa,classification,brainstorming,creative_writing,actual_n
+open_qa,433,0,2,1,68,7,47,4,562
+closed_qa,4,216,34,10,0,1,1,0,266
+summarization,3,50,104,16,2,0,3,0,178
+information_extraction,2,53,34,132,3,0,2,0,226
+general_qa,132,0,1,0,161,3,22,9,328
+classification,16,1,0,1,4,295,3,1,321
+brainstorming,32,0,0,0,54,4,171,4,265
+creative_writing,14,0,0,0,24,2,9,58,107
